@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "952425570414",
+    "project_id": "yak-biseo",
+    "storage_bucket": "yak-biseo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:952425570414:android:b50341ebfd8a6477bec67f",
+        "android_client_info": {
+          "package_name": "com.example.myapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB5vAyKJcTa9GaYohT-rP5rOr2ovm96iuU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
