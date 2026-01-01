@@ -1,15 +1,20 @@
 
 import 'dart:io';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
 class ApiService {
-  // TODO: 배포 시 환경변수로 교체 필요
-  static const String apiKey = ''; 
+  // API 키를 .env 파일에서 불러옵니다.
+  static final String? _apiKey = dotenv.env['API_KEY'];
 
   static Future<String> analyzeDrugImage(File image) async {
+    if (_apiKey == null) {
+      return '{"status": "ERROR", "summary": "API 키가 설정되지 않았습니다. .env 파일을 확인하세요.", "cards": []}';
+    }
+
     final model = GenerativeModel(
       model: 'gemini-1.5-flash',
-      apiKey: apiKey,
+      apiKey: _apiKey!,
     );
 
     final prompt = TextPart(
