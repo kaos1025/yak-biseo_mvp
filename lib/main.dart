@@ -1,10 +1,11 @@
 
-import 'dart:io';
-
+import 'dart:developer' as developer;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:myapp/screens/result_screen.dart';
 
+import 'firebase_options.dart';
 import 'services/analytics_service.dart';
 
 // Step 4: Firebase 초기화 및 flutterfire 설정
@@ -16,7 +17,9 @@ import 'services/analytics_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(); // Firebase 초기화
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform, // Firebase 초기화
+  );
   runApp(const YakBiseoApp());
 }
 
@@ -46,7 +49,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final AnalyticsService _analyticsService = AnalyticsService();
-  File? _image;
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -59,10 +61,15 @@ class _HomeScreenState extends State<HomeScreen> {
     _analyticsService.logCameraClick(); // 카메라 버튼 클릭 이벤트
     final XFile? pickedFile = await _picker.pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
-      setState(() {
-        _image = File(pickedFile.path);
-      });
-      // TODO: 분석 API 호출 후 결과에 따라 logAnalysisResult 호출
+      if (!mounted) return; // context가 유효한지 확인
+      // 결과 화면으로 이동
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ResultScreen(imagePath: pickedFile.path),
+        ),
+      );
+      // TODO: 분석 결과에 따라 logAnalysisResult 호출
       // 예시: _analyticsService.logAnalysisResult(true);
     }
   }
@@ -70,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _pickImageFromGallery() {
     _analyticsService.logGalleryClick(); // 갤러리 버튼 클릭 이벤트
     // TODO: 갤러리 연동 로직 구현
-    print('갤러리 버튼 클릭됨');
+    developer.log('갤러리 버튼 클릭됨', name: 'com.example.myapp.ui');
   }
 
   @override
@@ -92,19 +99,6 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (_image != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 20.0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.file(
-                      _image!,
-                      fit: BoxFit.cover,
-                      height: 250,
-                    ),
-                  ),
-                ),
-              
               const Text(
                 '김영희님, 안녕하세요!\n지금 드시는 약,\n불필요한 건 없을까요?',
                 style: TextStyle(
@@ -122,9 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Colors.grey,
                 ),
               ),
-              
               const Spacer(),
-
               _buildBigActionButton(
                 icon: Icons.camera_alt_rounded,
                 label: '약 봉투 촬영하기',
@@ -132,16 +124,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 onTap: _pickImageFromCamera,
               ),
               const SizedBox(height: 16),
-              
               _buildBigActionButton(
                 icon: Icons.photo_library_rounded,
                 label: '앨범에서 불러오기',
                 color: const Color(0xFF424242),
                 onTap: _pickImageFromGallery,
               ),
-
               const Spacer(),
-
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
