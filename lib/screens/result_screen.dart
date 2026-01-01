@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../services/api_service.dart'; // ApiService import 확인
+import '../services/api_service.dart'; // ApiService import
 
 class ResultScreen extends StatefulWidget {
   final String imagePath;
@@ -28,11 +28,10 @@ class _ResultScreenState extends State<ResultScreen> {
     try {
       final File imageFile = File(widget.imagePath);
       
-      // API 호출 (정적 메서드 직접 호출로 변경)
+      // API 호출
       final jsonString = await ApiService.analyzeDrugImage(imageFile);
       
-      // JSON 파싱
-      // AI가 가끔 마크다운 ```json ... ``` 을 붙일 때가 있어서 제거해줌
+      // JSON 파싱 (가끔 응답에 Markdown이 포함될 경우를 대비)
       final cleanJson = jsonString.replaceAll('```json', '').replaceAll('```', '').trim();
       final Map<String, dynamic> result = jsonDecode(cleanJson);
 
@@ -84,7 +83,7 @@ class _ResultScreenState extends State<ResultScreen> {
       );
     }
 
-    // B. 에러 났을 때
+    // B. 에러 발생 시
     if (_errorMessage != null) {
       return Center(
         child: Padding(
@@ -94,7 +93,7 @@ class _ResultScreenState extends State<ResultScreen> {
       );
     }
 
-    // C. 결과 보여주기
+    // C. 분석 결과 표시
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -138,10 +137,8 @@ class _ResultScreenState extends State<ResultScreen> {
 
   // 💰 절약 금액 카드 위젯
   Widget _buildSavingCard() {
-    // JSON에서 total_saving_amount 가져오기 (없으면 0원)
     int savingAmount = _analysisResult?['total_saving_amount'] ?? 0;
 
-    // 절약할 돈이 없으면 화면에 안 그림 (빈 박스 리턴)
     if (savingAmount <= 0) return const SizedBox.shrink();
 
     return Container(
@@ -150,7 +147,7 @@ class _ResultScreenState extends State<ResultScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFFFF8E1), // 연한 노란색 배경
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFFB300), width: 2), // 진한 노란 테두리
+        border: Border.all(color: const Color(0xFFFFB300), width: 2),
       ),
       child: Column(
         children: [
@@ -165,7 +162,6 @@ class _ResultScreenState extends State<ResultScreen> {
               const Icon(Icons.savings_rounded, color: Color(0xFFFF6F00), size: 32),
               const SizedBox(width: 8),
               Text(
-                // 3자리마다 콤마 찍기 로직
                 "${savingAmount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원",
                 style: const TextStyle(
                   fontSize: 32, 
@@ -191,7 +187,6 @@ class _ResultScreenState extends State<ResultScreen> {
     Color titleColor;
     IconData icon;
 
-    // 카드 타입에 따른 색상 분기
     String type = (cardData['type'] ?? 'INFO').toString().toUpperCase();
     
     if (type == 'WARNING' || type == 'RED') {
