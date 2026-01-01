@@ -9,18 +9,11 @@ import 'package:myapp/screens/result_screen.dart';
 import 'firebase_options.dart';
 import 'services/analytics_service.dart';
 
-// Step 4: Firebase 초기화 및 flutterfire 설정
-// 1. Firebase CLI 설치: `npm install -g firebase-tools`
-// 2. Firebase 로그인: `firebase login`
-// 3. FlutterFire CLI 설치: `dart pub global activate flutterfire_cli`
-// 4. Firebase 프로젝트 생성 및 앱 등록 (Firebase Console)
-// 5. 프로젝트 루트에서 flutterfire configure 실행: `flutterfire configure`
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform, // Firebase 초기화
+    options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(const YakBiseoApp());
 }
@@ -34,7 +27,7 @@ class YakBiseoApp extends StatelessWidget {
       title: '약비서',
       theme: ThemeData(
         primaryColor: const Color(0xFF2E7D32),
-        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+        scaffoldBackgroundColor: Colors.white, // Changed background to white
         useMaterial3: true,
       ),
       home: const HomeScreen(),
@@ -56,30 +49,27 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _analyticsService.logAppOpen(); // 앱 실행 시 이벤트 로깅
+    _analyticsService.logAppOpen();
   }
 
   Future<void> _pickImageFromCamera() async {
-    _analyticsService.logCameraClick(); // 카메라 버튼 클릭 이벤트
+    _analyticsService.logCameraClick();
     final XFile? pickedFile = await _picker.pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
-      if (!mounted) return; // context가 유효한지 확인
-      // 결과 화면으로 이동
+      if (!mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ResultScreen(imagePath: pickedFile.path),
         ),
       );
-      // TODO: 분석 결과에 따라 logAnalysisResult 호출
-      // 예시: _analyticsService.logAnalysisResult(true);
     }
   }
 
   void _pickImageFromGallery() {
-    _analyticsService.logGalleryClick(); // 갤러리 버튼 클릭 이벤트
-    // TODO: 갤러리 연동 로직 구현
+    _analyticsService.logGalleryClick();
     developer.log('갤러리 버튼 클릭됨', name: 'com.example.myapp.ui');
+     // TODO: Implement gallery picking and navigation
   }
 
   @override
@@ -97,42 +87,90 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                '김영희님, 안녕하세요!\n지금 드시는 약,\n불필요한 건 없을까요?',
+                '혹시 영양제에\n돈 낭비 하고 계신가요? 💸',
                 style: TextStyle(
-                  fontSize: 26,
+                  fontSize: 28,
                   fontWeight: FontWeight.bold,
                   height: 1.4,
                   color: Colors.black87,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               const Text(
-                '약 봉투나 영양제통을 찍어보세요.\n3초 만에 분석해 드립니다.',
+                "요즘 트렌드는 '더하기'가 아니라 '빼기'입니다.\n3초 만에 구조조정 해드려요.",
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF2E7D32)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.savings_rounded, color: Color(0xFF2E7D32)),
+                    SizedBox(width: 8),
+                    Text(
+                      "평균 월 50,000원 절약 효과",
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2E7D32),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const Spacer(),
-              _buildBigActionButton(
-                icon: Icons.camera_alt_rounded,
-                label: '약 봉투 촬영하기',
-                color: const Color(0xFF2E7D32),
-                onTap: _pickImageFromCamera,
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.camera_alt_rounded, size: 28),
+                  label: const Text('약 봉투 찍고 진단받기'),
+                  onPressed: _pickImageFromCamera,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E7D32),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 4,
+                    textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
               ),
-              const SizedBox(height: 16),
-              _buildBigActionButton(
-                icon: Icons.photo_library_rounded,
-                label: '앨범에서 불러오기',
-                color: const Color(0xFF424242),
-                onTap: _pickImageFromGallery,
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                   icon: const Icon(Icons.photo_library_rounded),
+                   label: const Text('앨범에서 불러오기'),
+                   onPressed: _pickImageFromGallery,
+                   style: OutlinedButton.styleFrom(
+                     foregroundColor: const Color(0xFF2E7D32),
+                     side: const BorderSide(color: Color(0xFF2E7D32)),
+                     padding: const EdgeInsets.symmetric(vertical: 16),
+                     shape: RoundedRectangleBorder(
+                       borderRadius: BorderRadius.circular(16),
+                     ),
+                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                   ),
+                ),
               ),
-              const Spacer(),
+              const SizedBox(height: 20),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -146,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: Text(
                         '결과는 참고용이며, 정확한 진단은 의사/약사와 상의하세요.',
-                        style: TextStyle(fontSize: 13, color: Colors.black54),
+                        style: TextStyle(fontSize: 12, color: Colors.black54),
                       ),
                     ),
                   ],
@@ -155,37 +193,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildBigActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return ElevatedButton(
-      onPressed: onTap,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        elevation: 4,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 32),
-          const SizedBox(width: 12),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-        ],
       ),
     );
   }
