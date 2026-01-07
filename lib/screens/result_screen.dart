@@ -192,7 +192,7 @@ class _ResultScreenState extends State<ResultScreen> {
           const SizedBox(height: 30),
 
           // 3. [New] Detected Items List
-          Text("총 ${_analysisResult?.totalCount ?? 0}개의 영양제 발견", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text("총 ${_analysisResult?.totalCount ?? 0}개의 영양제 발견", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
           ListView.builder(
             shrinkWrap: true,
@@ -295,7 +295,7 @@ class _ResultScreenState extends State<ResultScreen> {
                 Expanded(
                   child: Text(
                     title,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
                   ),
                 ),
               ],
@@ -305,9 +305,9 @@ class _ResultScreenState extends State<ResultScreen> {
               TextSpan(
                 style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
                 children: [
-                  TextSpan(text: "브랜드: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                  const TextSpan(text: "브랜드: ", style: TextStyle(fontWeight: FontWeight.bold)),
                   TextSpan(text: "${item.brandName}\n"),
-                  TextSpan(text: "주요성분: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                  const TextSpan(text: "주요성분: ", style: TextStyle(fontWeight: FontWeight.bold)),
                   TextSpan(text: item.keyIngredients),
                 ]
               )
@@ -318,7 +318,7 @@ class _ResultScreenState extends State<ResultScreen> {
                   alignment: Alignment.centerRight,
                   child: Text(
                     "예상가: ${item.estimatedPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원",
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: kSavingAmountTextColor),
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: kSavingAmountTextColor),
                   ),
                 )
              ]
