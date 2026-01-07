@@ -1,4 +1,3 @@
-
 import 'dart:developer' as developer;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:myapp/screens/result_screen.dart';
 
 import 'firebase_options.dart';
-import 'services/analytics_service.dart';
+import 'package:myapp/services/analytics_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,7 +53,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _pickImageFromCamera() async {
     _analyticsService.logCameraClick();
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.camera);
+    final XFile? pickedFile =
+        await _picker.pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
       if (!mounted) return;
       Navigator.push(
@@ -66,10 +66,20 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _pickImageFromGallery() {
+  Future<void> _pickImageFromGallery() async {
     _analyticsService.logGalleryClick();
     developer.log('갤러리 버튼 클릭됨', name: 'com.example.myapp.ui');
-     // TODO: Implement gallery picking and navigation
+    final XFile? pickedFile =
+        await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ResultScreen(imagePath: pickedFile.path),
+        ),
+      );
+    }
   }
 
   @override
@@ -111,7 +121,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 24),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(20),
@@ -148,7 +159,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     elevation: 4,
-                    textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    textStyle: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -156,18 +168,19 @@ class _HomeScreenState extends State<HomeScreen> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                   icon: const Icon(Icons.photo_library_rounded),
-                   label: const Text('앨범에서 불러오기'),
-                   onPressed: _pickImageFromGallery,
-                   style: OutlinedButton.styleFrom(
-                     foregroundColor: const Color(0xFF2E7D32),
-                     side: const BorderSide(color: Color(0xFF2E7D32)),
-                     padding: const EdgeInsets.symmetric(vertical: 16),
-                     shape: RoundedRectangleBorder(
-                       borderRadius: BorderRadius.circular(16),
-                     ),
-                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                   ),
+                  icon: const Icon(Icons.photo_library_rounded),
+                  label: const Text('앨범에서 불러오기'),
+                  onPressed: _pickImageFromGallery,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF2E7D32),
+                    side: const BorderSide(color: Color(0xFF2E7D32)),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    textStyle: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -177,8 +190,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Colors.grey[200],
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Row(
-                  children: const [
+                child: const Row(
+                  children: [
                     Icon(Icons.info_outline, size: 20, color: Colors.grey),
                     SizedBox(width: 8),
                     Expanded(

@@ -1,4 +1,3 @@
-
 import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
@@ -8,46 +7,59 @@ class ApiService {
   static final String? _apiKey = dotenv.env['API_KEY'];
 
   static Future<String> analyzeDrugImage(File image) async {
-    if (_apiKey == null) {
-      return '{"status": "ERROR", "summary": "API 키가 설정되지 않았습니다. .env 파일을 확인하세요.", "cards": []}';
+    // 널이 될 수 있는 _apiKey를 지역 변수로 옮겨서 널 안전성 검사를 명확하게 합니다.
+    final apiKey = _apiKey;
+    if (apiKey == null || apiKey.isEmpty) {
+      // API 키가 없으면 예외를 발생시켜 함수 실행을 중단합니다.
+      throw Exception('API 키가 설정되지 않았습니다. .env 파일을 확인하세요.');
     }
 
+    // 이제 apiKey는 절대 널이 아니라고 확신할 수 있습니다.
     final model = GenerativeModel(
-      model: 'gemini-1.5-flash', // 가성비/속도 최적화 모델 [cite: 720]
-      apiKey: _apiKey,
+      model: 'gemini-2.5-flash',
+      apiKey: apiKey, // 불필요한 '!' 연산자를 제거했습니다.
       generationConfig: GenerationConfig(
         responseMimeType: 'application/json',
-        temperature: 0.2, // 할루시네이션 방지를 위해 낮은 창의성 설정 [cite: 726]
+        temperature: 0.2,
       ),
     );
 
     final prompt = TextPart('''
-      당신은 4050 세대를 위한 '디지털 헬스케어 비서'이자 '약물 구조조정 전문가'입니다. [cite: 684]
-      사용자가 업로드한 약/영양제 이미지를 분석하여 다음 작업을 수행하세요.
+      # 역할
+      당신은 '약비서' 앱을 위한 AI 약사이자 이미지 분석 전문가입니다.
 
-      [분석 지침]
-      1. 이미지 내 텍스트를 인식하여 제품명과 성분을 식별하세요. (Vision API 대체)
-      2. 식약처 기준 및 약학 지식을 바탕으로 다음을 분석하세요:
-         - [RED] 병용 금기 및 위험한 상호작용 (식약처 DUR 기준) [cite: 730]
-         - [YELLOW] 성분 중복 및 과다 섭취 (돈 낭비 요인)
-         - [GREEN] 필수 영양소 및 안전 조합
-      3. **[핵심: 비용 절감 계산]**
-         - 중복/과다로 분류된 제품의 '한국 시장 평균 월간 비용(KRW)'을 추정하세요.
-         - 이를 합산하여 'total_saving_amount'를 계산하세요. (예: 월 5만 원 절약 가능) [cite: 760]
+      # 임무
+      사용자가 업로드한 이미지에는 여러 개의 영양제/약통이 섞여 있을 수 있습니다.
+      1. 이미지에서 식별 가능한 **모든 영양제 약통**을 찾아내세요.
+      2. 각 약통에 대해 다음 정보를 추출하세요:
+         - brand_name (브랜드명): 예 - 종근당, 고려은단 (로고나 텍스트 기반 추론)
+         - product_name (제품명): 예 - 락토핏 골드, 비타민C 1000
+         - key_ingredients (주요 성분): 예 - 유산균, 마그네슘
+         - estimated_price (한국 시장 평균가 추정치, 정수형): 예 - 15000
+      3. **반드시 JSON 형식으로만** 응답하세요. (마크다운 포맷팅 제외)
 
-      [출력 포맷 (JSON Only)]
+      # JSON 스키마 예시
       {
-        "status": "SUCCESS",
-        "total_saving_amount": 50000,
-        "summary": "김영희님, 현재 드시는 영양제 중 2가지는 겹칩니다. 정리하면 월 5만 원을 아낄 수 있어요!",
-        "cards": [
+        "detected_items": [
           {
-            "type": "WARNING", 
-            "title": "루테인 중복 (월 15,000원 낭비)",
-            "content": "종합비타민에 이미 루테인이 포함되어 있습니다. 추가 섭취는 불필요합니다.",
-            "estimated_price": 15000
+            "id": 1,
+            "brand_name": "종근당건강",
+            "product_name": "락토핏 골드",
+            "key_ingredients": "유산균",
+            "confidence_level": "high",
+            "estimated_price": 18000
+          },
+          {
+            "id": 2,
+            "brand_name": "알수없음",
+            "product_name": "종합비타민 추정",
+            "key_ingredients": "확인필요",
+            "confidence_level": "low",
+            "estimated_price": 0
           }
-        ]
+        ],
+        "total_count": 2,
+        "summary": "총 2개의 영양제가 발견되었습니다. 중복 성분을 확인해보세요."
       }
     ''');
 
@@ -60,7 +72,7 @@ class ApiService {
       ]);
       return response.text ?? '{"status": "ERROR", "message": "No response"}';
     } catch (e) {
-      return '{"status": "ERROR", "message": "${e.toString()}"}';
+      throw Exception('API 호출에 실패했습니다: ${e.toString()}');
     }
   }
 }
