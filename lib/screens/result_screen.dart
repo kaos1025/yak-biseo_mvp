@@ -1,49 +1,43 @@
-
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:myapp/services/api_service.dart';
 
-// [New] Model for a single detected item
+// [Updated] Model matching 'Group Shot' JSON schema
 class DetectedItem {
   final int id;
-  final String brandName;
-  final String productName;
-  final String keyIngredients;
-  final String confidenceLevel;
-  final int estimatedPrice;
+  final String name; // Combined Brand + Product Name
+  final String status; // SAFE, REDUNDANT, WARNING
+  final String desc; // Description / Reason
+  final int price; // Estimated Price
 
   DetectedItem({
     required this.id,
-    required this.brandName,
-    required this.productName,
-    required this.keyIngredients,
-    required this.confidenceLevel,
-    required this.estimatedPrice,
+    required this.name,
+    required this.status,
+    required this.desc,
+    required this.price,
   });
 
   factory DetectedItem.fromJson(Map<String, dynamic> json) {
     return DetectedItem(
       id: json['id'] ?? 0,
-      brandName: json['brand_name'] ?? '알수없음',
-      productName: json['product_name'] ?? '제품명 불명',
-      keyIngredients: json['key_ingredients'] ?? '확인필요',
-      confidenceLevel: json['confidence_level'] ?? 'low',
-      estimatedPrice: json['estimated_price'] ?? 0,
+      name: json['name'] ?? '제품명 확인 불가',
+      status: json['status'] ?? 'SAFE',
+      desc: json['desc'] ?? '',
+      price: json['price'] ?? 0,
     );
   }
 }
 
-// [New] Model for the entire API response
+// Model for the entire API response
 class AnalysisResponse {
   final List<DetectedItem> detectedItems;
-  final int totalCount;
   final String summary;
   final int totalSavingAmount;
 
   AnalysisResponse({
     required this.detectedItems,
-    required this.totalCount,
     required this.summary,
     required this.totalSavingAmount,
   });
@@ -52,19 +46,14 @@ class AnalysisResponse {
     var itemsList = json['detected_items'] as List<dynamic>? ?? [];
     List<DetectedItem> items =
         itemsList.map((i) => DetectedItem.fromJson(i)).toList();
-    
-    // Calculate total saving amount from the list
-    int totalSavings = items.fold(0, (sum, item) => sum + item.estimatedPrice);
 
     return AnalysisResponse(
       detectedItems: items,
-      totalCount: json['total_count'] ?? 0,
       summary: json['summary'] ?? '분석이 완료되었습니다.',
-      totalSavingAmount: totalSavings,
+      totalSavingAmount: json['total_saving_amount'] ?? 0,
     );
   }
 }
-
 
 // --- Color Constants ---
 const Color kLoadingIndicatorColor = Color(0xFF2E7D32);
@@ -81,11 +70,10 @@ const Color kSavingAmountTextColor = Color(0xFFE65100);
 const Color kDisclaimerBackgroundColor = Color(0xFFE8F5E9);
 const Color kDisclaimerTextColor = Colors.grey;
 
-
 class ResultScreen extends StatefulWidget {
-  final String imagePath;
+  final XFile image;
 
-  const ResultScreen({super.key, required this.imagePath});
+  const ResultScreen({super.key, required this.image});
 
   @override
   State<ResultScreen> createState() => _ResultScreenState();
@@ -93,7 +81,7 @@ class ResultScreen extends StatefulWidget {
 
 class _ResultScreenState extends State<ResultScreen> {
   bool _isLoading = true;
-  AnalysisResponse? _analysisResult; // [Updated] Use the new response model
+  AnalysisResponse? _analysisResult;
   String? _errorMessage;
 
   @override
@@ -104,17 +92,13 @@ class _ResultScreenState extends State<ResultScreen> {
 
   Future<void> _analyzeImage() async {
     try {
-      final File imageFile = File(widget.imagePath);
-      final jsonString = await ApiService.analyzeDrugImage(imageFile);
-
-      // [Updated] Ensure JSON is cleaned before parsing
+      final jsonString = await ApiService.analyzeDrugImage(widget.image);
       final cleanJson =
           jsonString.replaceAll('```json', '').replaceAll('```', '').trim();
       final Map<String, dynamic> result = jsonDecode(cleanJson);
 
       if (mounted) {
         setState(() {
-          // [Updated] Parse into the new response model
           _analysisResult = AnalysisResponse.fromJson(result);
           _isLoading = false;
         });
@@ -151,7 +135,7 @@ class _ResultScreenState extends State<ResultScreen> {
             CircularProgressIndicator(color: kLoadingIndicatorColor),
             SizedBox(height: 20),
             Text(
-              "약비서가 꼼꼼하게\n성분을 확인하고 있어요... 🔍",
+              "여러 개의 영양제를 한 번에\n분석하고 있어요... 💊",
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 18, color: kBodyTextColor),
             ),
@@ -186,13 +170,16 @@ class _ResultScreenState extends State<ResultScreen> {
           ),
           const SizedBox(height: 20),
 
-          // 2. [Updated] Saving Card
+          // 2. Saving Card
           _buildSavingCard(),
 
-          const SizedBox(height: 30),
+          if ((_analysisResult?.totalSavingAmount ?? 0) > 0)
+            const SizedBox(height: 30),
 
-          // 3. [New] Detected Items List
-          Text("총 ${_analysisResult?.totalCount ?? 0}개의 영양제 발견", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          // 3. Detected Items List
+          Text("발견된 제품 목록 (${_analysisResult?.detectedItems.length ?? 0}개)",
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
           ListView.builder(
             shrinkWrap: true,
@@ -223,7 +210,6 @@ class _ResultScreenState extends State<ResultScreen> {
     );
   }
 
-  // [Updated] Saving Card Widget
   Widget _buildSavingCard() {
     final int savingAmount = _analysisResult?.totalSavingAmount ?? 0;
 
@@ -264,7 +250,7 @@ class _ResultScreenState extends State<ResultScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            "불필요한 중복 영양제를 줄여보세요!",
+            "중복된 영양제만 줄여도 돈이 모여요!",
             style: TextStyle(fontSize: 12, color: kSavingCardTitleColor),
           )
         ],
@@ -272,17 +258,32 @@ class _ResultScreenState extends State<ResultScreen> {
     );
   }
 
-  // [New] Detected Item Card Widget
   Widget _buildDetectedItemCard(DetectedItem item) {
-    final bool isHighConfidence = item.confidenceLevel == 'high';
-    final IconData icon = isHighConfidence ? Icons.check_circle_rounded : Icons.help_outline_rounded;
-    final Color iconColor = isHighConfidence ? Colors.green.shade700 : Colors.red.shade700;
-    final String title = isHighConfidence ? item.productName : "인식 실패 (터치해서 수정)";
+    // Check status
+    final bool isWarning =
+        item.status == 'WARNING' || item.status == 'REDUNDANT';
+
+    // Define colors based on requirements
+    final Color bgColor = isWarning ? Colors.orange[50]! : Colors.green[50]!;
+    final Color titleColor =
+        isWarning ? Colors.deepOrange : Colors.green.shade900;
+    final Color textColor = isWarning ? Colors.brown : Colors.black87;
+    final IconData icon =
+        isWarning ? Icons.warning_amber_rounded : Icons.check_circle_outline;
+    final Color iconColor = isWarning ? Colors.orange : Colors.green;
 
     return Card(
-      elevation: 2,
+      elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: bgColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isWarning
+              ? Colors.orange.withValues(alpha: 0.3)
+              : Colors.green.withValues(alpha: 0.3),
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -290,38 +291,40 @@ class _ResultScreenState extends State<ResultScreen> {
           children: [
             Row(
               children: [
-                Icon(icon, color: iconColor),
+                Icon(icon, color: iconColor, size: 28),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    title,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                    item.name, // Display Name
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: titleColor),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Text.rich(
-              TextSpan(
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
-                children: [
-                  const TextSpan(text: "브랜드: ", style: TextStyle(fontWeight: FontWeight.bold)),
-                  TextSpan(text: "${item.brandName}\n"),
-                  const TextSpan(text: "주요성분: ", style: TextStyle(fontWeight: FontWeight.bold)),
-                  TextSpan(text: item.keyIngredients),
-                ]
-              )
+
+            // Description / Reason
+            Text(
+              item.desc,
+              style: TextStyle(fontSize: 14, color: textColor),
             ),
-             if (item.estimatedPrice > 0) ...[
-                const SizedBox(height: 8),
-                 Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    "예상가: ${item.estimatedPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원",
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: kSavingAmountTextColor),
-                  ),
-                )
-             ]
+
+            if (item.price > 0) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  "예상가: ${item.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원",
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: textColor.withValues(alpha: 0.8)),
+                ),
+              )
+            ]
           ],
         ),
       ),

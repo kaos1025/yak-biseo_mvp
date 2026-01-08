@@ -60,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ResultScreen(imagePath: pickedFile.path),
+          builder: (context) => ResultScreen(image: pickedFile),
         ),
       );
     }
@@ -76,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ResultScreen(imagePath: pickedFile.path),
+          builder: (context) => ResultScreen(image: pickedFile),
         ),
       );
     }

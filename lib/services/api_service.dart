@@ -1,12 +1,12 @@
-import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ApiService {
   // API 키를 .env 파일에서 불러옵니다.
   static final String? _apiKey = dotenv.env['API_KEY'];
 
-  static Future<String> analyzeDrugImage(File image) async {
+  static Future<String> analyzeDrugImage(XFile image) async {
     // 널이 될 수 있는 _apiKey를 지역 변수로 옮겨서 널 안전성 검사를 명확하게 합니다.
     final apiKey = _apiKey;
     if (apiKey == null || apiKey.isEmpty) {
@@ -17,7 +17,7 @@ class ApiService {
     // 이제 apiKey는 절대 널이 아니라고 확신할 수 있습니다.
     final model = GenerativeModel(
       model: 'gemini-2.5-flash',
-      apiKey: apiKey, // 불필요한 '!' 연산자를 제거했습니다.
+      apiKey: apiKey,
       generationConfig: GenerationConfig(
         responseMimeType: 'application/json',
         temperature: 0.2,
@@ -25,42 +25,40 @@ class ApiService {
     );
 
     final prompt = TextPart('''
-      # 역할
-      당신은 '약비서' 앱을 위한 AI 약사이자 이미지 분석 전문가입니다.
+Role: You are an expert AI Pharmacist for the Korean app "Yak-Biseo".
 
-      # 임무
-      사용자가 업로드한 이미지에는 여러 개의 영양제/약통이 섞여 있을 수 있습니다.
-      1. 이미지에서 식별 가능한 **모든 영양제 약통**을 찾아내세요.
-      2. 각 약통에 대해 다음 정보를 추출하세요:
-         - brand_name (브랜드명): 예 - 종근당, 고려은단 (로고나 텍스트 기반 추론)
-         - product_name (제품명): 예 - 락토핏 골드, 비타민C 1000
-         - key_ingredients (주요 성분): 예 - 유산균, 마그네슘
-         - estimated_price (한국 시장 평균가 추정치, 정수형): 예 - 15000
-      3. **반드시 JSON 형식으로만** 응답하세요. (마크다운 포맷팅 제외)
+[Task: Group Shot Analysis]
+The user will upload an image containing **MULTIPLE supplement bottles** (e.g., laid out on a table).
+1. **Detection**: Identify ALL distinct supplement bottles visible in the image.
+2. **Extraction**: For each bottle, extract 'Brand' and 'Product Name'.
+3. **Logic (Redundancy Check)**:
+   - Analyze ingredients based on product names (e.g., 'Triplus' -> Multivitamin+Mineral).
+   - **CRITICAL**: If a 'Multivitamin' and a 'Single Ingredient' (like Vitamin C, Vitamin D, Calcium) are found together, flag the Single Ingredient as **"REDUNDANT"** (Warning).
+4. **Savings Calculation**:
+   - Estimate the monthly cost (KRW) for each item.
+   - `total_saving_amount` = Sum of prices of ONLY the items flagged as "REDUNDANT".
 
-      # JSON 스키마 예시
-      {
-        "detected_items": [
-          {
-            "id": 1,
-            "brand_name": "종근당건강",
-            "product_name": "락토핏 골드",
-            "key_ingredients": "유산균",
-            "confidence_level": "high",
-            "estimated_price": 18000
-          },
-          {
-            "id": 2,
-            "brand_name": "알수없음",
-            "product_name": "종합비타민 추정",
-            "key_ingredients": "확인필요",
-            "confidence_level": "low",
-            "estimated_price": 0
-          }
-        ],
-        "total_count": 2,
-        "summary": "총 2개의 영양제가 발견되었습니다. 중복 성분을 확인해보세요."
-      }
+[Output Format: JSON Only (Korean)]
+{
+  "summary": "회원님, 식탁 위에 5개 제품이 있네요. 그중 2개는 성분이 겹칩니다! 정리하면 월 25,000원을 아낄 수 있어요.",
+  "total_saving_amount": 25000,
+  "detected_items": [
+    {
+      "id": 1,
+      "name": "종근당 락토핏 골드",
+      "status": "SAFE",
+      "desc": "유산균은 필수입니다. 계속 드세요.",
+      "price": 15000
+    },
+    {
+      "id": 2,
+      "name": "고려은단 비타민C 1000",
+      "status": "REDUNDANT",
+      "desc": "종합비타민에 이미 비타민C가 충분해요. 이건 빼셔도 됩니다.",
+      "price": 10000
+    }
+  ]
+}
     ''');
 
     final imageBytes = await image.readAsBytes();
@@ -71,7 +69,9 @@ class ApiService {
         Content.multi([prompt, imagePart])
       ]);
       return response.text ?? '{"status": "ERROR", "message": "No response"}';
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('Error in analyzeDrugImage: $e');
+      print('Stack trace: $stackTrace');
       throw Exception('API 호출에 실패했습니다: ${e.toString()}');
     }
   }
