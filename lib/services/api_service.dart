@@ -64,15 +64,27 @@ The user will upload an image containing **MULTIPLE supplement bottles** (e.g., 
     final imageBytes = await image.readAsBytes();
     final imagePart = DataPart('image/jpeg', imageBytes);
 
-    try {
-      final response = await model.generateContent([
-        Content.multi([prompt, imagePart])
-      ]);
-      return response.text ?? '{"status": "ERROR", "message": "No response"}';
-    } catch (e, stackTrace) {
-      print('Error in analyzeDrugImage: $e');
-      print('Stack trace: $stackTrace');
-      throw Exception('API 호출에 실패했습니다: ${e.toString()}');
+    int retryCount = 0;
+    const maxRetries = 3;
+
+    while (true) {
+      try {
+        final response = await model.generateContent([
+          Content.multi([prompt, imagePart])
+        ]);
+        return response.text ?? '{"status": "ERROR", "message": "No response"}';
+      } catch (e) {
+        if (e.toString().contains('503') && retryCount < maxRetries) {
+          retryCount++;
+          print('API 503 Error. Retrying... ($retryCount/$maxRetries)');
+          await Future.delayed(
+              Duration(seconds: retryCount)); // 1s, 2s, 3s... backoff
+          continue;
+        }
+        print('Error in analyzeDrugImage: $e');
+        // print('Stack trace: $stackTrace'); // StackTrace not available here unless caught
+        throw Exception('API 호출에 실패했습니다: ${e.toString()}');
+      }
     }
   }
 }
