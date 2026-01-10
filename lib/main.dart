@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:myapp/screens/result_screen.dart';
+import 'package:myapp/screens/search_screen.dart';
 
 import 'firebase_options.dart';
 import 'package:myapp/services/analytics_service.dart';
@@ -26,7 +27,7 @@ class YakBiseoApp extends StatelessWidget {
       title: '약비서',
       theme: ThemeData(
         primaryColor: const Color(0xFF2E7D32),
-        scaffoldBackgroundColor: Colors.white, // Changed background to white
+        scaffoldBackgroundColor: Colors.white,
         useMaterial3: true,
       ),
       home: const HomeScreen(),
@@ -94,6 +95,18 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: Colors.black87,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search, size: 28),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SearchScreen()),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: Padding(

@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:image_picker/image_picker.dart';
@@ -76,13 +77,14 @@ The user will upload an image containing **MULTIPLE supplement bottles** (e.g., 
       } catch (e) {
         if (e.toString().contains('503') && retryCount < maxRetries) {
           retryCount++;
-          print('API 503 Error. Retrying... ($retryCount/$maxRetries)');
+          developer.log('API 503 Error. Retrying... ($retryCount/$maxRetries)',
+              name: 'ApiService');
           await Future.delayed(
               Duration(seconds: retryCount)); // 1s, 2s, 3s... backoff
           continue;
         }
-        print('Error in analyzeDrugImage: $e');
-        // print('Stack trace: $stackTrace'); // StackTrace not available here unless caught
+        developer.log('Error in analyzeDrugImage: $e',
+            name: 'ApiService', error: e);
         throw Exception('API 호출에 실패했습니다: ${e.toString()}');
       }
     }
