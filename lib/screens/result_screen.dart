@@ -340,6 +340,8 @@ class _ResultItemCardState extends State<_ResultItemCard> {
         // ExpansionTile의 기본 Divider 제거 및 스타일 조정
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          childrenPadding: const EdgeInsets.only(bottom: 8),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           collapsedShape:
@@ -351,7 +353,7 @@ class _ResultItemCardState extends State<_ResultItemCard> {
           title: Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: isWarning ? Colors.orange : AppTheme.primaryColor,
                   borderRadius: BorderRadius.circular(6),
@@ -360,18 +362,18 @@ class _ResultItemCardState extends State<_ResultItemCard> {
                   isWarning ? "중복" : "안전",
                   style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   item.name,
-                  style: const TextStyle(
-                      fontSize: 16,
+                  style: TextStyle(
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87),
+                      color: isWarning ? Colors.black : Colors.black87),
                 ),
               ),
             ],
@@ -382,7 +384,9 @@ class _ResultItemCardState extends State<_ResultItemCard> {
                   item.desc,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                  style: TextStyle(
+                      fontSize: 15,
+                      color: isWarning ? Colors.black87 : Colors.grey[800]),
                 )
               : null,
           trailing: Row(
@@ -391,41 +395,43 @@ class _ResultItemCardState extends State<_ResultItemCard> {
               if (item.price > 0 && !_isExpanded)
                 Text(
                   "${item.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원",
-                  style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                      fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                      fontSize: 15,
+                      color: isWarning ? Colors.black : Colors.grey[700],
+                      fontWeight: FontWeight.w700),
                 ),
               Icon(
                 _isExpanded ? Icons.expand_less : Icons.expand_more,
-                color: Colors.grey,
+                color: isWarning ? Colors.black54 : Colors.grey,
               ),
             ],
           ),
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Divider(height: 20),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
                   Text(
                     item.desc,
                     style: const TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF616161),
-                      height: 1.5,
+                      fontSize: 15.0,
+                      color: Color(0xFF424242),
+                      fontWeight: FontWeight.w400,
+                      height: 1.6,
                     ),
                   ),
                   if (item.price > 0) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     Text(
                       "예상 가격: ${item.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원",
                       textAlign: TextAlign.right,
-                      style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey,
-                          fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          fontSize: 15,
+                          color: isWarning ? Colors.black : Colors.grey[800],
+                          fontWeight: FontWeight.w700),
                     ),
                   ],
                 ],
