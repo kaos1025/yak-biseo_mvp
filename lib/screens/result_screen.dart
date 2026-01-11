@@ -178,7 +178,7 @@ class _ResultScreenState extends State<ResultScreen> {
           ),
           const SizedBox(height: 12),
 
-          // 3. 아이템 리스트 (중복/경고 강조)
+          // 3. 아이템 리스트 (접이식 UI 적용)
           if (_analysisResult != null)
             ListView.builder(
               shrinkWrap: true,
@@ -186,7 +186,7 @@ class _ResultScreenState extends State<ResultScreen> {
               itemCount: _analysisResult!.detectedItems.length,
               itemBuilder: (context, index) {
                 final item = _analysisResult!.detectedItems[index];
-                return _buildDetectedItemCard(item);
+                return _ResultItemCard(item: item);
               },
             ),
 
@@ -220,9 +220,6 @@ class _ResultScreenState extends State<ResultScreen> {
 
   Widget _buildTotalSavingCard() {
     final int savingAmount = _analysisResult?.totalSavingAmount ?? 0;
-
-    // 절약 금액이 0원이라도 '안전함'을 표시하는 긍정적 카드로 활용 가능하지만,
-    // 여기서는 절약 금액이 있을 때만 강조해서 보여줍니다.
     if (savingAmount <= 0) {
       return Container(
         padding: const EdgeInsets.all(20),
@@ -300,90 +297,140 @@ class _ResultScreenState extends State<ResultScreen> {
       ),
     );
   }
+}
 
-  Widget _buildDetectedItemCard(DetectedItem item) {
+// [리팩토링] 접이식 디자인 아이템 카드 위젯
+class _ResultItemCard extends StatefulWidget {
+  final DetectedItem item;
+  const _ResultItemCard({required this.item});
+
+  @override
+  State<_ResultItemCard> createState() => _ResultItemCardState();
+}
+
+class _ResultItemCardState extends State<_ResultItemCard> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final item = widget.item;
     final bool isWarning =
         item.status == 'WARNING' || item.status == 'REDUNDANT';
 
-    // [요청 반영] 경고 카드는 연한 주황색 배경 + Accent Color 활용
-    final Color bgColor = isWarning ? const Color(0xFFFFF3E0) : Colors.white;
+    // 스타일 정의
+    final Color bgColor = isWarning ? Colors.orange.shade50 : Colors.white;
     final Color borderColor =
         isWarning ? Colors.orange.shade200 : Colors.grey.shade200;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              offset: const Offset(0, 2),
-              blurRadius: 8,
-            )
-          ]),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                // 뱃지 (Badge/Chip)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isWarning ? Colors.orange : AppTheme.primaryColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    isWarning ? "중복/과다" : "✅ 안전",
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold),
-                  ),
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            offset: const Offset(0, 2),
+            blurRadius: 8,
+          )
+        ],
+      ),
+      child: Theme(
+        // ExpansionTile의 기본 Divider 제거 및 스타일 조정
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          collapsedShape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          onExpansionChanged: (expanded) {
+            setState(() => _isExpanded = expanded);
+          },
+          // 뱃지와 제품명
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isWarning ? Colors.orange : AppTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    item.name,
-                    style: const TextStyle(
-                      fontSize: 18,
+                child: Text(
+                  isWarning ? "중복" : "안전",
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  item.name,
+                  style: const TextStyle(
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: Colors.black87),
+                ),
+              ),
+            ],
+          ),
+          // 핵심 요약 (닫힌 상태 서브타이틀)
+          subtitle: !_isExpanded
+              ? Text(
+                  item.desc,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                )
+              : null,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (item.price > 0 && !_isExpanded)
+                Text(
+                  "${item.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원",
+                  style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w500),
+                ),
+              Icon(
+                _isExpanded ? Icons.expand_less : Icons.expand_more,
+                color: Colors.grey,
+              ),
+            ],
+          ),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Divider(height: 20),
+                  Text(
+                    item.desc,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF616161),
+                      height: 1.5,
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              item.desc,
-              style: TextStyle(
-                fontSize: 15,
-                color: isWarning ? Colors.deepOrange[800] : Colors.grey[700],
-                height: 1.4,
+                  if (item.price > 0) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      "예상 가격: ${item.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원",
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ],
               ),
             ),
-            if (item.price > 0) ...[
-              const SizedBox(height: 12),
-              const Divider(height: 1),
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  "예상 가격: ${item.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원",
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ]
           ],
         ),
       ),
