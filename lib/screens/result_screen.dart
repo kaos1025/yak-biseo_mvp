@@ -77,9 +77,6 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Future<void> _analyzeImage() async {
-    // 로딩 화면 테스트를 위해 최소 2초 대기 (실제 느낌)
-    // await Future.delayed(const Duration(seconds: 2));
-
     try {
       final jsonString = await ApiService.analyzeDrugImage(widget.image);
       final cleanJson =
