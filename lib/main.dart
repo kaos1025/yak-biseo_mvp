@@ -26,6 +26,7 @@ class YakBiseoApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '약비서',
+      debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       home: const HomeScreen(),
     );
