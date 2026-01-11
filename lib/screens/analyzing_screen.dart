@@ -87,7 +87,8 @@ class _AnalyzingScreenState extends State<AnalyzingScreen>
                           borderRadius: BorderRadius.circular(2),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.primaryColor.withOpacity(0.4),
+                              color:
+                                  AppTheme.primaryColor.withValues(alpha: 0.4),
                               blurRadius: 10,
                               spreadRadius: 2,
                             )
