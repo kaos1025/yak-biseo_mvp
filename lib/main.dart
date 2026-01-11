@@ -15,8 +15,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const YakBiseoApp());
-}
+import 'package:myapp/theme/app_theme.dart';
+
+// ...
 
 class YakBiseoApp extends StatelessWidget {
   const YakBiseoApp({super.key});
@@ -25,11 +26,7 @@ class YakBiseoApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '약비서',
-      theme: ThemeData(
-        primaryColor: const Color(0xFF2E7D32),
-        scaffoldBackgroundColor: Colors.white,
-        useMaterial3: true,
-      ),
+      theme: AppTheme.lightTheme, // Apply custom theme
       home: const HomeScreen(),
     );
   }

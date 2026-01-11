@@ -2,14 +2,16 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:myapp/services/api_service.dart';
+import 'package:myapp/screens/analyzing_screen.dart';
+import 'package:myapp/theme/app_theme.dart';
 
-// [Updated] Model matching 'Group Shot' JSON schema
+// [모델 클래스]
 class DetectedItem {
   final int id;
-  final String name; // Combined Brand + Product Name
+  final String name;
   final String status; // SAFE, REDUNDANT, WARNING
-  final String desc; // Description / Reason
-  final int price; // Estimated Price
+  final String desc;
+  final int price;
 
   DetectedItem({
     required this.id,
@@ -30,7 +32,6 @@ class DetectedItem {
   }
 }
 
-// Model for the entire API response
 class AnalysisResponse {
   final List<DetectedItem> detectedItems;
   final String summary;
@@ -55,21 +56,6 @@ class AnalysisResponse {
   }
 }
 
-// --- Color Constants ---
-const Color kLoadingIndicatorColor = Color(0xFF2E7D32);
-const Color kAppBarBackgroundColor = Colors.white;
-const Color kAppBarForegroundColor = Colors.black;
-const Color kBodyTextColor = Colors.grey;
-const Color kErrorTextColor = Colors.red;
-const Color kSummaryTextColor = Colors.black87;
-const Color kSavingCardBackgroundColor = Color(0xFFFFF8E1);
-const Color kSavingCardBorderColor = Color(0xFFFFB300);
-const Color kSavingCardTitleColor = Color(0xFF8D6E63);
-const Color kSavingAmountIconColor = Color(0xFFFF6F00);
-const Color kSavingAmountTextColor = Color(0xFFE65100);
-const Color kDisclaimerBackgroundColor = Color(0xFFE8F5E9);
-const Color kDisclaimerTextColor = Colors.grey;
-
 class ResultScreen extends StatefulWidget {
   final XFile image;
 
@@ -91,6 +77,9 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Future<void> _analyzeImage() async {
+    // 로딩 화면 테스트를 위해 최소 2초 대기 (실제 느낌)
+    // await Future.delayed(const Duration(seconds: 2));
+
     try {
       final jsonString = await ApiService.analyzeDrugImage(widget.image);
       final cleanJson =
@@ -115,42 +104,48 @@ class _ResultScreenState extends State<ResultScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 2. 분석 중일 때 전용 로딩 화면 표시
+    if (_isLoading) {
+      return const AnalyzingScreen();
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('분석 결과'),
-        backgroundColor: kAppBarBackgroundColor,
-        foregroundColor: kAppBarForegroundColor,
-        elevation: 0,
+        centerTitle: true,
       ),
       body: _buildBody(),
     );
   }
 
   Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(color: kLoadingIndicatorColor),
-            SizedBox(height: 20),
-            Text(
-              "여러 개의 영양제를 한 번에\n분석하고 있어요... 💊",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, color: kBodyTextColor),
-            ),
-          ],
-        ),
-      );
-    }
-
     if (_errorMessage != null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
-          child: Text(_errorMessage!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: kErrorTextColor)),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 60, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _isLoading = true;
+                    _errorMessage = null;
+                  });
+                  _analyzeImage();
+                },
+                child: const Text("다시 시도"),
+              )
+            ],
+          ),
         ),
       );
     }
@@ -158,38 +153,45 @@ class _ResultScreenState extends State<ResultScreen> {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 1. Summary Text
+          // 3. 총 절약 금액 카드 (가장 크게 강조)
+          _buildTotalSavingCard(),
+          const SizedBox(height: 24),
+
+          // 요약 텍스트
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              _analysisResult?.summary ?? "분석 완료",
+              style: const TextStyle(
+                  fontSize: 16, height: 1.5, color: Colors.black87),
+            ),
+          ),
+          const SizedBox(height: 30),
+
+          // 발견된 항목 타이틀
           Text(
-            _analysisResult?.summary ?? "분석이 완료되었습니다.",
-            style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: kSummaryTextColor),
+            "발견된 제품 목록 (${_analysisResult?.detectedItems.length ?? 0}개)",
+            style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
 
-          // 2. Saving Card
-          _buildSavingCard(),
-
-          if ((_analysisResult?.totalSavingAmount ?? 0) > 0)
-            const SizedBox(height: 30),
-
-          // 3. Detected Items List
-          Text("발견된 제품 목록 (${_analysisResult?.detectedItems.length ?? 0}개)",
-              style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _analysisResult?.detectedItems.length ?? 0,
-            itemBuilder: (context, index) {
-              final item = _analysisResult!.detectedItems[index];
-              return _buildDetectedItemCard(item);
-            },
-          ),
+          // 3. 아이템 리스트 (중복/경고 강조)
+          if (_analysisResult != null)
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _analysisResult!.detectedItems.length,
+              itemBuilder: (context, index) {
+                final item = _analysisResult!.detectedItems[index];
+                return _buildDetectedItemCard(item);
+              },
+            ),
 
           const SizedBox(height: 40),
 
@@ -197,133 +199,193 @@ class _ResultScreenState extends State<ResultScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: kDisclaimerBackgroundColor,
+              color: Colors.grey[100],
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Text(
-              '※ 본 결과는 식약처 데이터를 기반으로 한 정보 제공이며, 의학적 진단을 대신할 수 없습니다. 정확한 판단은 의사/약사와 상의하세요.',
-              style: TextStyle(fontSize: 12, color: kDisclaimerTextColor),
+            child: const Row(
+              children: [
+                Icon(Icons.info_outline, size: 20, color: Colors.grey),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '본 결과는 AI 분석 결과이며, 정확한 의학적 판단은 의사/약사와 상의하세요.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
+              ],
             ),
           ),
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  Widget _buildSavingCard() {
+  Widget _buildTotalSavingCard() {
     final int savingAmount = _analysisResult?.totalSavingAmount ?? 0;
 
-    if (savingAmount <= 0) return const SizedBox.shrink();
+    // 절약 금액이 0원이라도 '안전함'을 표시하는 긍정적 카드로 활용 가능하지만,
+    // 여기서는 절약 금액이 있을 때만 강조해서 보여줍니다.
+    if (savingAmount <= 0) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppTheme.primaryColor,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Column(
+          children: [
+            Icon(Icons.check_circle_outline, color: Colors.white, size: 48),
+            SizedBox(height: 10),
+            Text(
+              "중복된 영양제가 없습니다!",
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
+            ),
+            Text(
+              "지금처럼 잘 챙겨드세요 :)",
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+          ],
+        ),
+      );
+    }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: kSavingCardBackgroundColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kSavingCardBorderColor, width: 2),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            "이번 달 예상 절약 금액",
-            style: TextStyle(
-                fontSize: 14,
-                color: kSavingCardTitleColor,
-                fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.savings_rounded,
-                  color: kSavingAmountIconColor, size: 32),
-              const SizedBox(width: 8),
-              Text(
-                "${savingAmount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원",
-                style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: kSavingAmountTextColor),
+    return Card(
+      elevation: 4,
+      color: AppTheme.primaryColor, // Deep Green
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+        child: Column(
+          children: [
+            const Text(
+              "이번 달 예상 절약 금액",
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            "중복된 영양제만 줄여도 돈이 모여요!",
-            style: TextStyle(fontSize: 12, color: kSavingCardTitleColor),
-          )
-        ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.savings,
+                    color: AppTheme.accentColor, size: 36),
+                const SizedBox(width: 8),
+                Text(
+                  "${savingAmount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원",
+                  style: const TextStyle(
+                    color: AppTheme.accentColor, // Amber (Highlight)
+                    fontSize: 40,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -1,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20)),
+              child: const Text(
+                "📉 중복 섭취를 줄여서 건강과 지갑을 지켰어요!",
+                style: TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildDetectedItemCard(DetectedItem item) {
-    // Check status
     final bool isWarning =
         item.status == 'WARNING' || item.status == 'REDUNDANT';
 
-    // Define colors based on requirements
-    final Color bgColor = isWarning ? Colors.orange[50]! : Colors.green[50]!;
-    final Color titleColor =
-        isWarning ? Colors.deepOrange : Colors.green.shade900;
-    final Color textColor = isWarning ? Colors.brown : Colors.black87;
-    final IconData icon =
-        isWarning ? Icons.warning_amber_rounded : Icons.check_circle_outline;
-    final Color iconColor = isWarning ? Colors.orange : Colors.green;
+    // [요청 반영] 경고 카드는 연한 주황색 배경 + Accent Color 활용
+    final Color bgColor = isWarning ? const Color(0xFFFFF3E0) : Colors.white;
+    final Color borderColor =
+        isWarning ? Colors.orange.shade200 : Colors.grey.shade200;
 
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 12),
-      color: bgColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isWarning
-              ? Colors.orange.withValues(alpha: 0.3)
-              : Colors.green.withValues(alpha: 0.3),
-        ),
-      ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderColor),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              offset: const Offset(0, 2),
+              blurRadius: 8,
+            )
+          ]),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(icon, color: iconColor, size: 28),
+                // 뱃지 (Badge/Chip)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isWarning ? Colors.orange : AppTheme.primaryColor,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    isWarning ? "중복/과다" : "✅ 안전",
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    item.name, // Display Name
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: titleColor),
+                    item.name,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-
-            // Description / Reason
             Text(
               item.desc,
-              style: TextStyle(fontSize: 14, color: textColor),
+              style: TextStyle(
+                fontSize: 15,
+                color: isWarning ? Colors.deepOrange[800] : Colors.grey[700],
+                height: 1.4,
+              ),
             ),
-
             if (item.price > 0) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
               Align(
                 alignment: Alignment.centerRight,
                 child: Text(
-                  "예상가: ${item.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원",
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: textColor.withValues(alpha: 0.8)),
+                  "예상 가격: ${item.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원",
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              )
+              ),
             ]
           ],
         ),
