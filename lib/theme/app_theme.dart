@@ -32,12 +32,12 @@ class AppTheme {
         titleMedium: TextStyle(
             fontSize: 18.0, fontWeight: FontWeight.bold, color: Colors.black87),
       ),
-      cardTheme: CardTheme(
+      /* cardTheme: CardTheme(
         color: Colors.white,
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         margin: const EdgeInsets.only(bottom: 12),
-      ),
+      ), */
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,

@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:myapp/screens/result_screen.dart';
 import 'package:myapp/screens/search_screen.dart';
+import 'package:myapp/theme/app_theme.dart';
 
 import 'firebase_options.dart';
 import 'package:myapp/services/analytics_service.dart';
@@ -15,9 +16,8 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-import 'package:myapp/theme/app_theme.dart';
-
-// ...
+  runApp(const YakBiseoApp());
+}
 
 class YakBiseoApp extends StatelessWidget {
   const YakBiseoApp({super.key});
@@ -26,7 +26,7 @@ class YakBiseoApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '약비서',
-      theme: AppTheme.lightTheme, // Apply custom theme
+      theme: AppTheme.lightTheme,
       home: const HomeScreen(),
     );
   }
