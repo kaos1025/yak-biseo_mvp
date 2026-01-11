@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myapp/main.dart';
 
 void main() {
   testWidgets('Initial screen shows two buttons', (WidgetTester tester) async {
