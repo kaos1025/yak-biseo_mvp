@@ -8,14 +8,11 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      primaryColor: primaryColor,
-      scaffoldBackgroundColor: backgroundColor,
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryColor,
         primary: primaryColor,
         secondary: accentColor,
-        background: backgroundColor,
-        surface: Colors.white,
+        surface: backgroundColor,
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
