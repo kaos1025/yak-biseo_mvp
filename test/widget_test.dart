@@ -15,7 +15,7 @@ void main() {
     await tester.pumpWidget(const YakBiseoApp());
 
     // Verify that the two main buttons are present.
-    expect(find.text('약 봉투 촬영하기'), findsOneWidget);
+    expect(find.text('약 봉투 찍고 진단받기'), findsOneWidget);
     expect(find.text('앨범에서 불러오기'), findsOneWidget);
   });
 }
