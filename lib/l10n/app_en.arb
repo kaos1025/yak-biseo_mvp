@@ -1,0 +1,17 @@
+{
+  "@@locale": "en",
+  "appTitle": "YakBiseo",
+  "homeAppBarTitle": "💊 Your AI Pharmacist",
+  "homeMainQuestion": "Are you wasting money\non supplements? 💸",
+  "homeSubQuestion": "Today's trend is 'Subtracting', not 'Adding'.\nWe optimize your prescriptions in 3 seconds.",
+  "homeSavingEstimate": "Save $40/month on average",
+  "homeBtnCamera": "Scan Prescription",
+  "homeBtnGallery": "Import from Gallery",
+  "homeDisclaimer": "Results are for reference; consult a doctor or pharmacist.",
+  "profileTitle": "Profile Setup",
+  "heightLabel": "Height",
+  "weightLabel": "Weight",
+  "saveBtn": "Save",
+  "disclaimerTitle": "Medical Disclaimer",
+  "disclaimerAgree": "I Agree"
+}

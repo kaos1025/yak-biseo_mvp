@@ -9,6 +9,9 @@ import 'package:myapp/theme/app_theme.dart';
 
 import 'firebase_options.dart';
 import 'package:myapp/services/analytics_service.dart';
+import 'package:myapp/l10n/app_localizations.dart';
+import 'package:myapp/screens/profile/profile_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +31,8 @@ class YakBiseoApp extends StatelessWidget {
       title: '약비서',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: const HomeScreen(),
     );
   }
@@ -48,6 +53,51 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _analyticsService.logAppOpen();
+    _checkDisclaimer();
+  }
+
+  Future<void> _checkDisclaimer() async {
+    // Wait for the locale to be available
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final locale = Localizations.localeOf(context);
+      if (locale.languageCode == 'en') {
+        final prefs = await SharedPreferences.getInstance();
+        final agreed = prefs.getBool('fda_disclaimer_agreed') ?? false;
+        if (!agreed) {
+          _showDisclaimerDialog();
+        }
+      }
+    });
+  }
+
+  void _showDisclaimerDialog() {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.disclaimerTitle),
+        content: const SingleChildScrollView(
+          child: Text(
+            'This application provides information for educational purposes only. '
+            'The contents are not intended to be a substitute for professional medical advice, diagnosis, or treatment. '
+            'Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition. '
+            '\n\nThese statements have not been evaluated by the Food and Drug Administration. '
+            'This product is not intended to diagnose, treat, cure, or prevent any disease.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('fda_disclaimer_agreed', true);
+              if (mounted) Navigator.pop(context);
+            },
+            child: Text(l10n.disclaimerAgree),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _pickImageFromCamera() async {
@@ -83,11 +133,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          '💊 내 손안의 약비서',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+        title: Text(
+          l10n.homeAppBarTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
         ),
         centerTitle: false,
         backgroundColor: Colors.white,
@@ -103,6 +155,15 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.person_outline, size: 28),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+            },
+          ),
           const SizedBox(width: 8),
         ],
       ),
@@ -112,9 +173,9 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                '혹시 영양제에\n돈 낭비 하고 계신가요? 💸',
-                style: TextStyle(
+              Text(
+                l10n.homeMainQuestion,
+                style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   height: 1.4,
@@ -122,9 +183,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                "요즘 트렌드는 '더하기'가 아니라 '빼기'입니다.\n3초 만에 구조조정 해드려요.",
-                style: TextStyle(
+              Text(
+                l10n.homeSubQuestion,
+                style: const TextStyle(
                   fontSize: 16,
                   color: Colors.grey,
                   height: 1.5,
@@ -139,14 +200,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: const Color(0xFF2E7D32)),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.savings_rounded, color: Color(0xFF2E7D32)),
-                    SizedBox(width: 8),
+                    const Icon(Icons.savings_rounded, color: Color(0xFF2E7D32)),
+                    const SizedBox(width: 8),
                     Text(
-                      "평균 월 50,000원 절약 효과",
-                      style: TextStyle(
+                      l10n.homeSavingEstimate,
+                      style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF2E7D32),
@@ -160,7 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.camera_alt_rounded, size: 28),
-                  label: const Text('약 봉투 찍고 진단받기'),
+                  label: Text(l10n.homeBtnCamera),
                   onPressed: _pickImageFromCamera,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2E7D32),
@@ -180,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   icon: const Icon(Icons.photo_library_rounded),
-                  label: const Text('앨범에서 불러오기'),
+                  label: Text(l10n.homeBtnGallery),
                   onPressed: _pickImageFromGallery,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF2E7D32),
@@ -201,14 +262,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Colors.grey[200],
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.info_outline, size: 20, color: Colors.grey),
-                    SizedBox(width: 8),
+                    const Icon(Icons.info_outline,
+                        size: 20, color: Colors.grey),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '결과는 참고용이며, 정확한 진단은 의사/약사와 상의하세요.',
-                        style: TextStyle(fontSize: 12, color: Colors.black54),
+                        l10n.homeDisclaimer,
+                        style: const TextStyle(
+                            fontSize: 12, color: Colors.black54),
                       ),
                     ),
                   ],

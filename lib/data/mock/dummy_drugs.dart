@@ -1,180 +1,63 @@
-class Drug {
-  final int id;
-  final String brandName;
-  final String productName;
-  final String category;
-  final String imageUrl;
-  final String ingredients;
+import '../../models/pill.dart';
 
-  const Drug({
-    required this.id,
-    required this.brandName,
-    required this.productName,
-    required this.category,
-    required this.imageUrl,
-    required this.ingredients,
-  });
-}
-
-const List<Drug> dummyDrugs = [
-  Drug(
+const List<BasePill> dummyDrugs = [
+  KoreanPill(
     id: 1,
-    brandName: '종근당',
-    productName: '락토핏 골드',
+    brand: '종근당',
+    name: '락토핏 골드',
     category: '유산균',
     imageUrl: 'https://via.placeholder.com/150',
     ingredients: '프롤린, 유산균, 아연',
+    dailyDosage: '1일 1회 1포',
   ),
-  Drug(
+  KoreanPill(
     id: 2,
-    brandName: '고려은단',
-    productName: '비타민C 1000',
+    brand: '고려은단',
+    name: '비타민C 1000',
     category: '비타민',
     imageUrl: 'https://via.placeholder.com/150',
     ingredients: '비타민C 1000mg',
+    dailyDosage: '1일 1회 1정',
   ),
-  Drug(
+  KoreanPill(
     id: 3,
-    brandName: '스포츠리서치',
-    productName: '오메가3',
+    brand: '스포츠리서치',
+    name: '오메가3',
     category: '오메가3',
     imageUrl: 'https://via.placeholder.com/150',
     ingredients: 'EPA, DHA',
+    dailyDosage: '1일 1회 1캡슐',
   ),
-  Drug(
+  KoreanPill(
     id: 4,
-    brandName: '얼라이브',
-    productName: '원스데일리 멀티비타민',
+    brand: '얼라이브',
+    name: '원스데일리 멀티비타민',
     category: '종합비타민',
     imageUrl: 'https://via.placeholder.com/150',
     ingredients: '비타민A, B, C, D, E, 미네랄',
+    dailyDosage: '1일 1회 1정',
   ),
-  Drug(
+  KoreanPill(
     id: 5,
-    brandName: '오쏘몰',
-    productName: '이뮨',
+    brand: '오쏘몰',
+    name: '이뮨',
     category: '종합비타민',
     imageUrl: 'https://via.placeholder.com/150',
     ingredients: '비타민C, 요오드, 철분',
+    dailyDosage: '1일 1회 1병',
   ),
-  Drug(
-    id: 6,
-    brandName: '세노비스',
-    productName: '트리플러스 맨',
-    category: '종합비타민',
+  AmericanPill(
+    id: 101,
+    brand: 'Nature Made',
+    name: 'Multivitamin For Her',
     imageUrl: 'https://via.placeholder.com/150',
-    ingredients: '비타민, 미네랄, 오메가3',
-  ),
-  Drug(
-    id: 7,
-    brandName: '정관장',
-    productName: '에브리타임',
-    category: '홍삼',
-    imageUrl: 'https://via.placeholder.com/150',
-    ingredients: '홍삼농축액',
-  ),
-  Drug(
-    id: 8,
-    brandName: '나우푸드',
-    productName: '실리마린 밀크씨슬',
-    category: '간건강',
-    imageUrl: 'https://via.placeholder.com/150',
-    ingredients: '실리마린, 밀크씨슬 추출물',
-  ),
-  Drug(
-    id: 9,
-    brandName: '닥터스베스트',
-    productName: '마그네슘',
-    category: '미네랄',
-    imageUrl: 'https://via.placeholder.com/150',
-    ingredients: '마그네슘 글리시네이트',
-  ),
-  Drug(
-    id: 10,
-    brandName: '솔가',
-    productName: '엽산 400',
-    category: '비타민',
-    imageUrl: 'https://via.placeholder.com/150',
-    ingredients: '엽산 400mcg',
-  ),
-  Drug(
-    id: 11,
-    brandName: '뉴트리코어',
-    productName: '루테인 지아잔틴',
-    category: '눈건강',
-    imageUrl: 'https://via.placeholder.com/150',
-    ingredients: '루테인, 지아잔틴',
-  ),
-  Drug(
-    id: 12,
-    brandName: 'GNM자연의품격',
-    productName: '건강한 간 밀크씨슬',
-    category: '간건강',
-    imageUrl: 'https://via.placeholder.com/150',
-    ingredients: '밀크씨슬 추출물, 비타민B군',
-  ),
-  Drug(
-    id: 13,
-    brandName: '안국건강',
-    productName: '루테인 미니 100',
-    category: '눈건강',
-    imageUrl: 'https://via.placeholder.com/150',
-    ingredients: '루테인',
-  ),
-  Drug(
-    id: 14,
-    brandName: 'GC녹십자',
-    productName: '포스트바이오틱스',
-    category: '유산균',
-    imageUrl: 'https://via.placeholder.com/150',
-    ingredients: '프락토올리고당, 아연, 판토텐산',
-  ),
-  Drug(
-    id: 15,
-    brandName: '일동제약',
-    productName: '비오비타',
-    category: '유산균',
-    imageUrl: 'https://via.placeholder.com/150',
-    ingredients: '낙산균, 유산균',
-  ),
-  Drug(
-    id: 16,
-    brandName: '대웅제약',
-    productName: '우루사',
-    category: '간건강',
-    imageUrl: 'https://via.placeholder.com/150',
-    ingredients: 'UDCA, 비타민B',
-  ),
-  Drug(
-    id: 17,
-    brandName: '유한양행',
-    productName: '비타민C 1000',
-    category: '비타민',
-    imageUrl: 'https://via.placeholder.com/150',
-    ingredients: '비타민C',
-  ),
-  Drug(
-    id: 18,
-    brandName: '센트룸',
-    productName: '멀티비타민 포 맨',
-    category: '종합비타민',
-    imageUrl: 'https://via.placeholder.com/150',
-    ingredients: '비타민 22종, 미네랄',
-  ),
-  Drug(
-    id: 19,
-    brandName: '블랙모어스',
-    productName: '오메가 데일리',
-    category: '오메가3',
-    imageUrl: 'https://via.placeholder.com/150',
-    ingredients: 'rTG 오메가3',
-  ),
-  Drug(
-    id: 20,
-    brandName: '칼슘마그네슘아연',
-    productName: '네이처메이드',
-    category: '미네랄',
-    imageUrl: 'https://via.placeholder.com/150',
-    ingredients: '칼슘, 마그네슘, 아연',
+    dailyDosage: '1 softgel daily',
+    upcCode: '031604026845',
+    servingSize: '1 softgel',
+    supplementFacts: {
+      'Vitamin A': '750mcg',
+      'Vitamin C': '60mg',
+      'Vitamin D3': '25mcg',
+    },
   ),
 ];

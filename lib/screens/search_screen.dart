@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../data/mock/dummy_drugs.dart';
+import '../models/pill.dart';
 import '../data/repositories/drug_repository.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -13,7 +13,7 @@ class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   final DrugRepository _repository = DrugRepository();
 
-  List<Drug> _filteredDrugs = [];
+  List<BasePill> _filteredDrugs = [];
   bool _isLoading = false;
 
   @override
@@ -69,12 +69,12 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  void _addToCabinet(Drug drug) {
+  void _addToCabinet(BasePill pill) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          '${drug.productName}이(가) 내 약통에 추가되었습니다.',
+          '${pill.name}이(가) 내 약통에 추가되었습니다.',
           style: const TextStyle(fontSize: 16),
         ),
         duration: const Duration(seconds: 2),
@@ -141,7 +141,14 @@ class _SearchScreenState extends State<SearchScreen> {
                     : ListView.builder(
                         itemCount: _filteredDrugs.length,
                         itemBuilder: (context, index) {
-                          final drug = _filteredDrugs[index];
+                          final pill = _filteredDrugs[index];
+                          String subtitleText = pill.brand;
+                          if (pill is KoreanPill) {
+                            subtitleText += ' • ${pill.category}';
+                          } else if (pill is AmericanPill) {
+                            subtitleText += ' • US Supplement';
+                          }
+
                           return ListTile(
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 8),
@@ -152,18 +159,22 @@ class _SearchScreenState extends State<SearchScreen> {
                                 color: Colors.grey[200],
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Icon(Icons.medication,
-                                  color: Colors.grey, size: 30),
+                              child: pill.imageUrl.startsWith('http')
+                                  ? Image.network(pill.imageUrl,
+                                      errorBuilder: (c, e, s) =>
+                                          const Icon(Icons.medication))
+                                  : const Icon(Icons.medication,
+                                      color: Colors.grey, size: 30),
                             ),
                             title: Text(
-                              drug.productName,
+                              pill.name,
                               style: const TextStyle(
                                   fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                             subtitle: Padding(
                               padding: const EdgeInsets.only(top: 4.0),
                               child: Text(
-                                '${drug.brandName} • ${drug.category}',
+                                subtitleText,
                                 style: TextStyle(
                                     fontSize: 14, color: Colors.grey[700]),
                               ),
@@ -171,9 +182,9 @@ class _SearchScreenState extends State<SearchScreen> {
                             trailing: IconButton(
                               icon: const Icon(Icons.add_circle,
                                   color: Color(0xFF2E7D32), size: 32),
-                              onPressed: () => _addToCabinet(drug),
+                              onPressed: () => _addToCabinet(pill),
                             ),
-                            onTap: () => _addToCabinet(drug),
+                            onTap: () => _addToCabinet(pill),
                           );
                         },
                       ),
