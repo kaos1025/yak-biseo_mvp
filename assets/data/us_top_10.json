@@ -1,0 +1,148 @@
+[
+  {
+    "id": "us_rank_01",
+    "name": "Nature Made Magnesium Oxide 250 mg",
+    "brand": "Nature Made",
+    "imageUrl": "https://m.media-amazon.com/images/I/71I3uXwKxWL._AC_SL1500_.jpg",
+    "dailyDosage": "1 Tablet daily",
+    "upcCode": "031604029273",
+    "servingSize": "1 Tablet",
+    "supplementFacts": {
+      "Magnesium": "250 mg",
+      "Calcium": "65 mg"
+    },
+    "disclaimer": "Statements not evaluated by FDA."
+  },
+  {
+    "id": "us_rank_02",
+    "name": "Nordic Naturals Ultimate Omega",
+    "brand": "Nordic Naturals",
+    "imageUrl": "https://m.media-amazon.com/images/I/71u9yH3M5FL._AC_SL1500_.jpg",
+    "dailyDosage": "2 Soft Gels daily",
+    "upcCode": "768990017992",
+    "servingSize": "2 Soft Gels",
+    "supplementFacts": {
+      "Total Omega-3s": "1280 mg",
+      "EPA": "650 mg",
+      "DHA": "450 mg"
+    },
+    "disclaimer": "Statements not evaluated by FDA."
+  },
+  {
+    "id": "us_rank_03",
+    "name": "Garden of Life Vitamin Code Women",
+    "brand": "Garden of Life",
+    "imageUrl": "https://m.media-amazon.com/images/I/71+jN3O+d+L._AC_SL1500_.jpg",
+    "dailyDosage": "4 Capsules daily",
+    "upcCode": "658010113884",
+    "servingSize": "4 Capsules",
+    "supplementFacts": {
+      "Vitamin C": "60 mg",
+      "Vitamin D": "25 mcg",
+      "Vitamin E": "10 mg"
+    },
+    "disclaimer": "Statements not evaluated by FDA."
+  },
+  {
+    "id": "us_rank_04",
+    "name": "NOW Foods Vitamin D-3 5,000 IU",
+    "brand": "NOW Foods",
+    "imageUrl": "https://m.media-amazon.com/images/I/71+XJ6kXmLL._AC_SL1500_.jpg",
+    "dailyDosage": "1 Softgel every 2 days",
+    "upcCode": "733739003720",
+    "servingSize": "1 Softgel",
+    "supplementFacts": {
+      "Vitamin D3": "125 mcg (5,000 IU)"
+    },
+    "disclaimer": "Statements not evaluated by FDA."
+  },
+  {
+    "id": "us_rank_05",
+    "name": "Sports Research Collagen Peptides",
+    "brand": "Sports Research",
+    "imageUrl": "https://m.media-amazon.com/images/I/71O1O8o-74L._AC_SL1500_.jpg",
+    "dailyDosage": "1 Scoop daily",
+    "upcCode": "023249010068",
+    "servingSize": "1 Scoop (11g)",
+    "supplementFacts": {
+      "Hydrolyzed Bovine Collagen Peptides": "11 g",
+      "Protein": "10 g"
+    },
+    "disclaimer": "Statements not evaluated by FDA."
+  },
+  {
+    "id": "us_rank_06",
+    "name": "Life Extension Two-Per-Day Multivitamin",
+    "brand": "Life Extension",
+    "imageUrl": "https://m.media-amazon.com/images/I/71gVlEwT1DL._AC_SL1500_.jpg",
+    "dailyDosage": "2 Capsules daily",
+    "upcCode": "737870231412",
+    "servingSize": "2 Capsules",
+    "supplementFacts": {
+      "Vitamin A": "1500 mcg",
+      "Vitamin C": "470 mg",
+      "Vitamin D3": "50 mcg"
+    },
+    "disclaimer": "Statements not evaluated by FDA."
+  },
+  {
+    "id": "us_rank_07",
+    "name": "Thorne Research Basic Nutrients 2/Day",
+    "brand": "Thorne Research",
+    "imageUrl": "https://m.media-amazon.com/images/I/61j6X2f7bQL._AC_SL1500_.jpg",
+    "dailyDosage": "2 Capsules daily",
+    "upcCode": "693749232049",
+    "servingSize": "2 Capsules",
+    "supplementFacts": {
+      "Vitamin A": "1500 mcg",
+      "Vitamin C": "250 mg",
+      "Vitamin k": "200 mcg"
+    },
+    "disclaimer": "Statements not evaluated by FDA."
+  },
+  {
+    "id": "us_rank_08",
+    "name": "Optimum Nutrition Gold Standard 100% Whey",
+    "brand": "Optimum Nutrition",
+    "imageUrl": "https://m.media-amazon.com/images/I/71zI-pZ0KjL._AC_SL1500_.jpg",
+    "dailyDosage": "1 Scoop daily",
+    "upcCode": "748927022932",
+    "servingSize": "1 Scoop (30.4g)",
+    "supplementFacts": {
+      "Protein": "24 g",
+      "Total Carbohydrate": "3 g",
+      "Sodium": "130 mg"
+    },
+    "disclaimer": "Statements not evaluated by FDA."
+  },
+  {
+    "id": "us_rank_09",
+    "name": "SmartyPants Kids Formula",
+    "brand": "SmartyPants",
+    "imageUrl": "https://m.media-amazon.com/images/I/71z7j1xO6EL._AC_SL1500_.jpg",
+    "dailyDosage": "4 Gummies daily",
+    "upcCode": "817053020050",
+    "servingSize": "4 Gummies",
+    "supplementFacts": {
+      "Vitamin D": "20 mcg",
+      "Vitamin B12": "2.4 mcg",
+      "Omega-3 fatty acids": "340 mg"
+    },
+    "disclaimer": "Statements not evaluated by FDA."
+  },
+  {
+    "id": "us_rank_10",
+    "name": "Centrum Silver Women 50+",
+    "brand": "Centrum",
+    "imageUrl": "https://m.media-amazon.com/images/I/81B4yX+6O-L._AC_SL1500_.jpg",
+    "dailyDosage": "1 Tablet daily",
+    "upcCode": "300054756771",
+    "servingSize": "1 Tablet",
+    "supplementFacts": {
+      "Vitamin D3": "25 mcg",
+      "Calcium": "300 mg",
+      "Vitamin B12": "50 mcg"
+    },
+    "disclaimer": "Statements not evaluated by FDA."
+  }
+]

@@ -7,7 +7,7 @@ import 'package:myapp/theme/app_theme.dart';
 
 // [모델 클래스]
 class DetectedItem {
-  final int id;
+  final String id;
   final String name;
   final String status; // SAFE, REDUNDANT, WARNING
   final String desc;
@@ -23,7 +23,7 @@ class DetectedItem {
 
   factory DetectedItem.fromJson(Map<String, dynamic> json) {
     return DetectedItem(
-      id: json['id'] ?? 0,
+      id: json['id']?.toString() ?? '0',
       name: json['name'] ?? '제품명 확인 불가',
       status: json['status'] ?? 'SAFE',
       desc: json['desc'] ?? '',

@@ -2,7 +2,7 @@ import '../../models/pill.dart';
 
 const List<BasePill> dummyDrugs = [
   KoreanPill(
-    id: 1,
+    id: '1',
     brand: '종근당',
     name: '락토핏 골드',
     category: '유산균',
@@ -11,7 +11,7 @@ const List<BasePill> dummyDrugs = [
     dailyDosage: '1일 1회 1포',
   ),
   KoreanPill(
-    id: 2,
+    id: '2',
     brand: '고려은단',
     name: '비타민C 1000',
     category: '비타민',
@@ -20,7 +20,7 @@ const List<BasePill> dummyDrugs = [
     dailyDosage: '1일 1회 1정',
   ),
   KoreanPill(
-    id: 3,
+    id: '3',
     brand: '스포츠리서치',
     name: '오메가3',
     category: '오메가3',
@@ -29,7 +29,7 @@ const List<BasePill> dummyDrugs = [
     dailyDosage: '1일 1회 1캡슐',
   ),
   KoreanPill(
-    id: 4,
+    id: '4',
     brand: '얼라이브',
     name: '원스데일리 멀티비타민',
     category: '종합비타민',
@@ -38,7 +38,7 @@ const List<BasePill> dummyDrugs = [
     dailyDosage: '1일 1회 1정',
   ),
   KoreanPill(
-    id: 5,
+    id: '5',
     brand: '오쏘몰',
     name: '이뮨',
     category: '종합비타민',
@@ -47,7 +47,7 @@ const List<BasePill> dummyDrugs = [
     dailyDosage: '1일 1회 1병',
   ),
   AmericanPill(
-    id: 101,
+    id: '101',
     brand: 'Nature Made',
     name: 'Multivitamin For Her',
     imageUrl: 'https://via.placeholder.com/150',
@@ -59,5 +59,6 @@ const List<BasePill> dummyDrugs = [
       'Vitamin C': '60mg',
       'Vitamin D3': '25mcg',
     },
+    disclaimer: 'Statements not evaluated by FDA.',
   ),
 ];

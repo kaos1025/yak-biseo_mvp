@@ -1,5 +1,5 @@
 abstract class BasePill {
-  final int id;
+  final String id;
   final String name;
   final String brand;
   final String imageUrl;
@@ -33,6 +33,7 @@ class AmericanPill extends BasePill {
   final String upcCode;
   final String servingSize;
   final Map<String, dynamic> supplementFacts;
+  final String disclaimer;
 
   const AmericanPill({
     required super.id,
@@ -43,5 +44,6 @@ class AmericanPill extends BasePill {
     required this.upcCode,
     required this.servingSize,
     required this.supplementFacts,
+    required this.disclaimer,
   });
 }
