@@ -46,4 +46,18 @@ class AmericanPill extends BasePill {
     required this.supplementFacts,
     required this.disclaimer,
   });
+
+  factory AmericanPill.fromJson(Map<String, dynamic> json) {
+    return AmericanPill(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      brand: json['brand'] as String,
+      imageUrl: json['imageUrl'] as String,
+      dailyDosage: json['dailyDosage'] as String,
+      upcCode: json['upcCode'] as String,
+      servingSize: json['servingSize'] as String,
+      supplementFacts: json['supplementFacts'] as Map<String, dynamic>,
+      disclaimer: json['disclaimer'] as String,
+    );
+  }
 }
