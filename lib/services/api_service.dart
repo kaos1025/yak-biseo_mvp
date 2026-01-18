@@ -1,92 +1,73 @@
-import 'dart:developer' as developer;
+import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import '../core/utils/keyword_cleaner.dart';
+import '../models/pill.dart';
 
 class ApiService {
-  // API 키를 .env 파일에서 불러옵니다.
-  static final String? _apiKey = dotenv.env['API_KEY'];
+  static const String _serviceId = 'I0030'; // 품목제조신고(원재료)
+  static const String _baseUrl = 'http://openapi.foodsafetykorea.go.kr/api';
 
-  static Future<String> analyzeDrugImage(XFile image) async {
-    // 널이 될 수 있는 _apiKey를 지역 변수로 옮겨서 널 안전성 검사를 명확하게 합니다.
-    final apiKey = _apiKey;
-    if (apiKey == null || apiKey.isEmpty) {
-      // API 키가 없으면 예외를 발생시켜 함수 실행을 중단합니다.
-      throw Exception('API 키가 설정되지 않았습니다. .env 파일을 확인하세요.');
+  /// Searches for pills using the Food Safety Korea API.
+  ///
+  /// [rawQuery] is the user's input search term.
+  /// Returns a list of [KoreanPill].
+  static Future<List<KoreanPill>> searchPill(String rawQuery) async {
+    // 1. Pre-process the query
+    final cleaningResult = KeywordCleaner.clean(rawQuery);
+    if (cleaningResult.isEmpty) {
+      return [];
     }
 
-    // 이제 apiKey는 절대 널이 아니라고 확신할 수 있습니다.
-    final model = GenerativeModel(
-      model: 'gemini-2.5-flash',
-      apiKey: apiKey,
-      generationConfig: GenerationConfig(
-        responseMimeType: 'application/json',
-        temperature: 0.2,
-      ),
-    );
+    // Encode for URL
+    final encodedQuery = Uri.encodeComponent(cleaningResult);
 
-    final prompt = TextPart('''
-Role: You are an expert AI Pharmacist for the Korean app "Yak-Biseo".
-
-[Task: Group Shot Analysis]
-The user will upload an image containing **MULTIPLE supplement bottles** (e.g., laid out on a table).
-1. **Detection**: Identify ALL distinct supplement bottles visible in the image.
-2. **Extraction**: For each bottle, extract 'Brand' and 'Product Name'.
-3. **Logic (Redundancy Check)**:
-   - Analyze ingredients based on product names (e.g., 'Triplus' -> Multivitamin+Mineral).
-   - **CRITICAL**: If a 'Multivitamin' and a 'Single Ingredient' (like Vitamin C, Vitamin D, Calcium) are found together, flag the Single Ingredient as **"REDUNDANT"** (Warning).
-4. **Savings Calculation**:
-   - Estimate the monthly cost (KRW) for each item.
-   - `total_saving_amount` = Sum of prices of ONLY the items flagged as "REDUNDANT".
-
-[Output Format: JSON Only (Korean)]
-{
-  "summary": "회원님, 식탁 위에 5개 제품이 있네요. 그중 2개는 성분이 겹칩니다! 정리하면 월 25,000원을 아낄 수 있어요.",
-  "total_saving_amount": 25000,
-  "detected_items": [
-    {
-      "id": 1,
-      "name": "종근당 락토핏 골드",
-      "status": "SAFE",
-      "desc": "유산균은 필수입니다. 계속 드세요.",
-      "price": 15000
-    },
-    {
-      "id": 2,
-      "name": "고려은단 비타민C 1000",
-      "status": "REDUNDANT",
-      "desc": "종합비타민에 이미 비타민C가 충분해요. 이건 빼셔도 됩니다.",
-      "price": 10000
+    // Get API Key
+    final apiKey = dotenv.env['FOOD_SAFETY_KEY'] ?? '';
+    if (apiKey.isEmpty) {
+      // In production, might want to log this or throw exception.
+      // For MVP, return empty list.
+      // print('Error: FOOD_SAFETY_KEY not found in .env');
+      return [];
     }
-  ]
-}
-    ''');
 
-    final imageBytes = await image.readAsBytes();
-    final imagePart = DataPart('image/jpeg', imageBytes);
+    // 2. Build URL
+    // Format: http://openapi.foodsafetykorea.go.kr/api/{KEY}/{SERVICE_ID}/json/1/5/PRDLST_NM={KEYWORD}
+    final url =
+        '$_baseUrl/$apiKey/$_serviceId/json/1/5/PRDLST_NM=$encodedQuery';
 
-    int retryCount = 0;
-    const maxRetries = 3;
+    try {
+      final response =
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
 
-    while (true) {
-      try {
-        final response = await model.generateContent([
-          Content.multi([prompt, imagePart])
-        ]);
-        return response.text ?? '{"status": "ERROR", "message": "No response"}';
-      } catch (e) {
-        if (e.toString().contains('503') && retryCount < maxRetries) {
-          retryCount++;
-          developer.log('API 503 Error. Retrying... ($retryCount/$maxRetries)',
-              name: 'ApiService');
-          await Future.delayed(
-              Duration(seconds: retryCount)); // 1s, 2s, 3s... backoff
-          continue;
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        // 3. Parse Response
+        if (data[_serviceId] != null && data[_serviceId]['row'] != null) {
+          final List<dynamic> rows = data[_serviceId]['row'];
+
+          return rows.map((row) {
+            return KoreanPill(
+              id: row['PRDLST_REPORT_NO'] ?? '', // 품목보고번호
+              name: row['PRDLST_NM'] ?? '정보 없음', // 제품명
+              brand: row['BSSH_NM'] ?? '정보 없음', // 제조사
+              imageUrl: '', // API doesnt provide image
+              dailyDosage: row['POG_DAYCNT'] ??
+                  row['NTK_MTHD'] ??
+                  '서빙 사이즈 정보 없음', // 유통기한 or 섭취방법 mapping
+              category: '건강기능식품', // Default category
+              ingredients: row['RAWMTRL_NM'] ?? '원재료 정보 없음', // 원재료
+            );
+          }).toList();
         }
-        developer.log('Error in analyzeDrugImage: $e',
-            name: 'ApiService', error: e);
-        throw Exception('API 호출에 실패했습니다: ${e.toString()}');
+      } else {
+        // print('API Error: ${response.statusCode}');
       }
+    } catch (e) {
+      // print('Exception during API call: $e');
     }
+
+    return [];
   }
 }
