@@ -2,7 +2,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:myapp/screens/result_screen.dart';
-import 'package:myapp/screens/search_screen.dart';
+import 'package:myapp/delegates/pill_search_delegate.dart';
 import 'package:myapp/services/analytics_service.dart';
 import 'package:myapp/l10n/app_localizations.dart';
 import 'package:myapp/screens/profile/profile_screen.dart';
@@ -120,9 +120,9 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.search, size: 28),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SearchScreen()),
+              showSearch(
+                context: context,
+                delegate: PillSearchDelegate(),
               );
             },
           ),

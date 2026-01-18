@@ -23,8 +23,8 @@ void main() {
     });
 
     test('Clean and Encode works correctly', () {
-      final input = '락토핏 50포';
-      final cleaned = '락토핏';
+      const input = '락토핏 50포';
+      const cleaned = '락토핏';
       final encoded = Uri.encodeComponent(cleaned);
       expect(KeywordCleaner.cleanAndEncode(input), encoded);
     });

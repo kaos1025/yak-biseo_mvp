@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+
 import '../core/utils/keyword_cleaner.dart';
 import '../models/pill.dart';
 
@@ -69,5 +71,27 @@ class ApiService {
     }
 
     return [];
+  }
+
+  static Future<String> analyzeDrugImage(XFile image) async {
+    // Simulate network delay
+    await Future.delayed(const Duration(seconds: 2));
+
+    // Return dummy JSON matching AnalysisResponse structure
+    return '''
+    {
+      "detected_items": [
+        {
+          "id": "mock_1",
+          "name": "Mock Vitamin C",
+          "status": "SAFE",
+          "desc": "Analysis temporarily unavailable",
+          "price": 0
+        }
+      ],
+      "summary": "The analysis service is currently being updated. Please try the Search feature instead.",
+      "total_saving_amount": 0
+    }
+    ''';
   }
 }
