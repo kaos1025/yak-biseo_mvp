@@ -1,4 +1,3 @@
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import '../models/pill.dart';
 import '../services/api_service.dart';
@@ -61,21 +60,60 @@ class PillSearchDelegate extends SearchDelegate {
           separatorBuilder: (context, index) => const Divider(height: 1),
           itemBuilder: (context, index) {
             final pill = results[index];
+            final colorScheme = Theme.of(context).colorScheme;
+            final textTheme = Theme.of(context).textTheme;
+
             return ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Color(0xFFE8F5E9),
-                child: Icon(Icons.medication, color: Color(0xFF2E7D32)),
+              leading: CircleAvatar(
+                backgroundColor: colorScheme.primaryContainer,
+                child: Icon(Icons.medication,
+                    color: colorScheme.onPrimaryContainer),
               ),
               title: Text(
                 pill.name,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
-              subtitle: Text(pill.brand),
+              subtitle: Text(
+                '${pill.brand} | ${pill.dailyDosage}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                // Placeholder for detail navigation
-                developer.log('Selected Pill: ${pill.name} (ID: ${pill.id})');
-                // Could navigate to details screen here later
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text(pill.name),
+                    content: SingleChildScrollView(
+                      child: ListBody(
+                        children: <Widget>[
+                          Text('제조사: ${pill.brand}',
+                              style: textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                          Text('섭취방법 / 유통기한:',
+                              style: textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600)),
+                          Text(pill.dailyDosage, style: textTheme.bodyMedium),
+                          const SizedBox(height: 8),
+                          Text('주요 원재료:',
+                              style: textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600)),
+                          Text(pill.ingredients, style: textTheme.bodySmall),
+                        ],
+                      ),
+                    ),
+                    actions: <Widget>[
+                      TextButton(
+                        child: const Text('닫기'),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ],
+                  ),
+                );
               },
             );
           },

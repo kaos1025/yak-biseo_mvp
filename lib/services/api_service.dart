@@ -7,7 +7,7 @@ import '../core/utils/keyword_cleaner.dart';
 import '../models/pill.dart';
 
 class ApiService {
-  static const String _serviceId = 'I0030'; // 품목제조신고(원재료)
+  static const String _serviceId = 'C003'; // 건강기능식품 정보 (User Requested)
   static const String _baseUrl = 'http://openapi.foodsafetykorea.go.kr/api';
 
   /// Searches for pills using the Food Safety Korea API.
@@ -28,8 +28,6 @@ class ApiService {
     final apiKey = dotenv.env['FOOD_SAFETY_KEY'] ?? '';
     if (apiKey.isEmpty) {
       // In production, might want to log this or throw exception.
-      // For MVP, return empty list.
-      // print('Error: FOOD_SAFETY_KEY not found in .env');
       return [];
     }
 
@@ -43,7 +41,14 @@ class ApiService {
           await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final body = response.body;
+        // Check for HTML error response (common with FoodSafetyKorea API for invalid key/auth)
+        if (body.trim().startsWith('<')) {
+          // API Key or Auth error
+          return [];
+        }
+
+        final data = jsonDecode(body);
 
         // 3. Parse Response
         if (data[_serviceId] != null && data[_serviceId]['row'] != null) {
@@ -55,8 +60,8 @@ class ApiService {
               name: row['PRDLST_NM'] ?? '정보 없음', // 제품명
               brand: row['BSSH_NM'] ?? '정보 없음', // 제조사
               imageUrl: '', // API doesnt provide image
-              dailyDosage: row['POG_DAYCNT'] ??
-                  row['NTK_MTHD'] ??
+              dailyDosage: row['NTK_MTHD'] ?? // 섭취방법 (C003 Priority)
+                  row['POG_DAYCNT'] ?? // 유통기한
                   '서빙 사이즈 정보 없음', // 유통기한 or 섭취방법 mapping
               category: '건강기능식품', // Default category
               ingredients: row['RAWMTRL_NM'] ?? '원재료 정보 없음', // 원재료
@@ -64,7 +69,7 @@ class ApiService {
           }).toList();
         }
       } else {
-        // print('API Error: ${response.statusCode}');
+        // API Error
       }
     } catch (e) {
       // print('Exception during API call: $e');
