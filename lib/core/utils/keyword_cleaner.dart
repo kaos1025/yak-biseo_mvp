@@ -45,28 +45,3 @@ class KeywordCleaner {
     return result;
   }
 }
-
-void main() {
-  const testCases = [
-    "종근당 락토핏 골드 50포(통)",
-    "[해외직구] Nature Made Magnesium 250 mg",
-    "고려은단 비타민C 1000 (120정)",
-    "얼라이브! 원스데일리 포 맨 60정",
-    "Jarrow Formulas, 펨 도필러스, 50억, 60 베지 캡슐",
-    "California Gold Nutrition, Omega-3, 프리미엄 피쉬 오일, 100 피쉬 젤라틴 소프트젤",
-    "나우푸드 실리마린 밀크시슬 300mg",
-    "종근당건강 프로메가 알티지 오메가3 듀얼 60캡슐",
-    "비타민B12 5000mcg", // mcq case testing (regex didn't explicitly include mcg, let's fix if needed)
-    "CoQ10 100mg",
-  ];
-
-  print('--- KeywordCleaner Test Results ---');
-  for (final input in testCases) {
-    final cleaned = KeywordCleaner.clean(input);
-    final encoded = KeywordCleaner.cleanAndEncode(input);
-    print('Input: "$input"');
-    print('Clean: "$cleaned"');
-    print('Encoded: "$encoded"');
-    print('---');
-  }
-}

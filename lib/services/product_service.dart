@@ -11,7 +11,7 @@ class ProductService {
       return jsonList.map((json) => AmericanPill.fromJson(json)).toList();
     } catch (e) {
       // In production, log the error to a service like Sentry or Firebase Crashlytics
-      print('Error loading US Top 10 data: $e');
+      // print('Error loading US Top 10 data: $e');
       return [];
     }
   }

@@ -4,6 +4,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:myapp/services/api_service.dart';
 import 'package:myapp/screens/analyzing_screen.dart';
 import 'package:myapp/theme/app_theme.dart';
+import 'package:myapp/widgets/product_card.dart';
+import 'package:myapp/core/utils/keyword_cleaner.dart';
+import 'package:myapp/models/pill.dart';
 
 // [모델 클래스]
 class DetectedItem {
@@ -69,6 +72,8 @@ class _ResultScreenState extends State<ResultScreen> {
   bool _isLoading = true;
   AnalysisResponse? _analysisResult;
   String? _errorMessage;
+  final Map<String, KoreanPill?> _apiResults = {};
+  final Map<String, bool> _isApiLoading = {};
 
   @override
   void initState() {
@@ -88,12 +93,56 @@ class _ResultScreenState extends State<ResultScreen> {
           _analysisResult = AnalysisResponse.fromJson(result);
           _isLoading = false;
         });
+
+        // Trigger Auto Search for each item (Generic/Mock Result -> Real API)
+        if (_analysisResult != null) {
+          for (var item in _analysisResult!.detectedItems) {
+            _searchApiForItem(item);
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _errorMessage = "분석 중 오류가 발생했습니다.\n다시 시도해주세요. ($e)";
           _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _searchApiForItem(DetectedItem item) async {
+    // 1. Clean the keyword (Mock name usually has noise or needs cleaning)
+    final keyword = KeywordCleaner.clean(item.name);
+
+    if (mounted) {
+      setState(() {
+        _isApiLoading[item.id] = true;
+      });
+    }
+
+    try {
+      // 2. Call API
+      final pills = await ApiService.searchPill(keyword);
+
+      if (mounted) {
+        setState(() {
+          _isApiLoading[item.id] = false;
+          if (pills.isNotEmpty) {
+            // Case A: Success - use the first result
+            _apiResults[item.id] = pills.first;
+          } else {
+            // Case B: Failure - no result found (will fallback to raw data)
+            _apiResults[item.id] = null;
+          }
+        });
+      }
+    } catch (e) {
+      // Handle error cleanly
+      if (mounted) {
+        setState(() {
+          _isApiLoading[item.id] = false;
+          _apiResults[item.id] = null;
         });
       }
     }
@@ -186,7 +235,58 @@ class _ResultScreenState extends State<ResultScreen> {
               itemCount: _analysisResult!.detectedItems.length,
               itemBuilder: (context, index) {
                 final item = _analysisResult!.detectedItems[index];
-                return _ResultItemCard(item: item);
+                final apiPill = _apiResults[item.id];
+                final isLoading = _isApiLoading[item.id] ?? false;
+
+                if (isLoading) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: const Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2)),
+                          SizedBox(width: 12),
+                          Text("식약처 DB 조회 중...",
+                              style:
+                                  TextStyle(fontSize: 14, color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                // Case A: API Result Found
+                if (apiPill != null) {
+                  return ProductCard(
+                    name: apiPill.name,
+                    brand: apiPill.brand,
+                    status: 'SAFE', // API Verified
+                    ingredients: apiPill.ingredients,
+                    dosage: apiPill.dailyDosage,
+                    isExpandedDefault: true,
+                    // Keeps original analysis price/desc if needed, or api doesn't have price
+                    price: item.price, // Keep original analysis price
+                  );
+                }
+
+                // Case B: Fallback to Raw Analysis
+                return ProductCard(
+                  name: item.name,
+                  description: item.desc,
+                  price: item.price,
+                  status:
+                      item.status, // Uses original status (WARNING/REDUNDANT)
+                );
               },
             ),
 
@@ -290,151 +390,6 @@ class _ResultScreenState extends State<ResultScreen> {
               child: const Text(
                 "📉 중복 섭취를 줄여서 건강과 지갑을 지켰어요!",
                 style: TextStyle(color: Colors.white, fontSize: 13),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// [리팩토링] 접이식 디자인 아이템 카드 위젯
-class _ResultItemCard extends StatefulWidget {
-  final DetectedItem item;
-  const _ResultItemCard({required this.item});
-
-  @override
-  State<_ResultItemCard> createState() => _ResultItemCardState();
-}
-
-class _ResultItemCardState extends State<_ResultItemCard> {
-  bool _isExpanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final item = widget.item;
-    final bool isWarning =
-        item.status == 'WARNING' || item.status == 'REDUNDANT';
-
-    // 스타일 정의
-    final Color bgColor = isWarning ? Colors.orange.shade50 : Colors.white;
-    final Color borderColor =
-        isWarning ? Colors.orange.shade200 : Colors.grey.shade200;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            offset: const Offset(0, 2),
-            blurRadius: 8,
-          )
-        ],
-      ),
-      child: Theme(
-        // ExpansionTile의 기본 Divider 제거 및 스타일 조정
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          childrenPadding: const EdgeInsets.only(bottom: 8),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          collapsedShape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          onExpansionChanged: (expanded) {
-            setState(() => _isExpanded = expanded);
-          },
-          // 뱃지와 제품명
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isWarning ? Colors.orange : AppTheme.primaryColor,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  isWarning ? "중복" : "안전",
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  item.name,
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isWarning ? Colors.black : Colors.black87),
-                ),
-              ),
-            ],
-          ),
-          // 핵심 요약 (닫힌 상태 서브타이틀)
-          subtitle: !_isExpanded
-              ? Text(
-                  item.desc,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 15,
-                      color: isWarning ? Colors.black87 : Colors.grey[800]),
-                )
-              : null,
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (item.price > 0 && !_isExpanded)
-                Text(
-                  "${item.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원",
-                  style: TextStyle(
-                      fontSize: 15,
-                      color: isWarning ? Colors.black : Colors.grey[700],
-                      fontWeight: FontWeight.w700),
-                ),
-              Icon(
-                _isExpanded ? Icons.expand_less : Icons.expand_more,
-                color: isWarning ? Colors.black54 : Colors.grey,
-              ),
-            ],
-          ),
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Divider(height: 1),
-                  const SizedBox(height: 16),
-                  Text(
-                    item.desc,
-                    style: const TextStyle(
-                      fontSize: 15.0,
-                      color: Color(0xFF424242),
-                      fontWeight: FontWeight.w400,
-                      height: 1.6,
-                    ),
-                  ),
-                  if (item.price > 0) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      "예상 가격: ${item.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원",
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                          fontSize: 15,
-                          color: isWarning ? Colors.black : Colors.grey[800],
-                          fontWeight: FontWeight.w700),
-                    ),
-                  ],
-                ],
               ),
             ),
           ],

@@ -33,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final locale = Localizations.localeOf(context);
       if (locale.languageCode == 'en') {
         final prefs = await SharedPreferences.getInstance();
+        if (!mounted) return;
         final agreed = prefs.getBool('fda_disclaimer_agreed') ?? false;
         if (!agreed) {
           _showDisclaimerDialog();
@@ -46,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(l10n.disclaimerTitle),
         content: const SingleChildScrollView(
           child: Text(
@@ -62,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () async {
               final prefs = await SharedPreferences.getInstance();
               await prefs.setBool('fda_disclaimer_agreed', true);
-              if (mounted) Navigator.pop(context);
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
             },
             child: Text(l10n.disclaimerAgree),
           ),
