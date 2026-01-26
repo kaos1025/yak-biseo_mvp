@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:myapp/services/api_service.dart';
 import 'package:myapp/screens/analyzing_screen.dart';
+import 'package:myapp/services/my_pill_service.dart';
 import 'package:myapp/theme/app_theme.dart';
 import 'package:myapp/widgets/product_card.dart';
 import 'package:myapp/core/utils/keyword_cleaner.dart';
@@ -267,15 +268,52 @@ class _ResultScreenState extends State<ResultScreen> {
 
                 // Case A: API Result Found
                 if (apiPill != null) {
-                  return ProductCard(
-                    name: apiPill.name,
-                    brand: apiPill.brand,
-                    status: 'SAFE', // API Verified
-                    ingredients: apiPill.ingredients,
-                    dosage: apiPill.dailyDosage,
-                    isExpandedDefault: true,
-                    // Keeps original analysis price/desc if needed, or api doesn't have price
-                    price: item.price, // Keep original analysis price
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ProductCard(
+                        name: apiPill.name,
+                        brand: apiPill.brand,
+                        status: 'SAFE', // API Verified
+                        ingredients: apiPill.ingredients,
+                        dosage: apiPill.dailyDosage,
+                        isExpandedDefault: true,
+                        // Keeps original analysis price/desc if needed, or api doesn't have price
+                        price: item.price, // Keep original analysis price
+                      ),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            final result =
+                                await MyPillService.savePill(apiPill);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(result == 0
+                                      ? '약통에 추가되었습니다!'
+                                      : '이미 약통에 있는 영양제입니다.'),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                              // 홈 화면으로 이동 (pop with result true to refresh if needed)
+                              // If successful add
+                              if (result == 0) {
+                                Navigator.pop(context, true);
+                              }
+                            }
+                          },
+                          icon: const Icon(Icons.add_circle_outline),
+                          label: const Text("내 약통에 추가"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.accentColor, // Amber
+                            foregroundColor: Colors.black,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                   );
                 }
 

@@ -7,6 +7,8 @@ import 'package:myapp/services/analytics_service.dart';
 import 'package:myapp/l10n/app_localizations.dart';
 import 'package:myapp/screens/profile/profile_screen.dart';
 import 'package:myapp/widgets/us_recommendation_section.dart';
+import 'package:myapp/services/my_pill_service.dart';
+import 'package:myapp/models/pill.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -17,14 +19,22 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  late Future<List<KoreanPill>> _myPillsFuture;
   final AnalyticsService _analyticsService = AnalyticsService();
   final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
+    _myPillsFuture = MyPillService.loadMyPills();
     _analyticsService.logAppOpen();
     _checkDisclaimer();
+  }
+
+  void _refreshMyPills() {
+    setState(() {
+      _myPillsFuture = MyPillService.loadMyPills();
+    });
   }
 
   Future<void> _checkDisclaimer() async {
@@ -78,12 +88,15 @@ class _HomeScreenState extends State<HomeScreen> {
         await _picker.pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
       if (!mounted) return;
-      Navigator.push(
+      await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ResultScreen(image: pickedFile),
         ),
       );
+      if (mounted) {
+        _refreshMyPills();
+      }
     }
   }
 
@@ -94,12 +107,15 @@ class _HomeScreenState extends State<HomeScreen> {
         await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       if (!mounted) return;
-      Navigator.push(
+      await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ResultScreen(image: pickedFile),
         ),
       );
+      if (mounted) {
+        _refreshMyPills();
+      }
     }
   }
 
@@ -166,6 +182,147 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
+                // [나의 영양제 섹션]
+                FutureBuilder<List<KoreanPill>>(
+                  future: _myPillsFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final myPills = snapshot.data ?? [];
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "💊 나의 영양제",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        if (myPills.isEmpty)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 30),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(Icons.medication_outlined,
+                                    size: 40, color: Colors.grey[400]),
+                                const SizedBox(height: 8),
+                                Text(
+                                  "복용 중인 영양제를 등록해보세요 +",
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          SizedBox(
+                            height: 180,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: myPills.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 12),
+                              itemBuilder: (context, index) {
+                                final pill = myPills[index];
+                                return Container(
+                                  width: 160,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black
+                                            .withValues(alpha: 0.05),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                    border:
+                                        Border.all(color: Colors.grey.shade200),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              pill.brand,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              pill.name,
+                                              maxLines: 3,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                                height: 1.3,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        children: [
+                                          IconButton(
+                                            onPressed: () async {
+                                              await MyPillService.removePill(
+                                                  pill.id);
+                                              _refreshMyPills();
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  const SnackBar(
+                                                    content:
+                                                        Text("영양제가 삭제되었습니다."),
+                                                    duration:
+                                                        Duration(seconds: 1),
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                            icon: const Icon(
+                                              Icons.delete_outline,
+                                              color: Colors.red,
+                                              size: 20,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        const SizedBox(height: 24),
+                      ],
+                    );
+                  },
+                ),
                 // Insert US Recommendation Section here
                 const USRecommendationSection(),
                 const SizedBox(height: 24),

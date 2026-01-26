@@ -27,6 +27,30 @@ class KoreanPill extends BasePill {
     required this.category,
     required this.ingredients,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'brand': brand,
+      'imageUrl': imageUrl,
+      'dailyDosage': dailyDosage,
+      'category': category,
+      'ingredients': ingredients,
+    };
+  }
+
+  factory KoreanPill.fromJson(Map<String, dynamic> json) {
+    return KoreanPill(
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '이름 없음',
+      brand: json['brand'] as String? ?? '브랜드 정보 없음',
+      imageUrl: json['imageUrl'] as String? ?? '',
+      dailyDosage: json['dailyDosage'] as String? ?? '섭취방법 정보 없음',
+      category: json['category'] as String? ?? '건강기능식품',
+      ingredients: json['ingredients'] as String? ?? '',
+    );
+  }
 }
 
 class AmericanPill extends BasePill {
