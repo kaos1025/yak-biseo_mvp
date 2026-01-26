@@ -15,6 +15,10 @@ class ProductCard extends StatefulWidget {
   final String? dosage;
   final int? price;
 
+  // UX Improvement: Add Button support
+  final bool isAdded;
+  final VoidCallback? onAdd;
+
   const ProductCard({
     super.key,
     required this.name,
@@ -27,6 +31,8 @@ class ProductCard extends StatefulWidget {
     this.ingredients,
     this.dosage,
     this.price,
+    this.isAdded = false, // Default false
+    this.onAdd,
   });
 
   @override
@@ -140,7 +146,7 @@ class _ProductCardState extends State<ProductCard> {
                   ),
                   if (widget.brand != null) ...[
                     const SizedBox(width: 8),
-                    Flexible(
+                    Expanded(
                       child: Text(
                         widget.brand!,
                         maxLines: 1,
@@ -151,6 +157,46 @@ class _ProductCardState extends State<ProductCard> {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
+                    ),
+                  ],
+                  // Add Button if onAdd is provided
+                  if (widget.onAdd != null) ...[
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      height: 32,
+                      child: widget.isAdded
+                          ? TextButton.icon(
+                              onPressed: null, // Disabled
+                              icon: const Icon(Icons.check,
+                                  size: 16, color: Colors.grey),
+                              label: const Text("담김",
+                                  style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold)),
+                              style: TextButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8),
+                              ),
+                            )
+                          : OutlinedButton.icon(
+                              onPressed: widget.onAdd,
+                              icon: const Icon(Icons.add,
+                                  size: 16, color: AppTheme.primaryColor),
+                              label: const Text("담기",
+                                  style: TextStyle(
+                                      color: AppTheme.primaryColor,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold)),
+                              style: OutlinedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 12),
+                                side: const BorderSide(
+                                    color: AppTheme.primaryColor),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20)),
+                              ),
+                            ),
                     ),
                   ],
                 ],

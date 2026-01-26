@@ -75,11 +75,37 @@ class _ResultScreenState extends State<ResultScreen> {
   String? _errorMessage;
   final Map<String, KoreanPill?> _apiResults = {};
   final Map<String, bool> _isApiLoading = {};
+  final Set<String> _addedPillNames = {};
 
   @override
   void initState() {
     super.initState();
+    _loadExistingPills();
     _analyzeImage();
+  }
+
+  Future<void> _loadExistingPills() async {
+    final pills = await MyPillService.loadMyPills();
+    if (mounted) {
+      setState(() {
+        _addedPillNames.addAll(pills.map((p) => p.name));
+      });
+    }
+  }
+
+  Future<void> _handleSavePill(KoreanPill pill) async {
+    final result = await MyPillService.savePill(pill);
+    if (mounted) {
+      setState(() {
+        _addedPillNames.add(pill.name);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result == 0 ? "약통에 추가되었습니다!" : "이미 약통에 있는 영양제입니다."),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
   }
 
   Future<void> _analyzeImage() async {
@@ -281,50 +307,18 @@ class _ResultScreenState extends State<ResultScreen> {
                 final displayStatus = apiPill != null ? 'SAFE' : item.status;
                 final displayPrice = item.price; // Always use AI price or 0
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ProductCard(
-                      name: displayPill.name,
-                      brand: displayPill.brand,
-                      status: displayStatus,
-                      ingredients: displayPill.ingredients,
-                      dosage: displayPill.dailyDosage,
-                      isExpandedDefault: true,
-                      price: displayPrice,
-                    ),
-                    const SizedBox(height: 8),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          // Save logic
-                          final result =
-                              await MyPillService.savePill(displayPill);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(result == 0
-                                    ? '약통에 추가되었습니다!'
-                                    : '이미 약통에 있는 영양제입니다.'),
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                            if (result == 0) {
-                              Navigator.pop(context, true);
-                            }
-                          }
-                        },
-                        icon: const Icon(Icons.add_circle_outline),
-                        label: const Text("내 약통에 추가"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.accentColor,
-                          foregroundColor: Colors.black,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+                final isAdded = _addedPillNames.contains(displayPill.name);
+
+                return ProductCard(
+                  name: displayPill.name,
+                  brand: displayPill.brand,
+                  status: displayStatus,
+                  ingredients: displayPill.ingredients,
+                  dosage: displayPill.dailyDosage,
+                  isExpandedDefault: true,
+                  price: displayPrice,
+                  isAdded: isAdded,
+                  onAdd: () => _handleSavePill(displayPill),
                 );
               },
             ),
@@ -349,6 +343,29 @@ class _ResultScreenState extends State<ResultScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context, true);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text("홈으로 돌아가기",
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white)),
+              ),
             ),
           ),
           const SizedBox(height: 20),
