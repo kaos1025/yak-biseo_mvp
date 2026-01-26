@@ -101,12 +101,16 @@ class ApiService {
 
       const prompt = '''
 Analyze these health supplements in the image.
-1. Identify each product's name (in Korean if possible) and key ingredients.
-2. **CRITICAL STEP**: Check for **DUPLICATE** or **OVERLAPPING** ingredients between the detected items.
+
+**IMPORTANT: Respond ONLY in Korean (한국어).**
+
+1. Identify each product's name (in Korean) and key ingredients.
+2. Identify the **Recommended Dosage & Usage** (e.g., "1일 1회 1정").
+3. **CRITICAL STEP**: Check for **DUPLICATE** or **OVERLAPPING** ingredients between the detected items.
    - Example: If two products both contain 'Vitamin C' or 'Omega-3', mark the cheaper or less comprehensive one as "REDUNDANT".
    - Example: If a 'Multivitamin' and a separate 'Vitamin D' are present, check if the Multivitamin already has enough Vitamin D. If so, mark the separate Vitamin D as "REDUNDANT".
-3. Estimate the price (in KRW) for each item.
-4. If "REDUNDANT" items are found, sum their prices into `total_saving_amount`.
+4. Estimate the price (in KRW) for each item.
+5. If "REDUNDANT" items are found, sum their prices into `total_saving_amount`.
 
 Provide the result in the following JSON format ONLY:
 {
@@ -114,12 +118,13 @@ Provide the result in the following JSON format ONLY:
     {
       "id": "Unique ID",
       "name": "Product Name (e.g., 고려은단 비타민C 1000)",
+      "dosage": "Dosage Info (e.g., 1일 1회 1정)",
       "status": "SAFE" or "REDUNDANT" or "WARNING",
-      "desc": "Short description of efficacy. If REDUNDANT, explain why (e.g., '종합비타민과 성분 중복').",
+      "desc": "Short description of efficacy in Korean. If REDUNDANT, explain why (e.g., '종합비타민과 성분 중복').",
       "price": 0
     }
   ],
-  "summary": "Summarize the analysis. Mention if the combination is safe or if there are duplicates.",
+  "summary": "Summarize the analysis in Korean. Mention if the combination is safe or if there are duplicates.",
   "total_saving_amount": 0
 }
 ''';

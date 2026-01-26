@@ -9,7 +9,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  final testPill = KoreanPill(
+  const testPill = KoreanPill(
     id: '2024001',
     name: '테스트 비타민',
     brand: '테스트 브랜드',

@@ -16,6 +16,7 @@ class DetectedItem {
   final String status; // SAFE, REDUNDANT, WARNING
   final String desc;
   final int price;
+  final String dosage; // [NEW] Added for Smart Merge
 
   DetectedItem({
     required this.id,
@@ -23,6 +24,7 @@ class DetectedItem {
     required this.status,
     required this.desc,
     required this.price,
+    this.dosage = '',
   });
 
   factory DetectedItem.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,7 @@ class DetectedItem {
       status: json['status'] ?? 'SAFE',
       desc: json['desc'] ?? '',
       price: json['price'] ?? 0,
+      dosage: json['dosage'] ?? '',
     );
   }
 }
@@ -292,17 +295,45 @@ class _ResultScreenState extends State<ResultScreen> {
                   );
                 }
 
-                // Unified Logic: Use API result if available, otherwise use Analysis result
-                final displayPill = apiPill ??
-                    KoreanPill(
-                      id: 'ai_${item.id}_${DateTime.now().millisecondsSinceEpoch}',
-                      name: item.name,
-                      brand: 'AI 분석 결과',
-                      imageUrl: '',
-                      dailyDosage: '정보 없음 (AI 분석)',
-                      category: '건강기능식품',
-                      ingredients: item.desc,
-                    );
+                // Unified Logic: Smart Merge API & AI Data
+                String finalDosage = item.dosage;
+
+                // 1. If API result exists, prefer API dosage unless it says 'Unknown'
+                if (apiPill != null) {
+                  bool isApiDosageValid = apiPill.dailyDosage.isNotEmpty &&
+                      !apiPill.dailyDosage.contains('정보 없음') &&
+                      !apiPill.dailyDosage.contains('서빙 사이즈 정보 없음');
+
+                  if (isApiDosageValid) {
+                    finalDosage = apiPill.dailyDosage;
+                  } else if (finalDosage.isEmpty) {
+                    // Both are empty/invalid -> fallback
+                    finalDosage = '정보 없음 (AI 분석)';
+                  }
+                } else {
+                  // No API result -> Use AI dosage fallback
+                  if (finalDosage.isEmpty) finalDosage = '정보 없음 (AI 분석)';
+                }
+
+                final displayPill = apiPill != null
+                    ? KoreanPill(
+                        id: apiPill.id,
+                        name: apiPill.name,
+                        brand: apiPill.brand,
+                        imageUrl: apiPill.imageUrl,
+                        dailyDosage: finalDosage, // Use Smarter Logic
+                        category: apiPill.category,
+                        ingredients: apiPill.ingredients,
+                      )
+                    : KoreanPill(
+                        id: 'ai_${item.id}_${DateTime.now().millisecondsSinceEpoch}',
+                        name: item.name,
+                        brand: 'AI 분석 결과',
+                        imageUrl: '',
+                        dailyDosage: finalDosage,
+                        category: '건강기능식품',
+                        ingredients: item.desc,
+                      );
 
                 final displayStatus = apiPill != null ? 'SAFE' : item.status;
                 final displayPrice = item.price; // Always use AI price or 0
