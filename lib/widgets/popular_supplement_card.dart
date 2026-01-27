@@ -22,25 +22,23 @@ class PopularSupplementCard extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: BackdropFilter(
-        filter:
-            ImageFilter.blur(sigmaX: 12, sigmaY: 12), // Increased blur (10->12)
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12), // Verified blur 12px
         child: Container(
           width: 140,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white
-                .withValues(alpha: 0.85), // Increased opacity (0.7->0.85)
+            color: Colors.white.withValues(alpha: 0.6), // Opacity 0.6
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.5),
+              color: Colors.white
+                  .withValues(alpha: 0.4), // Verified border opacity
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withValues(alpha: 0.1),
-                blurRadius: 32, // Increased blur radius
-                spreadRadius: 2,
-                offset: const Offset(0, 8), // Smoother shadow
+                color: Colors.black.withValues(alpha: 0.1), // Verified shadow
+                blurRadius: 24,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -50,41 +48,57 @@ class PopularSupplementCard extends StatelessWidget {
               // Icon
               Center(
                 child: Container(
-                  width: 36, // Reduced size (48->36)
-                  height: 36,
+                  width: 42,
+                  height: 42,
                   decoration: BoxDecoration(
-                    color: iconColor.withValues(alpha: 0.1),
+                    color: Colors.white,
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      // Inner shadow effect simulated
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 2,
+                        spreadRadius: -2,
+                        offset: const Offset(0, 0),
+                      ),
+                      BoxShadow(
+                        color: iconColor.withValues(alpha: 0.1),
+                        blurRadius: 0,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 0),
+                      ),
+                    ],
                   ),
                   child: Icon(
                     icon,
                     color: iconColor,
-                    size: 20, // Reduced size (24->20)
+                    size: 22,
                   ),
                 ),
               ),
-              const SizedBox(height: 8), // Reduced spacing (12->8)
+              const SizedBox(height: 12),
 
               // Brand Name
               Text(
                 brandName,
                 style: const TextStyle(
-                  fontSize: 10,
+                  fontSize: 11,
                   color: Color(0xFF666666),
                   fontWeight: FontWeight.w500,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 4), // Reduced spacing (8->4)
+              const SizedBox(height: 4),
 
               // Product Name
               Text(
                 productName,
                 style: const TextStyle(
-                  fontSize: 13, // Slightly reduced font size (14->13)
+                  fontSize: 13,
                   color: Color(0xFF333333),
                   fontWeight: FontWeight.bold,
+                  height: 1.2,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -97,7 +111,6 @@ class PopularSupplementCard extends StatelessWidget {
                 runSpacing: 4,
                 children: tags.map((tag) => _buildTag(tag)).toList(),
               ),
-              // Removed Bottom Spacer to make it compact
             ],
           ),
         ),
@@ -107,17 +120,18 @@ class PopularSupplementCard extends StatelessWidget {
 
   Widget _buildTag(String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: 10,
-          vertical: 4), // Increased horizontal, reduced vertical padding
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F5E9), // Light green bg
-        borderRadius: BorderRadius.circular(12), // More rounded
+        color:
+            const Color(0xFF8BC34A).withValues(alpha: 0.15), // Light green bg
+        borderRadius: BorderRadius.circular(20), // Pill shape
+        border:
+            Border.all(color: const Color(0xFF8BC34A).withValues(alpha: 0.2)),
       ),
       child: Text(
         text,
         style: const TextStyle(
-          fontSize: 10, // Slightly reduced
+          fontSize: 10,
           color: Color(0xFF558B2F), // Darker green text
           fontWeight: FontWeight.w600,
         ),
