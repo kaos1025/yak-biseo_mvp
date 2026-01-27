@@ -9,6 +9,7 @@ import 'package:myapp/screens/profile/profile_screen.dart';
 import 'package:myapp/widgets/us_recommendation_section.dart';
 import 'package:myapp/services/my_pill_service.dart';
 import 'package:myapp/models/pill.dart';
+import 'package:myapp/widgets/bottom_action_area.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -122,7 +123,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-
     final locale = Localizations.localeOf(context).languageCode;
 
     return Scaffold(
@@ -158,270 +158,230 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          // Changed from Padding to SingleChildScrollView to prevent overflow
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.homeMainQuestion,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    height: 1.4,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  l10n.homeSubQuestion,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // [나의 영양제 섹션]
-                FutureBuilder<List<KoreanPill>>(
-                  future: _myPillsFuture,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    final myPills = snapshot.data ?? [];
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          locale == 'en' ? "💊 My Supplements" : "💊 나의 영양제",
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.homeMainQuestion,
+                        style: const TextStyle(
+                          fontSize: 22, // Reduced size
+                          fontWeight: FontWeight.bold,
+                          height: 1.3,
+                          color: Colors.black87,
                         ),
-                        const SizedBox(height: 12),
-                        if (myPills.isEmpty)
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 30),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[100],
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
-                            child: Column(
-                              children: [
-                                Icon(Icons.medication_outlined,
-                                    size: 40, color: Colors.grey[400]),
-                                const SizedBox(height: 8),
-                                Text(
-                                  locale == 'en'
-                                      ? "Add your supplements +"
-                                      : "복용 중인 영양제를 등록해보세요 +",
-                                  style: TextStyle(color: Colors.grey[600]),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.homeSubQuestion,
+                        style: const TextStyle(
+                          fontSize: 14, // Reduced size
+                          color: Colors.grey,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // [나의 영양제 섹션]
+                      FutureBuilder<List<KoreanPill>>(
+                        future: _myPillsFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+                          final myPills = snapshot.data ?? [];
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                locale == 'en'
+                                    ? "💊 My Supplements"
+                                    : "💊 나의 영양제",
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
                                 ),
-                              ],
-                            ),
-                          )
-                        else
-                          SizedBox(
-                            height: 180,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: myPills.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(width: 12),
-                              itemBuilder: (context, index) {
-                                final pill = myPills[index];
-                                return Container(
-                                  width: 160,
-                                  padding: const EdgeInsets.all(12),
+                              ),
+                              const SizedBox(height: 12),
+                              if (myPills.isEmpty)
+                                Container(
+                                  width: double.infinity,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 24),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: Colors.grey[100],
                                     borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black
-                                            .withValues(alpha: 0.05),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
                                     border:
-                                        Border.all(color: Colors.grey.shade200),
+                                        Border.all(color: Colors.grey.shade300),
                                   ),
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
                                     children: [
-                                      Expanded(
-                                        child: Column(
+                                      Icon(Icons.medication_outlined,
+                                          size: 32, color: Colors.grey[400]),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        locale == 'en'
+                                            ? "Add your supplements +"
+                                            : "영양제를 등록해보세요",
+                                        style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                SizedBox(
+                                  height: 96,
+                                  child: ListView.separated(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: myPills.length,
+                                    separatorBuilder: (_, __) =>
+                                        const SizedBox(width: 12),
+                                    itemBuilder: (context, index) {
+                                      final pill = myPills[index];
+                                      return Container(
+                                        width: 220,
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black
+                                                  .withValues(alpha: 0.05),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                          border: Border.all(
+                                              color: Colors.grey.shade200),
+                                        ),
+                                        child: Row(
                                           crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                              CrossAxisAlignment.center,
                                           children: [
-                                            Text(
-                                              pill.brand,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey[600],
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Text(
+                                                    pill.brand,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: Colors.grey[600],
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    pill.name,
+                                                    maxLines: 2,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      height: 1.2,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              pill.name,
-                                              maxLines: 3,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.bold,
-                                                height: 1.3,
+                                            const SizedBox(width: 8),
+                                            IconButton(
+                                              onPressed: () async {
+                                                await MyPillService.removePill(
+                                                    pill.id);
+                                                _refreshMyPills();
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(locale ==
+                                                              'en'
+                                                          ? "Supplement removed."
+                                                          : "영양제가 삭제되었습니다."),
+                                                      duration: const Duration(
+                                                          seconds: 1),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                              icon: const Icon(
+                                                Icons.delete_outline,
+                                                color: Colors.grey,
+                                                size: 20,
                                               ),
                                             ),
                                           ],
                                         ),
-                                      ),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.end,
-                                        children: [
-                                          IconButton(
-                                            onPressed: () async {
-                                              await MyPillService.removePill(
-                                                  pill.id);
-                                              _refreshMyPills();
-                                              if (context.mounted) {
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(locale == 'en'
-                                                        ? "Supplement removed."
-                                                        : "영양제가 삭제되었습니다."),
-                                                    duration: const Duration(
-                                                        seconds: 1),
-                                                  ),
-                                                );
-                                              }
-                                            },
-                                            icon: const Icon(
-                                              Icons.delete_outline,
-                                              color: Colors.red,
-                                              size: 20,
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    ],
+                                      );
+                                    },
                                   ),
-                                );
-                              },
+                                ),
+                              const SizedBox(height: 24),
+                            ],
+                          );
+                        },
+                      ),
+                      // US Recommendation Section
+                      const USRecommendationSection(),
+                      const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFF2E7D32)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.savings_rounded,
+                                color: Color(0xFF2E7D32)),
+                            const SizedBox(width: 8),
+                            Text(
+                              l10n.homeSavingEstimate,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2E7D32),
+                              ),
                             ),
-                          ),
-                        const SizedBox(height: 24),
-                      ],
-                    );
-                  },
-                ),
-                // Insert US Recommendation Section here
-                const USRecommendationSection(),
-                const SizedBox(height: 24),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFF2E7D32)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.savings_rounded,
-                          color: Color(0xFF2E7D32)),
-                      const SizedBox(width: 8),
-                      Text(
-                        l10n.homeSavingEstimate,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2E7D32),
+                          ],
                         ),
                       ),
+                      const SizedBox(height: 24), // Reduced from 80 to 24
                     ],
                   ),
                 ),
-                const SizedBox(
-                    height:
-                        40), // Added spacing instead of Spacer since we are in SingleChildScrollView
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.camera_alt_rounded, size: 28),
-                    label: Text(l10n.homeBtnCamera),
-                    onPressed: _pickImageFromCamera,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2E7D32),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 4,
-                      textStyle: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.photo_library_rounded),
-                    label: Text(l10n.homeBtnGallery),
-                    onPressed: _pickImageFromGallery,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF2E7D32),
-                      side: const BorderSide(color: Color(0xFF2E7D32)),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      textStyle: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.info_outline,
-                          size: 20, color: Colors.grey),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          l10n.homeDisclaimer,
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.black54),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+            BottomActionArea(
+              onCameraTap: _pickImageFromCamera,
+              onGalleryTap: _pickImageFromGallery,
+              cameraLabel: l10n.homeBtnCamera,
+              galleryLabel: l10n.homeBtnGallery,
+              disclaimerText: l10n.homeDisclaimer,
+            ),
+          ],
         ),
       ),
     );
