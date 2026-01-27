@@ -123,10 +123,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
+    final locale = Localizations.localeOf(context).languageCode;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          l10n.homeAppBarTitle,
+          locale == 'en' ? 'My Cabinet' : '나의 영양제',
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
         ),
         centerTitle: false,

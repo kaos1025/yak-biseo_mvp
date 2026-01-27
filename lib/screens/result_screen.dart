@@ -84,7 +84,6 @@ class _ResultScreenState extends State<ResultScreen> {
   void initState() {
     super.initState();
     _loadExistingPills();
-    _analyzeImage();
   }
 
   Future<void> _loadExistingPills() async {
@@ -111,9 +110,21 @@ class _ResultScreenState extends State<ResultScreen> {
     }
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Trigger analysis if loading and no result yet
+    if (_isLoading && _analysisResult == null && _errorMessage == null) {
+      _analyzeImage();
+    }
+  }
+
   Future<void> _analyzeImage() async {
     try {
-      final jsonString = await ApiService.analyzeDrugImage(widget.image);
+      final locale = Localizations.localeOf(context).languageCode;
+      final jsonString =
+          await ApiService.analyzeDrugImage(widget.image, locale);
+
       final cleanJson =
           jsonString.replaceAll('```json', '').replaceAll('```', '').trim();
       final Map<String, dynamic> result = jsonDecode(cleanJson);
@@ -142,6 +153,10 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Future<void> _searchApiForItem(DetectedItem item) async {
+    if (Localizations.localeOf(context).languageCode == 'en') {
+      return; // Skip Korean DB search for US users
+    }
+
     // 1. Clean the keyword (Mock name usually has noise or needs cleaning)
     final keyword = KeywordCleaner.clean(item.name);
 
@@ -187,7 +202,9 @@ class _ResultScreenState extends State<ResultScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('분석 결과'),
+        title: Text(Localizations.localeOf(context).languageCode == 'en'
+            ? 'Analysis Result'
+            : '분석 결과'),
         centerTitle: true,
       ),
       body: _buildBody(),
@@ -195,6 +212,8 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Widget _buildBody() {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+
     if (_errorMessage != null) {
       return Center(
         child: Padding(
@@ -218,7 +237,7 @@ class _ResultScreenState extends State<ResultScreen> {
                   });
                   _analyzeImage();
                 },
-                child: const Text("다시 시도"),
+                child: Text(isEnglish ? "Retry" : "다시 시도"),
               )
             ],
           ),
@@ -243,7 +262,8 @@ class _ResultScreenState extends State<ResultScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              _analysisResult?.summary ?? "분석 완료",
+              _analysisResult?.summary ??
+                  (isEnglish ? "Analysis complete." : "분석이 완료되었습니다."),
               style: const TextStyle(
                   fontSize: 16, height: 1.5, color: Colors.black87),
             ),
@@ -252,7 +272,9 @@ class _ResultScreenState extends State<ResultScreen> {
 
           // 발견된 항목 타이틀
           Text(
-            "발견된 제품 목록 (${_analysisResult?.detectedItems.length ?? 0}개)",
+            isEnglish
+                ? "Detected Products (${_analysisResult?.detectedItems.length ?? 0})"
+                : "발견된 제품 목록 (${_analysisResult?.detectedItems.length ?? 0}개)",
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 12),
@@ -277,18 +299,22 @@ class _ResultScreenState extends State<ResultScreen> {
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: Colors.grey.shade200),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          SizedBox(
+                          const SizedBox(
                               width: 16,
                               height: 16,
                               child: CircularProgressIndicator(strokeWidth: 2)),
-                          SizedBox(width: 12),
-                          Text("식약처 DB 조회 중...",
-                              style:
-                                  TextStyle(fontSize: 14, color: Colors.grey)),
+                          const SizedBox(width: 12),
+                          Text(
+                              Localizations.localeOf(context).languageCode ==
+                                      'en'
+                                  ? "Searching Database..."
+                                  : "식약처 DB 조회 중...",
+                              style: const TextStyle(
+                                  fontSize: 14, color: Colors.grey)),
                         ],
                       ),
                     ),
@@ -308,11 +334,19 @@ class _ResultScreenState extends State<ResultScreen> {
                     finalDosage = apiPill.dailyDosage;
                   } else if (finalDosage.isEmpty) {
                     // Both are empty/invalid -> fallback
-                    finalDosage = '정보 없음 (AI 분석)';
+                    finalDosage =
+                        Localizations.localeOf(context).languageCode == 'en'
+                            ? 'Unknown (AI Analysis)'
+                            : '정보 없음 (AI 분석)';
                   }
                 } else {
                   // No API result -> Use AI dosage fallback
-                  if (finalDosage.isEmpty) finalDosage = '정보 없음 (AI 분석)';
+                  if (finalDosage.isEmpty) {
+                    finalDosage =
+                        Localizations.localeOf(context).languageCode == 'en'
+                            ? 'Unknown (AI Analysis)'
+                            : '정보 없음 (AI 분석)';
+                  }
                 }
 
                 final displayPill = apiPill != null
@@ -363,14 +397,16 @@ class _ResultScreenState extends State<ResultScreen> {
               color: Colors.grey[100],
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.info_outline, size: 20, color: Colors.grey),
-                SizedBox(width: 8),
+                const Icon(Icons.info_outline, size: 20, color: Colors.grey),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '본 결과는 AI 분석 결과이며, 정확한 의학적 판단은 의사/약사와 상의하세요.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                    Localizations.localeOf(context).languageCode == 'en'
+                        ? 'AI analysis result. Consult a doctor for medical advice.'
+                        : '본 결과는 AI 분석 결과이며, 정확한 의학적 판단은 의사/약사와 상의하세요.',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ),
               ],
@@ -391,8 +427,11 @@ class _ResultScreenState extends State<ResultScreen> {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16)),
                 ),
-                child: const Text("홈으로 돌아가기",
-                    style: TextStyle(
+                child: Text(
+                    Localizations.localeOf(context).languageCode == 'en'
+                        ? "Return to Home"
+                        : "홈으로 돌아가기",
+                    style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.white)),
@@ -406,7 +445,9 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Widget _buildTotalSavingCard() {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final int savingAmount = _analysisResult?.totalSavingAmount ?? 0;
+
     if (savingAmount <= 0) {
       return Container(
         padding: const EdgeInsets.all(20),
@@ -414,24 +455,36 @@ class _ResultScreenState extends State<ResultScreen> {
           color: AppTheme.primaryColor,
           borderRadius: BorderRadius.circular(20),
         ),
-        child: const Column(
+        child: Column(
           children: [
-            Icon(Icons.check_circle_outline, color: Colors.white, size: 48),
-            SizedBox(height: 10),
+            const Icon(Icons.check_circle_outline,
+                color: Colors.white, size: 48),
+            const SizedBox(height: 10),
             Text(
-              "중복된 영양제가 없습니다!",
-              style: TextStyle(
+              isEnglish ? "No duplicates found!" : "중복된 영양제가 없습니다!",
+              style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.bold),
             ),
             Text(
-              "지금처럼 잘 챙겨드세요 :)",
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+              isEnglish ? "Keep up the good work! :)" : "지금처럼 잘 챙겨드세요 :)",
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
           ],
         ),
       );
+    }
+
+    // Currency Formatting
+    String amountText;
+    if (isEnglish) {
+      // USD assumption: roughly 1000 KRW = 1 USD
+      final double usdAmount = savingAmount / 1000;
+      amountText = "\$${usdAmount.toStringAsFixed(0)}";
+    } else {
+      amountText =
+          "${savingAmount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원";
     }
 
     return Card(
@@ -442,9 +495,9 @@ class _ResultScreenState extends State<ResultScreen> {
         padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
         child: Column(
           children: [
-            const Text(
-              "이번 달 예상 절약 금액",
-              style: TextStyle(
+            Text(
+              isEnglish ? "Estimated Monthly Savings" : "이번 달 예상 절약 금액",
+              style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -458,7 +511,7 @@ class _ResultScreenState extends State<ResultScreen> {
                     color: AppTheme.accentColor, size: 36),
                 const SizedBox(width: 8),
                 Text(
-                  "${savingAmount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원",
+                  amountText,
                   style: const TextStyle(
                     color: AppTheme.accentColor, // Amber (Highlight)
                     fontSize: 40,
@@ -474,9 +527,11 @@ class _ResultScreenState extends State<ResultScreen> {
               decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20)),
-              child: const Text(
-                "📉 중복 섭취를 줄여서 건강과 지갑을 지켰어요!",
-                style: TextStyle(color: Colors.white, fontSize: 13),
+              child: Text(
+                isEnglish
+                    ? "📉 Saved money by reducing duplicates!"
+                    : "📉 중복 섭취를 줄여서 건강과 지갑을 지켰어요!",
+                style: const TextStyle(color: Colors.white, fontSize: 13),
               ),
             ),
           ],

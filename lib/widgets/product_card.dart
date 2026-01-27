@@ -62,16 +62,17 @@ class _ProductCardState extends State<ProductCard> {
   }
 
   String _getStatusText() {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     switch (widget.status) {
       case 'WARNING':
-        return '주의';
+        return isEnglish ? 'Warning' : '주의';
       case 'REDUNDANT':
-        return '중복';
+        return isEnglish ? 'Redundant' : '중복';
       case 'UNKNOWN':
-        return '정보 없음';
+        return isEnglish ? 'Unknown' : '정보 없음';
       case 'SAFE':
       default:
-        return '식약처 인증';
+        return isEnglish ? 'KFDA Certified' : '식약처 인증';
     }
   }
 
@@ -169,8 +170,13 @@ class _ProductCardState extends State<ProductCard> {
                               onPressed: null, // Disabled
                               icon: const Icon(Icons.check,
                                   size: 16, color: Colors.grey),
-                              label: const Text("담김",
-                                  style: TextStyle(
+                              label: Text(
+                                  Localizations.localeOf(context)
+                                              .languageCode ==
+                                          'en'
+                                      ? "Added"
+                                      : "담김",
+                                  style: const TextStyle(
                                       color: Colors.grey,
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold)),
@@ -183,8 +189,13 @@ class _ProductCardState extends State<ProductCard> {
                               onPressed: widget.onAdd,
                               icon: const Icon(Icons.add,
                                   size: 16, color: AppTheme.primaryColor),
-                              label: const Text("담기",
-                                  style: TextStyle(
+                              label: Text(
+                                  Localizations.localeOf(context)
+                                              .languageCode ==
+                                          'en'
+                                      ? "Add"
+                                      : "담기",
+                                  style: const TextStyle(
                                       color: AppTheme.primaryColor,
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold)),
@@ -246,23 +257,37 @@ class _ProductCardState extends State<ProductCard> {
                     : null,
               ),
             if (widget.ingredients != null) ...[
-              _buildDetailRow('원재료', widget.ingredients!),
+              _buildDetailRow(
+                  Localizations.localeOf(context).languageCode == 'en'
+                      ? 'Ingredients'
+                      : '원재료',
+                  widget.ingredients!),
               const SizedBox(height: 12),
             ],
             if (widget.dosage != null) ...[
-              _buildDetailRow('섭취방법', widget.dosage!),
+              _buildDetailRow(
+                  Localizations.localeOf(context).languageCode == 'en'
+                      ? 'Usage'
+                      : '섭취방법',
+                  widget.dosage!),
               const SizedBox(height: 12),
             ],
             if (widget.description != null &&
                 widget.description!.isNotEmpty) ...[
-              _buildDetailRow('내용', widget.description!),
+              _buildDetailRow(
+                  Localizations.localeOf(context).languageCode == 'en'
+                      ? 'Description'
+                      : '내용',
+                  widget.description!),
               const SizedBox(height: 12),
             ],
             if (widget.price != null && widget.price! > 0)
               Align(
                 alignment: Alignment.centerRight,
                 child: Text(
-                  '예상 가격: ${widget.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원',
+                  Localizations.localeOf(context).languageCode == 'en'
+                      ? 'Est. Price: \$${(widget.price! / 1000).toStringAsFixed(2)}'
+                      : '예상 가격: ${widget.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,

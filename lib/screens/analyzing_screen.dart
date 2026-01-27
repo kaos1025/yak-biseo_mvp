@@ -13,11 +13,7 @@ class _AnalyzingScreenState extends State<AnalyzingScreen>
   late AnimationController _controller;
   late Animation<double> _animation;
   int _textIndex = 0;
-  final List<String> _loadingTexts = [
-    "약을 확인하고 있어요... 💊",
-    "성분을 분석하는 중... 🔍",
-    "비용을 계산하는 중... 💰",
-  ];
+  List<String> _loadingTexts = [];
 
   @override
   void initState() {
@@ -35,6 +31,23 @@ class _AnalyzingScreenState extends State<AnalyzingScreen>
 
     // 텍스트 변경 애니메이션
     _startTextAnimation();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    _loadingTexts = isEnglish
+        ? [
+            "Checking pills... 💊",
+            "Analyzing ingredients... 🔍",
+            "Calculating savings... 💰",
+          ]
+        : [
+            "약을 확인하고 있어요... 💊",
+            "성분을 분석하는 중... 🔍",
+            "비용을 계산하는 중... 💰",
+          ];
   }
 
   void _startTextAnimation() {
@@ -118,9 +131,11 @@ class _AnalyzingScreenState extends State<AnalyzingScreen>
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
-              "잠시만 기다려주세요",
-              style: TextStyle(color: Colors.grey, fontSize: 14),
+            Text(
+              Localizations.localeOf(context).languageCode == 'en'
+                  ? "Please wait a moment"
+                  : "잠시만 기다려주세요",
+              style: const TextStyle(color: Colors.grey, fontSize: 14),
             ),
           ],
         ),

@@ -79,7 +79,7 @@ class ApiService {
     return [];
   }
 
-  static Future<String> analyzeDrugImage(XFile image) async {
+  static Future<String> analyzeDrugImage(XFile image, String locale) async {
     final apiKey = dotenv.env['API_KEY'] ?? '';
     if (apiKey.isEmpty) {
       return '''
@@ -99,17 +99,25 @@ class ApiService {
             GenerationConfig(responseMimeType: 'application/json'),
       );
 
-      const prompt = '''
+      final isEnglish = locale == 'en';
+      final languageInstruction = isEnglish
+          ? "**IMPORTANT: Respond ONLY in English.** Output all fields (name, desc, summary, dosage) in English."
+          : "**IMPORTANT: Respond ONLY in Korean (한국어).**";
+
+      final currencyInstruction = isEnglish
+          ? "Estimate the price in USD (integer, e.g. 25)."
+          : "Estimate the price in KRW (integer, e.g. 30000).";
+
+      final prompt = '''
 Analyze these health supplements in the image.
 
-**IMPORTANT: Respond ONLY in Korean (한국어).**
+$languageInstruction
 
-1. Identify each product's name (in Korean) and key ingredients.
-2. Identify the **Recommended Dosage & Usage** (e.g., "1일 1회 1정").
+1. Identify each product's name and key ingredients.
+2. Identify the **Recommended Dosage & Usage** (e.g., "1 tablet daily").
 3. **CRITICAL STEP**: Check for **DUPLICATE** or **OVERLAPPING** ingredients between the detected items.
-   - Example: If two products both contain 'Vitamin C' or 'Omega-3', mark the cheaper or less comprehensive one as "REDUNDANT".
-   - Example: If a 'Multivitamin' and a separate 'Vitamin D' are present, check if the Multivitamin already has enough Vitamin D. If so, mark the separate Vitamin D as "REDUNDANT".
-4. Estimate the price (in KRW) for each item.
+   - Example: If two products both contain 'Vitamin C', mark the cheaper or less comprehensive one as "REDUNDANT".
+4. $currencyInstruction
 5. If "REDUNDANT" items are found, sum their prices into `total_saving_amount`.
 
 Provide the result in the following JSON format ONLY:
@@ -117,14 +125,14 @@ Provide the result in the following JSON format ONLY:
   "detected_items": [
     {
       "id": "Unique ID",
-      "name": "Product Name (e.g., 고려은단 비타민C 1000)",
-      "dosage": "Dosage Info (e.g., 1일 1회 1정)",
+      "name": "Product Name",
+      "dosage": "Dosage Info",
       "status": "SAFE" or "REDUNDANT" or "WARNING",
-      "desc": "Short description of efficacy in Korean. If REDUNDANT, explain why (e.g., '종합비타민과 성분 중복').",
+      "desc": "Short description of efficacy. If REDUNDANT, explain why.",
       "price": 0
     }
   ],
-  "summary": "Summarize the analysis in Korean. Mention if the combination is safe or if there are duplicates.",
+  "summary": "Summarize the analysis. Mention if the combination is safe or if there are duplicates.",
   "total_saving_amount": 0
 }
 ''';
@@ -143,7 +151,7 @@ Provide the result in the following JSON format ONLY:
       return '''
       {
         "detected_items": [],
-        "summary": "분석 중 오류가 발생했습니다: $e",
+        "summary": "Error during analysis: $e",
         "total_saving_amount": 0
       }
       ''';
