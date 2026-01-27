@@ -479,9 +479,8 @@ class _ResultScreenState extends State<ResultScreen> {
     // Currency Formatting
     String amountText;
     if (isEnglish) {
-      // USD assumption: roughly 1000 KRW = 1 USD
-      final double usdAmount = savingAmount / 1000;
-      amountText = "\$${usdAmount.toStringAsFixed(0)}";
+      // USD assumption: Value from API is already in USD if locale is en
+      amountText = "\$${savingAmount.toString()}";
     } else {
       amountText =
           "${savingAmount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원";

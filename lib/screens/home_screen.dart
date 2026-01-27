@@ -196,9 +196,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "💊 나의 영양제",
-                          style: TextStyle(
+                        Text(
+                          locale == 'en' ? "💊 My Supplements" : "💊 나의 영양제",
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
@@ -220,7 +220,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     size: 40, color: Colors.grey[400]),
                                 const SizedBox(height: 8),
                                 Text(
-                                  "복용 중인 영양제를 등록해보세요 +",
+                                  locale == 'en'
+                                      ? "Add your supplements +"
+                                      : "복용 중인 영양제를 등록해보세요 +",
                                   style: TextStyle(color: Colors.grey[600]),
                                 ),
                               ],
@@ -297,11 +299,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                               if (context.mounted) {
                                                 ScaffoldMessenger.of(context)
                                                     .showSnackBar(
-                                                  const SnackBar(
-                                                    content:
-                                                        Text("영양제가 삭제되었습니다."),
-                                                    duration:
-                                                        Duration(seconds: 1),
+                                                  SnackBar(
+                                                    content: Text(locale == 'en'
+                                                        ? "Supplement removed."
+                                                        : "영양제가 삭제되었습니다."),
+                                                    duration: const Duration(
+                                                        seconds: 1),
                                                   ),
                                                 );
                                               }

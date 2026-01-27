@@ -286,7 +286,7 @@ class _ProductCardState extends State<ProductCard> {
                 alignment: Alignment.centerRight,
                 child: Text(
                   Localizations.localeOf(context).languageCode == 'en'
-                      ? 'Est. Price: \$${(widget.price! / 1000).toStringAsFixed(2)}'
+                      ? 'Est. Price: \$${widget.price}'
                       : '예상 가격: ${widget.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
