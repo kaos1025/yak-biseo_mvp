@@ -1,6 +1,7 @@
-import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../widgets/expandable_product_card.dart';
 
 class AnalysisScreen extends StatelessWidget {
   final XFile? image;
@@ -8,277 +9,382 @@ class AnalysisScreen extends StatelessWidget {
   const AnalysisScreen({super.key, this.image});
 
   static const Color medicalGreen = Color(0xFF2E7D32);
-  static const Color backgroundLight = Color(0xFFF6F8F6);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: backgroundLight,
-      body: CustomScrollView(
-        slivers: [
-          _buildSliverAppBar(context),
-          _buildAnalysisContent(context),
-        ],
-      ),
-      bottomNavigationBar: _buildBottomNavBar(context),
-    );
-  }
-
-  Widget _buildSliverAppBar(BuildContext context) {
-    return SliverAppBar(
-      pinned: true,
-      expandedHeight: 280.0,
-      backgroundColor: medicalGreen,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-        onPressed: () => Navigator.of(context).pop(),
-      ),
-      flexibleSpace: FlexibleSpaceBar(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF4CAF50)),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: const Text(
           "분석 결과",
           style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+            color: Color(0xFF2E7D32),
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
           ),
         ),
-        background: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (image != null)
-              Image.file(
-                File(image!.path),
-                fit: BoxFit.cover,
-              )
-            else
-              Container(
-                color: Colors.grey[300],
-                child:
-                    const Icon(Icons.medication, size: 80, color: Colors.grey),
-              ),
-            // Gradient overlay for text readability
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black54],
-                  stops: [0.6, 1.0],
-                ),
+        centerTitle: true,
+      ),
+      body: Stack(
+        children: [
+          // Global Gradient Background
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFF8FBF4), Color(0xFFE8F5E9)],
               ),
             ),
-          ],
-        ),
+          ),
+          // Content
+          SafeArea(
+            bottom: false,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+              child: Column(
+                children: [
+                  _buildSavingsCard(),
+                  const SizedBox(height: 20),
+                  _buildAiSummary(),
+                  const SizedBox(height: 32),
+                  _buildProductListHeader(),
+                  const SizedBox(height: 12),
+                  _buildMockProductList(),
+                ],
+              ),
+            ),
+          ),
+          // Bottom Action Bar
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _buildBottomActionBar(context),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildAnalysisContent(BuildContext context) {
-    return SliverList(
-      delegate: SliverChildListDelegate([
-        const SizedBox(height: 20),
-        _buildSummaryCard(),
-        const SizedBox(height: 16),
-        _buildDetailSection(
-          title: "제품명",
-          content: "타이레놀 500mg",
-          icon: Icons.local_pharmacy_outlined,
+  Widget _buildSavingsCard() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFDD835), Color(0xFFFFCA28)],
         ),
-        _buildDetailSection(
-          title: "효능/효과",
-          content: "감기로 인한 발열 및 동통(통증), 두통, 신경통, 근육통, 월경통, 염좌통(삔 통증)",
-          icon: Icons.healing_outlined,
-        ),
-        _buildDetailSection(
-          title: "용법/용량",
-          content: "만 12세 이상 소아 및 성인: 1회 1~2정씩 1일 3~4회 (4~6시간 마다) 필요시 복용합니다.",
-          icon: Icons.schedule_outlined,
-        ),
-        const SizedBox(height: 24),
-        _buildActionCard(context),
-        const SizedBox(height: 40),
-      ]),
-    );
-  }
-
-  Widget _buildSummaryCard() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Card(
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: medicalGreen.withValues(alpha: 0.1)),
-        ),
-        color: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.check_circle, color: medicalGreen, size: 28),
-                  const SizedBox(width: 10),
-                  Text(
-                    "분석 완료",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[900],
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFDD835).withValues(alpha: 0.3),
+            blurRadius: 32,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "이번 달 예상 절약 금액",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF5D4037),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: const [
+                            Text(
+                              "18,000",
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2E7D32),
+                              ),
+                            ),
+                            Text(
+                              "원",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2E7D32),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                "촬영하신 약통에서 유효한 정보를 성공적으로 인식했습니다.",
-                style: TextStyle(
-                  fontSize: 16,
-                  height: 1.5,
-                  color: Colors.grey[700],
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.savings_rounded,
+                          color: Color(0xFF2E7D32), size: 32),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: Colors.white),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "동일 성분 제품을 더 저렴하게 구매할 수 있어요!",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildDetailSection({
-    required String title,
-    required String content,
-    required IconData icon,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+  Widget _buildAiSummary() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: [
-              Icon(icon, size: 20, color: medicalGreen),
-              const SizedBox(width: 8),
+            children: const [
+              const Icon(Icons.auto_awesome,
+                  size: 18, color: Color(0xFF2E7D32)),
+              SizedBox(width: 8),
               Text(
-                title,
+                "AI 분석 요약",
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
+                  color: Color(0xFF2E7D32),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Text(
-              content,
-              style: TextStyle(
-                fontSize: 16,
-                height: 1.6,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionCard(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: SizedBox(
-        width: double.infinity,
-        height: 56,
-        child: ElevatedButton.icon(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("나의 약통에 저장되었습니다.")),
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: medicalGreen,
-            foregroundColor: Colors.white,
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-          icon: const Icon(Icons.add_shopping_cart_rounded),
-          label: const Text(
-            "나의 약통 담기",
+          const SizedBox(height: 12),
+          const Text(
+            "촬영된 약통에서 총 4개의 영양제를 발견했습니다.\n'오메가3' 제품이 기존 복용 중인 영양제와 성분이 중복될 가능성이 있어 주의가 필요합니다.",
             style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              height: 1.6,
+              color: Color(0xFF333333),
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavBar(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _BottomNavItem(icon: Icons.home_outlined, label: "홈"),
-          _BottomNavItem(icon: Icons.camera_alt, label: "분석", isSelected: true),
-          _BottomNavItem(icon: Icons.medication_outlined, label: "약통"),
-          _BottomNavItem(icon: Icons.person_outline, label: "정보"),
         ],
       ),
     );
   }
-}
 
-class _BottomNavItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isSelected;
-
-  const _BottomNavItem({
-    required this.icon,
-    required this.label,
-    this.isSelected = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isSelected ? const Color(0xFF2E7D32) : Colors.grey[400];
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: color),
-        const SizedBox(height: 4),
+  Widget _buildProductListHeader() {
+    return Row(
+      children: const [
+        const Icon(Icons.inventory_2_outlined,
+            color: Color(0xFF2E7D32), size: 20),
+        SizedBox(width: 8),
         Text(
-          label,
+          "발견된 제품 목록 (4개)",
           style: TextStyle(
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: color,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2E7D32),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMockProductList() {
+    final products = [
+      {
+        "brand": "종근당건강",
+        "name": "락토핏 생유산균 골드",
+        "price": "15,900원",
+        "tags": ["식약처 인증", "AI 분석 결과"],
+      },
+      {
+        "brand": "California Gold",
+        "name": "Omega-3 Premium Fish Oil",
+        "price": "24,000원",
+        "tags": ["중복 경고", "해외 직구"],
+      },
+      {
+        "brand": "고려은단",
+        "name": "비타민C 1000",
+        "price": "12,000원",
+        "tags": ["식약처 인증", "인기"],
+      },
+      {
+        "brand": "Nature Made",
+        "name": "Magnesium Oxide",
+        "price": "18,500원",
+        "tags": ["해외 직구"],
+      },
+    ];
+
+    return Column(
+      children: products.map((p) {
+        return ExpandableProductCard(
+          brand: p["brand"] as String,
+          name: p["name"] as String,
+          price: p["price"] as String,
+          tags: p["tags"] as List<String>,
+          tagColors: const {
+            "식약처 인증": Color(0xFFE8F5E9),
+            "AI 분석 결과": Color(0xFFE3F2FD),
+            "중복 경고": Color(0xFFFFF3E0),
+            "해외 직구": Color(0xFFF3E5F5),
+            "인기": Color(0xFFFFEBEE),
+          },
+          tagTextColors: const {
+            "식약처 인증": Color(0xFF2E7D32),
+            "AI 분석 결과": Color(0xFF1565C0),
+            "중복 경고": Color(0xFFE65100),
+            "해외 직구": Color(0xFF7B1FA2),
+            "인기": Color(0xFFC62828),
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildBottomActionBar(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(24),
+        topRight: Radius.circular(24),
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.95),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 20,
+                offset: const Offset(0, -4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.info_outline_rounded,
+                      size: 14, color: Colors.grey),
+                  SizedBox(width: 4),
+                  Text(
+                    "본 분석 결과는 참고용이며, 정확한 복용 상담은 전문의와 상의하십시오.",
+                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF4CAF50).withValues(alpha: 0.4),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => Navigator.of(context).pop(),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Text(
+                          "홈으로 돌아가기",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Icon(Icons.home_rounded, color: Colors.white, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

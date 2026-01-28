@@ -1,11 +1,13 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:myapp/services/api_service.dart';
 import 'package:myapp/screens/analyzing_screen.dart';
 import 'package:myapp/services/my_pill_service.dart';
 import 'package:myapp/theme/app_theme.dart';
-import 'package:myapp/widgets/product_card.dart';
+
+import 'package:myapp/widgets/expandable_product_card.dart';
 import 'package:myapp/core/utils/keyword_cleaner.dart';
 import 'package:myapp/models/pill.dart';
 
@@ -201,13 +203,45 @@ class _ResultScreenState extends State<ResultScreen> {
     }
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(Localizations.localeOf(context).languageCode == 'en'
-            ? 'Analysis Result'
-            : '분석 결과'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF4CAF50)),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          Localizations.localeOf(context).languageCode == 'en'
+              ? 'Analysis Result'
+              : '분석 결과',
+          style: const TextStyle(
+            color: Color(0xFF2E7D32),
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
+          ),
+        ),
         centerTitle: true,
       ),
-      body: _buildBody(),
+      body: Stack(
+        children: [
+          // Global Gradient Background
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFF8FBF4), Color(0xFFE8F5E9)],
+              ),
+            ),
+          ),
+          // Content
+          SafeArea(
+            bottom: false,
+            child: _buildBody(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -374,14 +408,62 @@ class _ResultScreenState extends State<ResultScreen> {
 
                 final isAdded = _addedPillNames.contains(displayPill.name);
 
-                return ProductCard(
+                // --- Transformation Logic ---
+                final isEnglish =
+                    Localizations.localeOf(context).languageCode == 'en';
+                List<String> tags = [];
+                if (displayStatus == 'SAFE')
+                  tags.add(isEnglish ? 'KFDA Certified' : '식약처 인증');
+                if (displayStatus == 'WARNING')
+                  tags.add(isEnglish ? 'Warning' : '주의');
+                if (displayStatus == 'REDUNDANT')
+                  tags.add(isEnglish ? 'Redundant' : '중복');
+                if (apiPill == null)
+                  tags.add(isEnglish ? 'AI Analysis' : 'AI 분석');
+
+                final tagColors = {
+                  '식약처 인증': const Color(0xFFE8F5E9),
+                  '주의': const Color(0xFFFFF3E0),
+                  '중복': const Color(0xFFFFEBEE),
+                  'AI 분석': const Color(0xFFE3F2FD),
+                  'KFDA Certified': const Color(0xFFE8F5E9),
+                  'Warning': const Color(0xFFFFF3E0),
+                  'Redundant': const Color(0xFFFFEBEE),
+                  'AI Analysis': const Color(0xFFE3F2FD),
+                };
+                final tagTextColors = {
+                  '식약처 인증': const Color(0xFF2E7D32),
+                  '주의': const Color(0xFFE65100),
+                  '중복': const Color(0xFFC62828),
+                  'AI 분석': const Color(0xFF1565C0),
+                  'KFDA Certified': const Color(0xFF2E7D32),
+                  'Warning': const Color(0xFFE65100),
+                  'Redundant': const Color(0xFFC62828),
+                  'AI Analysis': const Color(0xFF1565C0),
+                };
+
+                final priceText = isEnglish
+                    ? (displayPrice > 0 ? "\$${displayPrice}" : "Unknown")
+                    : (displayPrice > 0
+                        ? "${displayPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원"
+                        : "가격 정보 없음");
+
+                // [NEW] Visual Polish: Red tint for duplicate/warning items
+                final cardBackgroundColor =
+                    (displayStatus == 'REDUNDANT' || displayStatus == 'WARNING')
+                        ? Colors.red.shade100
+                        : Colors.white;
+
+                return ExpandableProductCard(
+                  backgroundColor: cardBackgroundColor, // Apply tint
+                  brand: displayPill.brand ?? '',
                   name: displayPill.name,
-                  brand: displayPill.brand,
-                  status: displayStatus,
+                  price: priceText,
+                  tags: tags,
+                  tagColors: tagColors,
+                  tagTextColors: tagTextColors,
                   ingredients: displayPill.ingredients,
                   dosage: displayPill.dailyDosage,
-                  isExpandedDefault: true,
-                  price: displayPrice,
                   isAdded: isAdded,
                   onAdd: () => _handleSavePill(displayPill),
                 );
@@ -449,91 +531,183 @@ class _ResultScreenState extends State<ResultScreen> {
     final int savingAmount = _analysisResult?.totalSavingAmount ?? 0;
 
     if (savingAmount <= 0) {
+      // Zero Savings Case (Green Theme)
       return Container(
-        padding: const EdgeInsets.all(20),
+        width: double.infinity,
         decoration: BoxDecoration(
-          color: AppTheme.primaryColor,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          children: [
-            const Icon(Icons.check_circle_outline,
-                color: Colors.white, size: 48),
-            const SizedBox(height: 10),
-            Text(
-              isEnglish ? "No duplicates found!" : "중복된 영양제가 없습니다!",
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold),
-            ),
-            Text(
-              isEnglish ? "Keep up the good work! :)" : "지금처럼 잘 챙겨드세요 :)",
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
+          color: const Color(0xFF2E7D32).withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
             ),
           ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.check_circle_outline,
+                        color: Colors.white, size: 32),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    isEnglish ? "No duplicates found!" : "중복된 영양제가 없습니다!",
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isEnglish ? "Keep up the good work! :)" : "지금처럼 잘 챙겨드세요 :)",
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       );
     }
 
-    // Currency Formatting
-    String amountText;
-    if (isEnglish) {
-      // USD assumption: Value from API is already in USD if locale is en
-      amountText = "\$${savingAmount.toString()}";
-    } else {
-      amountText =
-          "${savingAmount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원";
-    }
+    // Savings Case (Gold Theme)
+    final formattedAmount = isEnglish
+        ? "\$${savingAmount.toString()}"
+        : "${savingAmount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
 
-    return Card(
-      elevation: 4,
-      color: AppTheme.primaryColor, // Deep Green
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
-        child: Column(
-          children: [
-            Text(
-              isEnglish ? "Estimated Monthly Savings" : "이번 달 예상 절약 금액",
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFF59D), // Light Yellow (Highlight)
+            Color(0xFFFFD54F), // Gold
+            Color(0xFFFFB300), // Darker Gold (Depth)
+          ],
+          stops: [0.0, 0.4, 1.0],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border:
+            Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFFB300).withValues(alpha: 0.4),
+            blurRadius: 24,
+            spreadRadius: 2,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
               children: [
-                const Icon(Icons.savings,
-                    color: AppTheme.accentColor, size: 36),
-                const SizedBox(width: 8),
-                Text(
-                  amountText,
-                  style: const TextStyle(
-                    color: AppTheme.accentColor, // Amber (Highlight)
-                    fontSize: 40,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: -1,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isEnglish
+                              ? "Estimated Monthly Savings"
+                              : "이번 달 예상 절약 금액",
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF5D4037),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              formattedAmount,
+                              style: const TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2E7D32),
+                              ),
+                            ),
+                            if (!isEnglish)
+                              const Text(
+                                "원",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2E7D32),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.savings_rounded,
+                          color: Color(0xFF2E7D32), size: 32),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 16),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline,
+                          size: 16, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          isEnglish
+                              ? "Saved money by reducing duplicates!"
+                              : "동일 성분 제품을 더 저렴하게 구매할 수 있어요!",
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
               ],
             ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20)),
-              child: Text(
-                isEnglish
-                    ? "📉 Saved money by reducing duplicates!"
-                    : "📉 중복 섭취를 줄여서 건강과 지갑을 지켰어요!",
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
