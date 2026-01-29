@@ -13,5 +13,48 @@
   "weightLabel": "몸무게",
   "saveBtn": "저장하기",
   "disclaimerTitle": "의학적 면책 고지",
-  "disclaimerAgree": "동의합니다"
+  "disclaimerAgree": "동의합니다",
+  
+  "analysisTitle": "분석 결과",
+  "estimatedSavings": "이번 달 예상 절약 금액",
+  "noDuplicates": "중복된 영양제가 없습니다!",
+  "keepItUp": "지금처럼 잘 챙겨드세요 :)",
+  "savingsMessage": "동일 성분 제품을 더 저렴하게 구매할 수 있어요!",
+  "aiSummary": "AI 분석 요약",
+  "detectedProducts": "발견된 제품 목록",
+  "detectedCount": "{count}개 발견",
+  "@detectedCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "returnHome": "홈으로 돌아가기",
+  
+  "searchTitle": "영양제 검색",
+  "searchHint": "브랜드, 제품명, 증상 등으로 검색",
+  "addedToCabinet": "이(가) 내 약통에 추가되었습니다.",
+  "alreadyInCabinet": "이미 약통에 있는 영양제입니다.",
+  "undo": "실행취소",
+  "noResults": "검색 결과가 없습니다.",
+  
+  "ingredients": "원재료",
+  "usage": "섭취방법",
+  "description": "내용",
+  "estimatedPrice": "예상 가격",
+  "add": "담기",
+  "added": "담김",
+  "verified": "식약처 인증",
+  "warning": "주의",
+  "redundant": "중복",
+  "unknown": "정보 없음",
+  
+  "productNotFound": "제품명 확인 불가",
+  "analysisComplete": "분석이 완료되었습니다.",
+  "analysisError": "분석 중 오류가 발생했습니다. 다시 시도해주세요.",
+  
+  "tagVerified": "식약처 인증",
+  "tagAiResult": "AI 분석 결과",
+  "tagDuplicateWarning": "중복 경고",
+  "tagImported": "해외 직구",
+  "tagPopular": "인기"
 }

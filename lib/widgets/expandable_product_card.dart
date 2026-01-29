@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:myapp/l10n/app_localizations.dart';
 
 class ExpandableProductCard extends StatefulWidget {
   final String brand;
@@ -192,7 +193,9 @@ class _ExpandableProductCardState extends State<ExpandableProductCard> {
                 color: widget.isAdded ? Colors.grey : const Color(0xFF4CAF50)),
             const SizedBox(width: 4),
             Text(
-              widget.isAdded ? "담김" : "담기",
+              widget.isAdded
+                  ? AppLocalizations.of(context)!.added
+                  : AppLocalizations.of(context)!.add,
               style: TextStyle(
                 fontSize: 12,
                 color: widget.isAdded ? Colors.grey : const Color(0xFF4CAF50),
@@ -216,8 +219,8 @@ class _ExpandableProductCardState extends State<ExpandableProductCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (widget.ingredients != null) ...[
-            const Text("원재료",
-                style: TextStyle(
+            Text(AppLocalizations.of(context)!.ingredients,
+                style: const TextStyle(
                     color: Color(0xFF9E9E9E),
                     fontSize: 12,
                     fontWeight: FontWeight.w500)),
@@ -227,8 +230,8 @@ class _ExpandableProductCardState extends State<ExpandableProductCard> {
             const SizedBox(height: 12),
           ],
           if (widget.dosage != null) ...[
-            const Text("섭취방법",
-                style: TextStyle(
+            Text(AppLocalizations.of(context)!.usage,
+                style: const TextStyle(
                     color: Color(0xFF9E9E9E),
                     fontSize: 12,
                     fontWeight: FontWeight.w500)),

@@ -58,7 +58,7 @@ class USRecommendationSection extends StatelessWidget {
   Widget _buildRecommendationCard(
       BuildContext context, _RecommendationItem item) {
     return PopularSupplementCard(
-      brandName: item.brand,
+      brandName: item.getBrand(context),
       productName: item.getName(context),
       tags: item.getTags(context),
       icon: item.icon,
@@ -70,7 +70,8 @@ class USRecommendationSection extends StatelessWidget {
 class _RecommendationItem {
   final String nameEn;
   final String nameKo;
-  final String brand;
+  final String brandEn;
+  final String brandKo;
   final Color color;
   final IconData icon;
   final List<String> tagsEn;
@@ -79,7 +80,8 @@ class _RecommendationItem {
   const _RecommendationItem({
     required this.nameEn,
     required this.nameKo,
-    required this.brand,
+    required this.brandEn,
+    required this.brandKo,
     required this.color,
     required this.icon,
     required this.tagsEn,
@@ -97,13 +99,20 @@ class _RecommendationItem {
         ? tagsEn
         : tagsKo;
   }
+
+  String getBrand(BuildContext context) {
+    return Localizations.localeOf(context).languageCode == 'en'
+        ? brandEn
+        : brandKo;
+  }
 }
 
 const List<_RecommendationItem> _items = [
   _RecommendationItem(
     nameEn: "Omega-3",
     nameKo: "오메가-3",
-    brand: "Sports Research",
+    brandEn: "Sports Research",
+    brandKo: "Sports Research",
     color: Color(0xFFFFA000), // Amber 700
     icon: Icons.water_drop_rounded,
     tagsEn: ["Heart", "Brain"],
@@ -112,7 +121,8 @@ const List<_RecommendationItem> _items = [
   _RecommendationItem(
     nameEn: "Vitamin C",
     nameKo: "비타민 C",
-    brand: "Korea Eundan",
+    brandEn: "Nature Made",
+    brandKo: "고려은단",
     color: Color(0xFFFB8C00), // Orange 600
     icon: Icons.wb_sunny_rounded,
     tagsEn: ["Immunity", "Antioxidant"],
@@ -121,7 +131,8 @@ const List<_RecommendationItem> _items = [
   _RecommendationItem(
     nameEn: "Magnesium",
     nameKo: "마그네슘",
-    brand: "Nature Made",
+    brandEn: "Nature Made",
+    brandKo: "Nature Made",
     color: Color(0xFF7E57C2), // DeepPurple 400
     icon: Icons.nightlight_round,
     tagsEn: ["Sleep", "Muscle"],
@@ -130,7 +141,8 @@ const List<_RecommendationItem> _items = [
   _RecommendationItem(
     nameEn: "Probiotics",
     nameKo: "유산균",
-    brand: "Lacto-Fit",
+    brandEn: "Culturelle",
+    brandKo: "종근당건강",
     color: Color(0xFF43A047), // Green 600
     icon: Icons.spa_rounded,
     tagsEn: ["Digestion", "Gut"],
@@ -139,7 +151,8 @@ const List<_RecommendationItem> _items = [
   _RecommendationItem(
     nameEn: "Vitamin D",
     nameKo: "비타민 D",
-    brand: "Doctor's Best",
+    brandEn: "Doctor's Best",
+    brandKo: "Doctor's Best",
     color: Color(0xFFF9A825), // Yellow 800
     icon: Icons.brightness_5_rounded,
     tagsEn: ["Bone", "Immunity"],

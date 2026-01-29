@@ -181,6 +181,204 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'동의합니다'**
   String get disclaimerAgree;
+
+  /// No description provided for @analysisTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'분석 결과'**
+  String get analysisTitle;
+
+  /// No description provided for @estimatedSavings.
+  ///
+  /// In ko, this message translates to:
+  /// **'이번 달 예상 절약 금액'**
+  String get estimatedSavings;
+
+  /// No description provided for @noDuplicates.
+  ///
+  /// In ko, this message translates to:
+  /// **'중복된 영양제가 없습니다!'**
+  String get noDuplicates;
+
+  /// No description provided for @keepItUp.
+  ///
+  /// In ko, this message translates to:
+  /// **'지금처럼 잘 챙겨드세요 :)'**
+  String get keepItUp;
+
+  /// No description provided for @savingsMessage.
+  ///
+  /// In ko, this message translates to:
+  /// **'동일 성분 제품을 더 저렴하게 구매할 수 있어요!'**
+  String get savingsMessage;
+
+  /// No description provided for @aiSummary.
+  ///
+  /// In ko, this message translates to:
+  /// **'AI 분석 요약'**
+  String get aiSummary;
+
+  /// No description provided for @detectedProducts.
+  ///
+  /// In ko, this message translates to:
+  /// **'발견된 제품 목록'**
+  String get detectedProducts;
+
+  /// No description provided for @detectedCount.
+  ///
+  /// In ko, this message translates to:
+  /// **'{count}개 발견'**
+  String detectedCount(int count);
+
+  /// No description provided for @returnHome.
+  ///
+  /// In ko, this message translates to:
+  /// **'홈으로 돌아가기'**
+  String get returnHome;
+
+  /// No description provided for @searchTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'영양제 검색'**
+  String get searchTitle;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In ko, this message translates to:
+  /// **'브랜드, 제품명, 증상 등으로 검색'**
+  String get searchHint;
+
+  /// No description provided for @addedToCabinet.
+  ///
+  /// In ko, this message translates to:
+  /// **'이(가) 내 약통에 추가되었습니다.'**
+  String get addedToCabinet;
+
+  /// No description provided for @alreadyInCabinet.
+  ///
+  /// In ko, this message translates to:
+  /// **'이미 약통에 있는 영양제입니다.'**
+  String get alreadyInCabinet;
+
+  /// No description provided for @undo.
+  ///
+  /// In ko, this message translates to:
+  /// **'실행취소'**
+  String get undo;
+
+  /// No description provided for @noResults.
+  ///
+  /// In ko, this message translates to:
+  /// **'검색 결과가 없습니다.'**
+  String get noResults;
+
+  /// No description provided for @ingredients.
+  ///
+  /// In ko, this message translates to:
+  /// **'원재료'**
+  String get ingredients;
+
+  /// No description provided for @usage.
+  ///
+  /// In ko, this message translates to:
+  /// **'섭취방법'**
+  String get usage;
+
+  /// No description provided for @description.
+  ///
+  /// In ko, this message translates to:
+  /// **'내용'**
+  String get description;
+
+  /// No description provided for @estimatedPrice.
+  ///
+  /// In ko, this message translates to:
+  /// **'예상 가격'**
+  String get estimatedPrice;
+
+  /// No description provided for @add.
+  ///
+  /// In ko, this message translates to:
+  /// **'담기'**
+  String get add;
+
+  /// No description provided for @added.
+  ///
+  /// In ko, this message translates to:
+  /// **'담김'**
+  String get added;
+
+  /// No description provided for @verified.
+  ///
+  /// In ko, this message translates to:
+  /// **'식약처 인증'**
+  String get verified;
+
+  /// No description provided for @warning.
+  ///
+  /// In ko, this message translates to:
+  /// **'주의'**
+  String get warning;
+
+  /// No description provided for @redundant.
+  ///
+  /// In ko, this message translates to:
+  /// **'중복'**
+  String get redundant;
+
+  /// No description provided for @unknown.
+  ///
+  /// In ko, this message translates to:
+  /// **'정보 없음'**
+  String get unknown;
+
+  /// No description provided for @productNotFound.
+  ///
+  /// In ko, this message translates to:
+  /// **'제품명 확인 불가'**
+  String get productNotFound;
+
+  /// No description provided for @analysisComplete.
+  ///
+  /// In ko, this message translates to:
+  /// **'분석이 완료되었습니다.'**
+  String get analysisComplete;
+
+  /// No description provided for @analysisError.
+  ///
+  /// In ko, this message translates to:
+  /// **'분석 중 오류가 발생했습니다. 다시 시도해주세요.'**
+  String get analysisError;
+
+  /// No description provided for @tagVerified.
+  ///
+  /// In ko, this message translates to:
+  /// **'식약처 인증'**
+  String get tagVerified;
+
+  /// No description provided for @tagAiResult.
+  ///
+  /// In ko, this message translates to:
+  /// **'AI 분석 결과'**
+  String get tagAiResult;
+
+  /// No description provided for @tagDuplicateWarning.
+  ///
+  /// In ko, this message translates to:
+  /// **'중복 경고'**
+  String get tagDuplicateWarning;
+
+  /// No description provided for @tagImported.
+  ///
+  /// In ko, this message translates to:
+  /// **'해외 직구'**
+  String get tagImported;
+
+  /// No description provided for @tagPopular.
+  ///
+  /// In ko, this message translates to:
+  /// **'인기'**
+  String get tagPopular;
 }
 
 class _AppLocalizationsDelegate

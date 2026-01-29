@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:myapp/l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:myapp/services/api_service.dart';
 import 'package:myapp/screens/analyzing_screen.dart';
@@ -32,7 +33,7 @@ class DetectedItem {
   factory DetectedItem.fromJson(Map<String, dynamic> json) {
     return DetectedItem(
       id: json['id']?.toString() ?? '0',
-      name: json['name'] ?? '제품명 확인 불가',
+      name: json['name'] ?? '', // Handle empty name in UI or here
       status: json['status'] ?? 'SAFE',
       desc: json['desc'] ?? '',
       price: json['price'] ?? 0,
@@ -59,7 +60,7 @@ class AnalysisResponse {
 
     return AnalysisResponse(
       detectedItems: items,
-      summary: json['summary'] ?? '분석이 완료되었습니다.',
+      summary: json['summary'] ?? '', // Handle empty locally
       totalSavingAmount: json['total_saving_amount'] ?? 0,
     );
   }
@@ -105,7 +106,9 @@ class _ResultScreenState extends State<ResultScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result == 0 ? "약통에 추가되었습니다!" : "이미 약통에 있는 영양제입니다."),
+          content: Text(result == 0
+              ? AppLocalizations.of(context)!.addedToCabinet
+              : AppLocalizations.of(context)!.alreadyInCabinet),
           duration: const Duration(seconds: 1),
         ),
       );
@@ -147,7 +150,8 @@ class _ResultScreenState extends State<ResultScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = "분석 중 오류가 발생했습니다.\n다시 시도해주세요. ($e)";
+          _errorMessage =
+              "${AppLocalizations.of(context)!.analysisError}\n($e)";
           _isLoading = false;
         });
       }
@@ -202,6 +206,8 @@ class _ResultScreenState extends State<ResultScreen> {
       return const AnalyzingScreen();
     }
 
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -212,9 +218,7 @@ class _ResultScreenState extends State<ResultScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          Localizations.localeOf(context).languageCode == 'en'
-              ? 'Analysis Result'
-              : '분석 결과',
+          l10n.analysisTitle,
           style: const TextStyle(
             color: Color(0xFF2E7D32),
             fontWeight: FontWeight.w600,
@@ -246,6 +250,7 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context)!;
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
 
     if (_errorMessage != null) {
@@ -296,8 +301,10 @@ class _ResultScreenState extends State<ResultScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              _analysisResult?.summary ??
-                  (isEnglish ? "Analysis complete." : "분석이 완료되었습니다."),
+              _analysisResult?.summary != null &&
+                      _analysisResult!.summary.isNotEmpty
+                  ? _analysisResult!.summary
+                  : l10n.analysisComplete,
               style: const TextStyle(
                   fontSize: 16, height: 1.5, color: Colors.black87),
             ),
@@ -306,9 +313,7 @@ class _ResultScreenState extends State<ResultScreen> {
 
           // 발견된 항목 타이틀
           Text(
-            isEnglish
-                ? "Detected Products (${_analysisResult?.detectedItems.length ?? 0})"
-                : "발견된 제품 목록 (${_analysisResult?.detectedItems.length ?? 0}개)",
+            l10n.detectedCount(_analysisResult?.detectedItems.length ?? 0),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 12),
@@ -394,13 +399,14 @@ class _ResultScreenState extends State<ResultScreen> {
                         ingredients: apiPill.ingredients,
                       )
                     : KoreanPill(
-                        id: 'ai_${item.id}_${DateTime.now().millisecondsSinceEpoch}',
+                        id: item.id,
                         name: item.name,
-                        brand: 'AI 분석 결과',
+                        brand:
+                            item.desc.isNotEmpty ? item.desc : l10n.tagAiResult,
                         imageUrl: '',
                         dailyDosage: finalDosage,
-                        category: '건강기능식품',
-                        ingredients: item.desc,
+                        category: '',
+                        ingredients: '',
                       );
 
                 final displayStatus = apiPill != null ? 'SAFE' : item.status;
@@ -412,41 +418,35 @@ class _ResultScreenState extends State<ResultScreen> {
                 final isEnglish =
                     Localizations.localeOf(context).languageCode == 'en';
                 List<String> tags = [];
-                if (displayStatus == 'SAFE')
-                  tags.add(isEnglish ? 'KFDA Certified' : '식약처 인증');
+                if (displayStatus == 'SAFE') tags.add(l10n.tagVerified);
                 if (displayStatus == 'WARNING')
-                  tags.add(isEnglish ? 'Warning' : '주의');
-                if (displayStatus == 'REDUNDANT')
-                  tags.add(isEnglish ? 'Redundant' : '중복');
-                if (apiPill == null)
-                  tags.add(isEnglish ? 'AI Analysis' : 'AI 분석');
+                  tags.add(l10n
+                      .tagDuplicateWarning); // Or warning? warning key is short. tagDuplicateWarning is "Duplicate Warning".
+                if (displayStatus == 'REDUNDANT') tags.add(l10n.redundant);
+                if (apiPill == null) tags.add(l10n.tagAiResult);
 
                 final tagColors = {
-                  '식약처 인증': const Color(0xFFE8F5E9),
-                  '주의': const Color(0xFFFFF3E0),
-                  '중복': const Color(0xFFFFEBEE),
-                  'AI 분석': const Color(0xFFE3F2FD),
-                  'KFDA Certified': const Color(0xFFE8F5E9),
-                  'Warning': const Color(0xFFFFF3E0),
-                  'Redundant': const Color(0xFFFFEBEE),
-                  'AI Analysis': const Color(0xFFE3F2FD),
+                  l10n.tagVerified: const Color(0xFFE8F5E9),
+                  l10n.warning: const Color(0xFFFFF3E0),
+                  l10n.redundant: const Color(0xFFFFEBEE),
+                  l10n.tagAiResult: const Color(0xFFE3F2FD),
+                  l10n.tagDuplicateWarning: const Color(0xFFFFF3E0),
+                  // Fallbacks for string matching if model returns raw strings?
+                  // Best to rely on l10n keys being used in tags list.
                 };
                 final tagTextColors = {
-                  '식약처 인증': const Color(0xFF2E7D32),
-                  '주의': const Color(0xFFE65100),
-                  '중복': const Color(0xFFC62828),
-                  'AI 분석': const Color(0xFF1565C0),
-                  'KFDA Certified': const Color(0xFF2E7D32),
-                  'Warning': const Color(0xFFE65100),
-                  'Redundant': const Color(0xFFC62828),
-                  'AI Analysis': const Color(0xFF1565C0),
+                  l10n.tagVerified: const Color(0xFF2E7D32),
+                  l10n.warning: const Color(0xFFE65100),
+                  l10n.redundant: const Color(0xFFC62828),
+                  l10n.tagAiResult: const Color(0xFF1565C0),
+                  l10n.tagDuplicateWarning: const Color(0xFFE65100),
                 };
 
                 final priceText = isEnglish
-                    ? (displayPrice > 0 ? "\$${displayPrice}" : "Unknown")
+                    ? (displayPrice > 0 ? "\$${displayPrice}" : l10n.unknown)
                     : (displayPrice > 0
                         ? "${displayPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원"
-                        : "가격 정보 없음");
+                        : l10n.unknown);
 
                 // [NEW] Visual Polish: Red tint for duplicate/warning items
                 final cardBackgroundColor =
@@ -485,9 +485,7 @@ class _ResultScreenState extends State<ResultScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    Localizations.localeOf(context).languageCode == 'en'
-                        ? 'AI analysis result. Consult a doctor for medical advice.'
-                        : '본 결과는 AI 분석 결과이며, 정확한 의학적 판단은 의사/약사와 상의하세요.',
+                    l10n.homeDisclaimer,
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ),
@@ -509,10 +507,7 @@ class _ResultScreenState extends State<ResultScreen> {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16)),
                 ),
-                child: Text(
-                    Localizations.localeOf(context).languageCode == 'en'
-                        ? "Return to Home"
-                        : "홈으로 돌아가기",
+                child: Text(l10n.returnHome,
                     style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -527,6 +522,7 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Widget _buildTotalSavingCard() {
+    final l10n = AppLocalizations.of(context)!;
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final int savingAmount = _analysisResult?.totalSavingAmount ?? 0;
 
@@ -564,7 +560,7 @@ class _ResultScreenState extends State<ResultScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    isEnglish ? "No duplicates found!" : "중복된 영양제가 없습니다!",
+                    l10n.noDuplicates,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -573,7 +569,7 @@ class _ResultScreenState extends State<ResultScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    isEnglish ? "Keep up the good work! :)" : "지금처럼 잘 챙겨드세요 :)",
+                    l10n.keepItUp,
                     style: const TextStyle(
                       fontSize: 14,
                       color: Colors.white70,
@@ -632,9 +628,7 @@ class _ResultScreenState extends State<ResultScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          isEnglish
-                              ? "Estimated Monthly Savings"
-                              : "이번 달 예상 절약 금액",
+                          l10n.estimatedSavings,
                           style: const TextStyle(
                             fontSize: 14,
                             color: Color(0xFF5D4037),
@@ -693,9 +687,7 @@ class _ResultScreenState extends State<ResultScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          isEnglish
-                              ? "Saved money by reducing duplicates!"
-                              : "동일 성분 제품을 더 저렴하게 구매할 수 있어요!",
+                          l10n.savingsMessage,
                           style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,

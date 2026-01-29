@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/pill.dart';
 import '../data/repositories/drug_repository.dart';
+import 'package:myapp/l10n/app_localizations.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -70,18 +71,19 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _addToCabinet(BasePill pill) {
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          '${pill.name}이(가) 내 약통에 추가되었습니다.',
+          '${pill.name} ${l10n.addedToCabinet}',
           style: const TextStyle(fontSize: 16),
         ),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         action: SnackBarAction(
-          label: '실행취소',
+          label: l10n.undo,
           textColor: Colors.yellow,
           onPressed: () {
             // 실행 취소 로직
@@ -93,9 +95,10 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('영양제 검색'),
+        title: Text(l10n.searchTitle),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
@@ -107,7 +110,7 @@ class _SearchScreenState extends State<SearchScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: '브랜드, 제품명, 증상 등으로 검색',
+                hintText: l10n.searchHint,
                 hintStyle: TextStyle(color: Colors.grey[500], fontSize: 16),
                 prefixIcon: const Icon(Icons.search, color: Color(0xFF2E7D32)),
                 border: OutlineInputBorder(
@@ -133,7 +136,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 : _filteredDrugs.isEmpty
                     ? Center(
                         child: Text(
-                          '검색 결과가 없습니다.',
+                          l10n.noResults,
                           style:
                               TextStyle(color: Colors.grey[600], fontSize: 16),
                         ),

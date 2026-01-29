@@ -50,4 +50,105 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get disclaimerAgree => '동의합니다';
+
+  @override
+  String get analysisTitle => '분석 결과';
+
+  @override
+  String get estimatedSavings => '이번 달 예상 절약 금액';
+
+  @override
+  String get noDuplicates => '중복된 영양제가 없습니다!';
+
+  @override
+  String get keepItUp => '지금처럼 잘 챙겨드세요 :)';
+
+  @override
+  String get savingsMessage => '동일 성분 제품을 더 저렴하게 구매할 수 있어요!';
+
+  @override
+  String get aiSummary => 'AI 분석 요약';
+
+  @override
+  String get detectedProducts => '발견된 제품 목록';
+
+  @override
+  String detectedCount(int count) {
+    return '$count개 발견';
+  }
+
+  @override
+  String get returnHome => '홈으로 돌아가기';
+
+  @override
+  String get searchTitle => '영양제 검색';
+
+  @override
+  String get searchHint => '브랜드, 제품명, 증상 등으로 검색';
+
+  @override
+  String get addedToCabinet => '이(가) 내 약통에 추가되었습니다.';
+
+  @override
+  String get alreadyInCabinet => '이미 약통에 있는 영양제입니다.';
+
+  @override
+  String get undo => '실행취소';
+
+  @override
+  String get noResults => '검색 결과가 없습니다.';
+
+  @override
+  String get ingredients => '원재료';
+
+  @override
+  String get usage => '섭취방법';
+
+  @override
+  String get description => '내용';
+
+  @override
+  String get estimatedPrice => '예상 가격';
+
+  @override
+  String get add => '담기';
+
+  @override
+  String get added => '담김';
+
+  @override
+  String get verified => '식약처 인증';
+
+  @override
+  String get warning => '주의';
+
+  @override
+  String get redundant => '중복';
+
+  @override
+  String get unknown => '정보 없음';
+
+  @override
+  String get productNotFound => '제품명 확인 불가';
+
+  @override
+  String get analysisComplete => '분석이 완료되었습니다.';
+
+  @override
+  String get analysisError => '분석 중 오류가 발생했습니다. 다시 시도해주세요.';
+
+  @override
+  String get tagVerified => '식약처 인증';
+
+  @override
+  String get tagAiResult => 'AI 분석 결과';
+
+  @override
+  String get tagDuplicateWarning => '중복 경고';
+
+  @override
+  String get tagImported => '해외 직구';
+
+  @override
+  String get tagPopular => '인기';
 }

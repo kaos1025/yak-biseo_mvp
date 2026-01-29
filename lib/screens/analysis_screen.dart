@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../widgets/expandable_product_card.dart';
+import 'package:myapp/l10n/app_localizations.dart';
 
 class AnalysisScreen extends StatelessWidget {
   final XFile? image;
@@ -12,6 +13,9 @@ class AnalysisScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    // final isEn = Localizations.localeOf(context).languageCode == 'en'; // Unused
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -21,9 +25,9 @@ class AnalysisScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF4CAF50)),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          "분석 결과",
-          style: TextStyle(
+        title: Text(
+          l10n.analysisTitle,
+          style: const TextStyle(
             color: Color(0xFF2E7D32),
             fontWeight: FontWeight.w600,
             fontSize: 18,
@@ -50,13 +54,13 @@ class AnalysisScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
               child: Column(
                 children: [
-                  _buildSavingsCard(),
+                  _buildSavingsCard(context),
                   const SizedBox(height: 20),
-                  _buildAiSummary(),
+                  _buildAiSummary(context),
                   const SizedBox(height: 32),
-                  _buildProductListHeader(),
+                  _buildProductListHeader(context),
                   const SizedBox(height: 12),
-                  _buildMockProductList(),
+                  _buildMockProductList(context),
                 ],
               ),
             ),
@@ -73,7 +77,9 @@ class AnalysisScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSavingsCard() {
+  Widget _buildSavingsCard(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final isEn = Localizations.localeOf(context).languageCode == 'en';
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -106,9 +112,9 @@ class AnalysisScreen extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "이번 달 예상 절약 금액",
-                          style: TextStyle(
+                        Text(
+                          l10n.estimatedSavings,
+                          style: const TextStyle(
                             fontSize: 14,
                             color: Color(0xFF5D4037),
                             fontWeight: FontWeight.w500,
@@ -118,23 +124,24 @@ class AnalysisScreen extends StatelessWidget {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.baseline,
                           textBaseline: TextBaseline.alphabetic,
-                          children: const [
+                          children: [
                             Text(
-                              "18,000",
-                              style: TextStyle(
+                              isEn ? "\$15" : "18,000",
+                              style: const TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF2E7D32),
                               ),
                             ),
-                            Text(
-                              "원",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF2E7D32),
+                            if (!isEn)
+                              const Text(
+                                "원",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2E7D32),
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ],
@@ -158,14 +165,14 @@ class AnalysisScreen extends StatelessWidget {
                     color: Colors.black.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
                       Icon(Icons.info_outline, size: 16, color: Colors.white),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          "동일 성분 제품을 더 저렴하게 구매할 수 있어요!",
-                          style: TextStyle(
+                          l10n.savingsMessage,
+                          style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
                               fontWeight: FontWeight.w500),
@@ -182,7 +189,8 @@ class AnalysisScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAiSummary() {
+  Widget _buildAiSummary(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -201,13 +209,13 @@ class AnalysisScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
+            children: [
               const Icon(Icons.auto_awesome,
                   size: 18, color: Color(0xFF2E7D32)),
               SizedBox(width: 8),
               Text(
-                "AI 분석 요약",
-                style: TextStyle(
+                l10n.aiSummary,
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF2E7D32),
@@ -216,9 +224,11 @@ class AnalysisScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const Text(
-            "촬영된 약통에서 총 4개의 영양제를 발견했습니다.\n'오메가3' 제품이 기존 복용 중인 영양제와 성분이 중복될 가능성이 있어 주의가 필요합니다.",
-            style: TextStyle(
+          Text(
+            Localizations.localeOf(context).languageCode == 'en'
+                ? "Found 4 items in the scanned bottle.\n'Omega-3' might be redundant with your existing supplements."
+                : "촬영된 약통에서 총 4개의 영양제를 발견했습니다.\n'오메가3' 제품이 기존 복용 중인 영양제와 성분이 중복될 가능성이 있어 주의가 필요합니다.",
+            style: const TextStyle(
               fontSize: 14,
               height: 1.6,
               color: Color(0xFF333333),
@@ -229,15 +239,15 @@ class AnalysisScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProductListHeader() {
+  Widget _buildProductListHeader(BuildContext context) {
     return Row(
-      children: const [
+      children: [
         const Icon(Icons.inventory_2_outlined,
             color: Color(0xFF2E7D32), size: 20),
         SizedBox(width: 8),
         Text(
-          "발견된 제품 목록 (4개)",
-          style: TextStyle(
+          "${AppLocalizations.of(context)!.detectedProducts} (4)",
+          style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
             color: Color(0xFF2E7D32),
@@ -247,31 +257,34 @@ class AnalysisScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMockProductList() {
+  Widget _buildMockProductList(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final isEn = Localizations.localeOf(context).languageCode == 'en';
+
     final products = [
       {
         "brand": "종근당건강",
         "name": "락토핏 생유산균 골드",
-        "price": "15,900원",
-        "tags": ["식약처 인증", "AI 분석 결과"],
+        "price": isEn ? "\$15" : "15,900원",
+        "tags": [l10n.tagVerified, l10n.tagAiResult],
       },
       {
         "brand": "California Gold",
         "name": "Omega-3 Premium Fish Oil",
-        "price": "24,000원",
-        "tags": ["중복 경고", "해외 직구"],
+        "price": isEn ? "\$24" : "24,000원",
+        "tags": [l10n.tagDuplicateWarning, l10n.tagImported],
       },
       {
         "brand": "고려은단",
         "name": "비타민C 1000",
-        "price": "12,000원",
-        "tags": ["식약처 인증", "인기"],
+        "price": isEn ? "\$12" : "12,000원",
+        "tags": [l10n.tagVerified, l10n.tagPopular],
       },
       {
         "brand": "Nature Made",
         "name": "Magnesium Oxide",
-        "price": "18,500원",
-        "tags": ["해외 직구"],
+        "price": isEn ? "\$18" : "18,500원",
+        "tags": [l10n.tagImported],
       },
     ];
 
@@ -282,19 +295,19 @@ class AnalysisScreen extends StatelessWidget {
           name: p["name"] as String,
           price: p["price"] as String,
           tags: p["tags"] as List<String>,
-          tagColors: const {
-            "식약처 인증": Color(0xFFE8F5E9),
-            "AI 분석 결과": Color(0xFFE3F2FD),
-            "중복 경고": Color(0xFFFFF3E0),
-            "해외 직구": Color(0xFFF3E5F5),
-            "인기": Color(0xFFFFEBEE),
+          tagColors: {
+            l10n.tagVerified: const Color(0xFFE8F5E9),
+            l10n.tagAiResult: const Color(0xFFE3F2FD),
+            l10n.tagDuplicateWarning: const Color(0xFFFFF3E0),
+            l10n.tagImported: const Color(0xFFF3E5F5),
+            l10n.tagPopular: const Color(0xFFFFEBEE),
           },
-          tagTextColors: const {
-            "식약처 인증": Color(0xFF2E7D32),
-            "AI 분석 결과": Color(0xFF1565C0),
-            "중복 경고": Color(0xFFE65100),
-            "해외 직구": Color(0xFF7B1FA2),
-            "인기": Color(0xFFC62828),
+          tagTextColors: {
+            l10n.tagVerified: const Color(0xFF2E7D32),
+            l10n.tagAiResult: const Color(0xFF1565C0),
+            l10n.tagDuplicateWarning: const Color(0xFFE65100),
+            l10n.tagImported: const Color(0xFF7B1FA2),
+            l10n.tagPopular: const Color(0xFFC62828),
           },
         );
       }).toList(),
@@ -328,15 +341,15 @@ class AnalysisScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.info_outline_rounded,
+                  const Icon(Icons.info_outline_rounded,
                       size: 14, color: Colors.grey),
-                  SizedBox(width: 4),
+                  const SizedBox(width: 4),
                   Text(
-                    "본 분석 결과는 참고용이며, 정확한 복용 상담은 전문의와 상의하십시오.",
-                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                    AppLocalizations.of(context)!.homeDisclaimer,
+                    style: const TextStyle(fontSize: 10, color: Colors.grey),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -365,10 +378,10 @@ class AnalysisScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
+                      children: [
                         Text(
-                          "홈으로 돌아가기",
-                          style: TextStyle(
+                          AppLocalizations.of(context)!.returnHome,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,

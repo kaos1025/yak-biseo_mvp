@@ -1,11 +1,11 @@
 {
   "@@locale": "en",
-  "appTitle": "YakBiseo",
-  "homeAppBarTitle": "💊 Your AI Pharmacist",
+  "appTitle": "PillCut",
+  "homeAppBarTitle": "Your AI Supplement Advisor",
   "homeMainQuestion": "Are you wasting money\non supplements? 💸",
-  "homeSubQuestion": "Today's trend is 'Subtracting', not 'Adding'.\nWe optimize your prescriptions in 3 seconds.",
+  "homeSubQuestion": "Today's trend is 'Subtracting', not 'Adding'.\nWe optimize your supplements in 3 seconds.",
   "homeSavingEstimate": "Save $40/month on average",
-  "homeBtnCamera": "Scan Prescription",
+  "homeBtnCamera": "Scan Label",
   "homeBtnGallery": "Import from Gallery",
   "homeDisclaimer": "Results are for reference; consult a doctor or pharmacist.",
   "profileTitle": "Profile Setup",
@@ -13,5 +13,48 @@
   "weightLabel": "Weight",
   "saveBtn": "Save",
   "disclaimerTitle": "Medical Disclaimer",
-  "disclaimerAgree": "I Agree"
+  "disclaimerAgree": "I Agree",
+  
+  "analysisTitle": "Analysis Result",
+  "estimatedSavings": "Estimated Monthly Savings",
+  "noDuplicates": "No duplicates found!",
+  "keepItUp": "Keep up the good work! :)",
+  "savingsMessage": "Save money by reducing duplicates!",
+  "aiSummary": "AI Analysis Summary",
+  "detectedProducts": "Detected Products",
+  "detectedCount": "{count} items detected",
+  "@detectedCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "returnHome": "Return to Home",
+  
+  "searchTitle": "Search Supplements",
+  "searchHint": "Search by brand, product, symptoms...",
+  "addedToCabinet": "Added to My Cabinet",
+  "alreadyInCabinet": "Already in My Cabinet",
+  "undo": "Undo",
+  "noResults": "No results found",
+  
+  "ingredients": "Ingredients",
+  "usage": "Usage",
+  "description": "Description",
+  "estimatedPrice": "Est. Price",
+  "add": "Add",
+  "added": "Added",
+  "verified": "Verified",
+  "warning": "Warning",
+  "redundant": "Redundant",
+  "unknown": "Unknown",
+  
+  "productNotFound": "Product name unavailable",
+  "analysisComplete": "Analysis complete.",
+  "analysisError": "Analysis error. Please try again.",
+  
+  "tagVerified": "Verified",
+  "tagAiResult": "AI Result",
+  "tagDuplicateWarning": "Duplicate Warning",
+  "tagImported": "Imported",
+  "tagPopular": "Popular"
 }
