@@ -251,26 +251,38 @@ abstract class AppLocalizations {
   /// No description provided for @addedToCabinet.
   ///
   /// In ko, this message translates to:
-  /// **'이(가) 내 약통에 추가되었습니다.'**
+  /// **'약통에 추가됨'**
   String get addedToCabinet;
 
   /// No description provided for @alreadyInCabinet.
   ///
   /// In ko, this message translates to:
-  /// **'이미 약통에 있는 영양제입니다.'**
+  /// **'이미 약통에 있음'**
   String get alreadyInCabinet;
 
   /// No description provided for @undo.
   ///
   /// In ko, this message translates to:
-  /// **'실행취소'**
+  /// **'실행 취소'**
   String get undo;
 
   /// No description provided for @noResults.
   ///
   /// In ko, this message translates to:
-  /// **'검색 결과가 없습니다.'**
+  /// **'검색 결과가 없습니다'**
   String get noResults;
+
+  /// No description provided for @popularSearches.
+  ///
+  /// In ko, this message translates to:
+  /// **'🔥 인기 검색어'**
+  String get popularSearches;
+
+  /// No description provided for @searchEmptyState.
+  ///
+  /// In ko, this message translates to:
+  /// **'검색어를 입력하여 영양제를 찾아보세요'**
+  String get searchEmptyState;
 
   /// No description provided for @ingredients.
   ///
@@ -379,6 +391,12 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'인기'**
   String get tagPopular;
+
+  /// No description provided for @viewDetails.
+  ///
+  /// In ko, this message translates to:
+  /// **'상세보기'**
+  String get viewDetails;
 }
 
 class _AppLocalizationsDelegate

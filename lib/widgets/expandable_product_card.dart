@@ -14,6 +14,7 @@ class ExpandableProductCard extends StatefulWidget {
   final bool isAdded;
   final VoidCallback? onAdd;
   final Color? backgroundColor; // [NEW] Allow custom glass color
+  final String? imageUrl;
 
   const ExpandableProductCard({
     super.key,
@@ -28,6 +29,7 @@ class ExpandableProductCard extends StatefulWidget {
     this.isAdded = false,
     this.onAdd,
     this.backgroundColor,
+    this.imageUrl,
   });
 
   @override
@@ -81,8 +83,21 @@ class _ExpandableProductCardState extends State<ExpandableProductCard> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.grey.shade200),
                         ),
-                        child: const Icon(Icons.medication,
-                            color: Colors.grey, size: 30),
+                        child: (widget.imageUrl != null &&
+                                widget.imageUrl!.isNotEmpty)
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  widget.imageUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Icon(Icons.medication,
+                                        color: Colors.grey, size: 30);
+                                  },
+                                ),
+                              )
+                            : const Icon(Icons.medication,
+                                color: Colors.grey, size: 30),
                       ),
                       const SizedBox(width: 12),
                       // Info

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/pill.dart';
 import '../data/repositories/drug_repository.dart';
 import 'package:myapp/l10n/app_localizations.dart';
+import '../widgets/expandable_product_card.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -20,7 +21,9 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialData();
+    });
   }
 
   Future<void> _loadInitialData() async {
@@ -28,7 +31,8 @@ class _SearchScreenState extends State<SearchScreen> {
       _isLoading = true;
     });
     try {
-      final results = await _repository.searchDrugs('');
+      final locale = Localizations.localeOf(context).languageCode;
+      final results = await _repository.searchDrugs('', locale);
       if (mounted) {
         setState(() {
           _filteredDrugs = results;
@@ -55,7 +59,8 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
-      final results = await _repository.searchDrugs(query);
+      final locale = Localizations.localeOf(context).languageCode;
+      final results = await _repository.searchDrugs(query, locale);
       if (mounted) {
         setState(() {
           _filteredDrugs = results;
@@ -97,100 +102,215 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(l10n.searchTitle),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        title: Text(
+          l10n.searchTitle,
+          style: const TextStyle(
+            color: Color(0xFF2E7D32),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF2E7D32)),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: l10n.searchHint,
-                hintStyle: TextStyle(color: Colors.grey[500], fontSize: 16),
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF2E7D32)),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.grey[100],
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          // 1. Gradient Background
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFF8FBF4), Color(0xFFE8F5E9)],
               ),
-              style: const TextStyle(fontSize: 18), // 4050 타겟: 글자 크기 키움
-              onChanged: _onSearchChanged,
             ),
           ),
-          Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF2E7D32),
-                    ),
-                  )
-                : _filteredDrugs.isEmpty
-                    ? Center(
-                        child: Text(
-                          l10n.noResults,
-                          style:
-                              TextStyle(color: Colors.grey[600], fontSize: 16),
+          // 2. Content
+          SafeArea(
+            child: Column(
+              children: [
+                // Search Bar
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                      )
-                    : ListView.builder(
-                        itemCount: _filteredDrugs.length,
-                        itemBuilder: (context, index) {
-                          final pill = _filteredDrugs[index];
-                          String subtitleText = pill.brand;
-                          if (pill is KoreanPill) {
-                            subtitleText += ' • ${pill.category}';
-                          } else if (pill is AmericanPill) {
-                            subtitleText += ' • US Supplement';
-                          }
-
-                          return ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            leading: Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: pill.imageUrl.startsWith('http')
-                                  ? Image.network(pill.imageUrl,
-                                      errorBuilder: (c, e, s) =>
-                                          const Icon(Icons.medication))
-                                  : const Icon(Icons.medication,
-                                      color: Colors.grey, size: 30),
-                            ),
-                            title: Text(
-                              pill.name,
-                              style: const TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: Padding(
-                              padding: const EdgeInsets.only(top: 4.0),
-                              child: Text(
-                                subtitleText,
-                                style: TextStyle(
-                                    fontSize: 14, color: Colors.grey[700]),
-                              ),
-                            ),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.add_circle,
-                                  color: Color(0xFF2E7D32), size: 32),
-                              onPressed: () => _addToCabinet(pill),
-                            ),
-                            onTap: () => _addToCabinet(pill),
-                          );
-                        },
+                      ],
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      style: const TextStyle(fontSize: 16),
+                      decoration: InputDecoration(
+                        hintText: l10n.searchHint,
+                        hintStyle:
+                            TextStyle(color: Colors.grey[400], fontSize: 15),
+                        prefixIcon: const Icon(Icons.search,
+                            color: Color(0xFF2E7D32), size: 24),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 15),
                       ),
+                      textInputAction: TextInputAction.search,
+                      onSubmitted: _onSearchChanged,
+                    ),
+                  ),
+                ),
+
+                // Popular Searches (Visible only when filtering is not active or empty)
+                if (_searchController.text.isEmpty && !_isLoading)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Text(
+                          l10n.popularSearches,
+                          style: const TextStyle(
+                            fontSize:
+                                14, // Reduced font size for better hierarchy
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2E7D32),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          children: [
+                            "Omega-3",
+                            "Vitamin C",
+                            "Probiotics",
+                            "Magnesium",
+                            "Vitamin D"
+                          ]
+                              .map((term) => Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: ActionChip(
+                                      label: Text(term),
+                                      labelStyle: const TextStyle(
+                                        color: Color(0xFF2E7D32),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      ),
+                                      backgroundColor: const Color(0xFFE8F5E9),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                        side: BorderSide.none,
+                                      ),
+                                      onPressed: () {
+                                        _searchController.text = term;
+                                        _onSearchChanged(term);
+                                      },
+                                    ),
+                                  ))
+                              .toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                const SizedBox(height: 10),
+
+                // Search Results
+                Expanded(
+                  child: _isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF2E7D32),
+                          ),
+                        )
+                      : (_filteredDrugs.isEmpty &&
+                              _searchController.text.isNotEmpty)
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.search_rounded,
+                                      size: 64, color: Colors.grey[300]),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    l10n.noResults,
+                                    style: TextStyle(
+                                      color: Colors.grey[500],
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : (_filteredDrugs.isEmpty &&
+                                  _searchController.text.isEmpty)
+                              ? Center(
+                                  // Empty State for initial screen
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.medication_outlined,
+                                          size: 64, color: Colors.grey[300]),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        l10n.searchEmptyState,
+                                        style: TextStyle(
+                                          color: Colors.grey[500],
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : ListView.builder(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20, vertical: 10),
+                                  itemCount: _filteredDrugs.length,
+                                  itemBuilder: (context, index) {
+                                    final pill = _filteredDrugs[index];
+
+                                    // Determine properties based on pill type
+                                    String? ingredients;
+                                    if (pill is KoreanPill) {
+                                      ingredients = pill.ingredients;
+                                    }
+
+                                    return ExpandableProductCard(
+                                      brand: pill.brand,
+                                      name: pill.name,
+                                      // We don't have price in BasePill, using a placeholder logic or modifying BasePill would be better
+                                      // But for now, we'll check if we can get it or hide it.
+                                      // ExpandableProductCard REQUIRES price.
+                                      // Let's assume a default or fetch logic.
+                                      // Since this is MVP search, maybe we don't show price or show "Info".
+                                      price: l10n.viewDetails,
+                                      tags: const [], // Mock tags for search list
+                                      tagColors: const {},
+                                      tagTextColors: const {},
+                                      backgroundColor:
+                                          Colors.white.withOpacity(0.85),
+                                      ingredients: ingredients,
+                                      imageUrl: pill.imageUrl,
+                                      onAdd: () => _addToCabinet(pill),
+                                    );
+                                  },
+                                ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

@@ -28,50 +28,55 @@ class ApiService {
     // Get API Key
     final apiKey = dotenv.env['FOOD_SAFETY_KEY'] ?? '';
     if (apiKey.isEmpty) {
-      // In production, might want to log this or throw exception.
       return [];
     }
 
-    // 2. Build URL
-    // Format: http://openapi.foodsafetykorea.go.kr/api/{KEY}/{SERVICE_ID}/json/1/5/PRDLST_NM={KEYWORD}
-    final url =
-        '$_baseUrl/$apiKey/$_serviceId/json/1/5/PRDLST_NM=$encodedQuery';
+    // 2. Build URLs (Parallel Search: Product Name & Manufacturer)
+    final urlProduct =
+        '$_baseUrl/$apiKey/$_serviceId/json/1/20/PRDLST_NM=$encodedQuery';
+    final urlBrand =
+        '$_baseUrl/$apiKey/$_serviceId/json/1/20/BSSH_NM=$encodedQuery';
 
     try {
-      final response =
-          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
+      // 3. Parallel API Calls
+      final responses = await Future.wait([
+        http.get(Uri.parse(urlProduct)).timeout(const Duration(seconds: 5)),
+        http.get(Uri.parse(urlBrand)).timeout(const Duration(seconds: 5)),
+      ]);
 
-      if (response.statusCode == 200) {
-        final body = response.body;
-        // Check for HTML error response (common with FoodSafetyKorea API for invalid key/auth)
-        if (body.trim().startsWith('<')) {
-          // API Key or Auth error
-          return [];
+      final Map<String, KoreanPill> resultMap = {};
+
+      for (var response in responses) {
+        if (response.statusCode == 200) {
+          final body = response.body;
+          if (body.trim().startsWith('<')) continue;
+
+          final data = jsonDecode(body);
+          if (data[_serviceId] != null && data[_serviceId]['row'] != null) {
+            final List<dynamic> rows = data[_serviceId]['row'];
+            for (var row in rows) {
+              final pill = KoreanPill(
+                id: row['PRDLST_REPORT_NO'] ?? '',
+                name: row['PRDLST_NM'] ?? '정보 없음',
+                brand: row['BSSH_NM'] ?? '정보 없음',
+                imageUrl: '',
+                dailyDosage:
+                    row['NTK_MTHD'] ?? row['POG_DAYCNT'] ?? '서빙 사이즈 정보 없음',
+                category: '건강기능식품',
+                ingredients: row['RAWMTRL_NM'] ?? '원재료 정보 없음',
+              );
+              resultMap[pill.id] = pill; // Deduplicate by ID
+            }
+          }
         }
-
-        final data = jsonDecode(body);
-
-        // 3. Parse Response
-        if (data[_serviceId] != null && data[_serviceId]['row'] != null) {
-          final List<dynamic> rows = data[_serviceId]['row'];
-
-          return rows.map((row) {
-            return KoreanPill(
-              id: row['PRDLST_REPORT_NO'] ?? '', // 품목보고번호
-              name: row['PRDLST_NM'] ?? '정보 없음', // 제품명
-              brand: row['BSSH_NM'] ?? '정보 없음', // 제조사
-              imageUrl: '', // API doesnt provide image
-              dailyDosage: row['NTK_MTHD'] ?? // 섭취방법 (C003 Priority)
-                  row['POG_DAYCNT'] ?? // 유통기한
-                  '서빙 사이즈 정보 없음', // 유통기한 or 섭취방법 mapping
-              category: '건강기능식품', // Default category
-              ingredients: row['RAWMTRL_NM'] ?? '원재료 정보 없음', // 원재료
-            );
-          }).toList();
-        }
-      } else {
-        // API Error
       }
+
+      // 4. Sort Results (Newest First)
+      // 품목보고번호(PRDLST_REPORT_NO)는 연도+일련번호 형식이므로 내림차순 정렬 시 최신순이 됨
+      final sortedList = resultMap.values.toList();
+      sortedList.sort((a, b) => b.id.compareTo(a.id));
+
+      return sortedList;
     } catch (e) {
       // Log error properly in production
     }

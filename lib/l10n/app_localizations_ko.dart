@@ -87,16 +87,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get searchHint => '브랜드, 제품명, 증상 등으로 검색';
 
   @override
-  String get addedToCabinet => '이(가) 내 약통에 추가되었습니다.';
+  String get addedToCabinet => '약통에 추가됨';
 
   @override
-  String get alreadyInCabinet => '이미 약통에 있는 영양제입니다.';
+  String get alreadyInCabinet => '이미 약통에 있음';
 
   @override
-  String get undo => '실행취소';
+  String get undo => '실행 취소';
 
   @override
-  String get noResults => '검색 결과가 없습니다.';
+  String get noResults => '검색 결과가 없습니다';
+
+  @override
+  String get popularSearches => '🔥 인기 검색어';
+
+  @override
+  String get searchEmptyState => '검색어를 입력하여 영양제를 찾아보세요';
 
   @override
   String get ingredients => '원재료';
@@ -151,4 +157,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get tagPopular => '인기';
+
+  @override
+  String get viewDetails => '상세보기';
 }

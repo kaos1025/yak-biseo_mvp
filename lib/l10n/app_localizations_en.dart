@@ -100,6 +100,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noResults => 'No results found';
 
   @override
+  String get popularSearches => '🔥 Popular Searches';
+
+  @override
+  String get searchEmptyState => 'Enter a search term to find supplements';
+
+  @override
   String get ingredients => 'Ingredients';
 
   @override
@@ -152,4 +158,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tagPopular => 'Popular';
+
+  @override
+  String get viewDetails => 'View Details';
 }

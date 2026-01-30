@@ -14,7 +14,6 @@
   "saveBtn": "저장하기",
   "disclaimerTitle": "의학적 면책 고지",
   "disclaimerAgree": "동의합니다",
-  
   "analysisTitle": "분석 결과",
   "estimatedSavings": "이번 달 예상 절약 금액",
   "noDuplicates": "중복된 영양제가 없습니다!",
@@ -25,18 +24,20 @@
   "detectedCount": "{count}개 발견",
   "@detectedCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "returnHome": "홈으로 돌아가기",
-  
   "searchTitle": "영양제 검색",
   "searchHint": "브랜드, 제품명, 증상 등으로 검색",
-  "addedToCabinet": "이(가) 내 약통에 추가되었습니다.",
-  "alreadyInCabinet": "이미 약통에 있는 영양제입니다.",
-  "undo": "실행취소",
-  "noResults": "검색 결과가 없습니다.",
-  
+  "addedToCabinet": "약통에 추가됨",
+  "alreadyInCabinet": "이미 약통에 있음",
+  "undo": "실행 취소",
+  "noResults": "검색 결과가 없습니다",
+  "popularSearches": "🔥 인기 검색어",
+  "searchEmptyState": "검색어를 입력하여 영양제를 찾아보세요",
   "ingredients": "원재료",
   "usage": "섭취방법",
   "description": "내용",
@@ -47,14 +48,13 @@
   "warning": "주의",
   "redundant": "중복",
   "unknown": "정보 없음",
-  
   "productNotFound": "제품명 확인 불가",
   "analysisComplete": "분석이 완료되었습니다.",
   "analysisError": "분석 중 오류가 발생했습니다. 다시 시도해주세요.",
-  
   "tagVerified": "식약처 인증",
   "tagAiResult": "AI 분석 결과",
   "tagDuplicateWarning": "중복 경고",
   "tagImported": "해외 직구",
-  "tagPopular": "인기"
+  "tagPopular": "인기",
+  "viewDetails": "상세보기"
 }

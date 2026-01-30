@@ -14,7 +14,6 @@
   "saveBtn": "Save",
   "disclaimerTitle": "Medical Disclaimer",
   "disclaimerAgree": "I Agree",
-  
   "analysisTitle": "Analysis Result",
   "estimatedSavings": "Estimated Monthly Savings",
   "noDuplicates": "No duplicates found!",
@@ -25,18 +24,20 @@
   "detectedCount": "{count} items detected",
   "@detectedCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "returnHome": "Return to Home",
-  
   "searchTitle": "Search Supplements",
   "searchHint": "Search by brand, product, symptoms...",
   "addedToCabinet": "Added to My Cabinet",
   "alreadyInCabinet": "Already in My Cabinet",
   "undo": "Undo",
   "noResults": "No results found",
-  
+  "popularSearches": "🔥 Popular Searches",
+  "searchEmptyState": "Enter a search term to find supplements",
   "ingredients": "Ingredients",
   "usage": "Usage",
   "description": "Description",
@@ -47,14 +48,13 @@
   "warning": "Warning",
   "redundant": "Redundant",
   "unknown": "Unknown",
-  
   "productNotFound": "Product name unavailable",
   "analysisComplete": "Analysis complete.",
   "analysisError": "Analysis error. Please try again.",
-  
   "tagVerified": "Verified",
   "tagAiResult": "AI Result",
   "tagDuplicateWarning": "Duplicate Warning",
   "tagImported": "Imported",
-  "tagPopular": "Popular"
+  "tagPopular": "Popular",
+  "viewDetails": "View Details"
 }
