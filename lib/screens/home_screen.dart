@@ -6,7 +6,7 @@ import 'package:myapp/screens/search_screen.dart';
 import 'package:myapp/services/analytics_service.dart';
 import 'package:myapp/l10n/app_localizations.dart';
 import 'package:myapp/screens/profile/profile_screen.dart';
-import 'package:myapp/widgets/us_recommendation_section.dart';
+
 import 'package:myapp/services/my_pill_service.dart';
 import 'package:myapp/models/pill.dart';
 import 'package:myapp/widgets/bottom_action_area.dart';
@@ -385,9 +385,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               );
                             },
                           ),
-                          // US Recommendation Section
-                          const USRecommendationSection(),
-                          const SizedBox(height: 24),
+
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 8),
