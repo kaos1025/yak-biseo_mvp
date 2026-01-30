@@ -9,10 +9,10 @@ class AppLocalizationsKo extends AppLocalizations {
   AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
-  String get appTitle => '약비서';
+  String get appTitle => 'SuppleCut';
 
   @override
-  String get homeAppBarTitle => '💊 내 손안의 약비서';
+  String get homeAppBarTitle => 'SuppleCut';
 
   @override
   String get homeMainQuestion => '혹시 영양제에\n돈 낭비 하고 계신가요? 💸';

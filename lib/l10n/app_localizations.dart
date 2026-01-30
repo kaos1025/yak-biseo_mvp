@@ -101,13 +101,13 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In ko, this message translates to:
-  /// **'약비서'**
+  /// **'SuppleCut'**
   String get appTitle;
 
   /// No description provided for @homeAppBarTitle.
   ///
   /// In ko, this message translates to:
-  /// **'💊 내 손안의 약비서'**
+  /// **'SuppleCut'**
   String get homeAppBarTitle;
 
   /// No description provided for @homeMainQuestion.

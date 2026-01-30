@@ -9,10 +9,10 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'PillCut';
+  String get appTitle => 'SuppleCut';
 
   @override
-  String get homeAppBarTitle => 'Your AI Supplement Advisor';
+  String get homeAppBarTitle => 'SuppleCut';
 
   @override
   String get homeMainQuestion => 'Are you wasting money\non supplements? 💸';

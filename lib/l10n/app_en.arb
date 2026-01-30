@@ -1,7 +1,7 @@
 {
   "@@locale": "en",
-  "appTitle": "PillCut",
-  "homeAppBarTitle": "Your AI Supplement Advisor",
+  "appTitle": "SuppleCut",
+  "homeAppBarTitle": "SuppleCut",
   "homeMainQuestion": "Are you wasting money\non supplements? 💸",
   "homeSubQuestion": "Today's trend is 'Subtracting', not 'Adding'.\nWe optimize your supplements in 3 seconds.",
   "homeSavingEstimate": "Save $40/month on average",

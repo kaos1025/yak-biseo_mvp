@@ -129,7 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
-          locale == 'en' ? 'My Cabinet' : '나의 영양제',
+          l10n.homeAppBarTitle,
           style: const TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 22,
