@@ -140,11 +140,11 @@ class _SearchScreenState extends State<SearchScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withAlpha(204), // 0.8 * 255
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withAlpha(13), // 0.05 * 255
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -300,8 +300,8 @@ class _SearchScreenState extends State<SearchScreen> {
                                       tags: const [], // Mock tags for search list
                                       tagColors: const {},
                                       tagTextColors: const {},
-                                      backgroundColor:
-                                          Colors.white.withOpacity(0.85),
+                                      backgroundColor: Colors.white.withAlpha(
+                                          217), // 0.85 * 255 = 216.75
                                       ingredients: ingredients,
                                       imageUrl: pill.imageUrl,
                                       onAdd: () => _addToCabinet(pill),

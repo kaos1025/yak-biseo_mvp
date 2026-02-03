@@ -167,8 +167,9 @@ class AnalysisScreen extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, size: 16, color: Colors.white),
-                      SizedBox(width: 8),
+                      const Icon(Icons.info_outline,
+                          size: 16, color: Colors.white),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           l10n.savingsMessage,
@@ -212,7 +213,7 @@ class AnalysisScreen extends StatelessWidget {
             children: [
               const Icon(Icons.auto_awesome,
                   size: 18, color: Color(0xFF2E7D32)),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Text(
                 l10n.aiSummary,
                 style: const TextStyle(
@@ -244,7 +245,7 @@ class AnalysisScreen extends StatelessWidget {
       children: [
         const Icon(Icons.inventory_2_outlined,
             color: Color(0xFF2E7D32), size: 20),
-        SizedBox(width: 8),
+        const SizedBox(width: 8),
         Text(
           "${AppLocalizations.of(context)!.detectedProducts} (4)",
           style: const TextStyle(
@@ -387,8 +388,9 @@ class AnalysisScreen extends StatelessWidget {
                             color: Colors.white,
                           ),
                         ),
-                        SizedBox(width: 8),
-                        Icon(Icons.home_rounded, color: Colors.white, size: 20),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.home_rounded,
+                            color: Colors.white, size: 20),
                       ],
                     ),
                   ),

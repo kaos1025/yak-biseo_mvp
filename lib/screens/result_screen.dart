@@ -32,10 +32,15 @@ class DetectedItem {
 
   factory DetectedItem.fromJson(Map<String, dynamic> json) {
     return DetectedItem(
-      id: json['id']?.toString() ?? '0',
-      name: json['name'] ?? '', // Handle empty name in UI or here
+      id: json['id']?.toString() ??
+          DateTime.now()
+              .microsecondsSinceEpoch
+              .toString(), // Auto-generate ID if missing
+      name: json['name'] ?? '',
       status: json['status'] ?? 'SAFE',
-      desc: json['desc'] ?? '',
+      desc: json['description'] ??
+          json['reason'] ??
+          '', // Map description/reason to desc
       price: json['price'] ?? 0,
       dosage: json['dosage'] ?? '',
     );
@@ -54,14 +59,20 @@ class AnalysisResponse {
   });
 
   factory AnalysisResponse.fromJson(Map<String, dynamic> json) {
-    var itemsList = json['detected_items'] as List<dynamic>? ?? [];
+    // [Schema Update] Support both 'products' (New) and 'detected_items' (Old/Fallback)
+    var itemsList = json['products'] as List<dynamic>? ??
+        json['detected_items'] as List<dynamic>? ??
+        [];
+
     List<DetectedItem> items =
         itemsList.map((i) => DetectedItem.fromJson(i)).toList();
 
     return AnalysisResponse(
       detectedItems: items,
-      summary: json['summary'] ?? '', // Handle empty locally
-      totalSavingAmount: json['total_saving_amount'] ?? 0,
+      summary: json['summary'] ?? '',
+      // [Schema Update] Map 'estimated_savings' to 'totalSavingAmount'
+      totalSavingAmount:
+          json['estimated_savings'] ?? json['total_saving_amount'] ?? 0,
     );
   }
 }
@@ -419,9 +430,10 @@ class _ResultScreenState extends State<ResultScreen> {
                     Localizations.localeOf(context).languageCode == 'en';
                 List<String> tags = [];
                 if (displayStatus == 'SAFE') tags.add(l10n.tagVerified);
-                if (displayStatus == 'WARNING')
+                if (displayStatus == 'WARNING') {
                   tags.add(l10n
                       .tagDuplicateWarning); // Or warning? warning key is short. tagDuplicateWarning is "Duplicate Warning".
+                }
                 if (displayStatus == 'REDUNDANT') tags.add(l10n.redundant);
                 if (apiPill == null) tags.add(l10n.tagAiResult);
 
@@ -443,7 +455,7 @@ class _ResultScreenState extends State<ResultScreen> {
                 };
 
                 final priceText = isEnglish
-                    ? (displayPrice > 0 ? "\$${displayPrice}" : l10n.unknown)
+                    ? (displayPrice > 0 ? "\$$displayPrice" : l10n.unknown)
                     : (displayPrice > 0
                         ? "${displayPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}원"
                         : l10n.unknown);
@@ -456,7 +468,7 @@ class _ResultScreenState extends State<ResultScreen> {
 
                 return ExpandableProductCard(
                   backgroundColor: cardBackgroundColor, // Apply tint
-                  brand: displayPill.brand ?? '',
+                  brand: displayPill.brand,
                   name: displayPill.name,
                   price: priceText,
                   tags: tags,
@@ -586,7 +598,8 @@ class _ResultScreenState extends State<ResultScreen> {
     // Savings Case (Gold Theme)
     final formattedAmount = isEnglish
         ? "\$${savingAmount.toString()}"
-        : "${savingAmount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
+        : savingAmount.toString().replaceAllMapped(
+            RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
 
     return Container(
       width: double.infinity,

@@ -85,8 +85,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _pickImageFromCamera() async {
     _analyticsService.logCameraClick();
-    final XFile? pickedFile =
-        await _picker.pickImage(source: ImageSource.camera);
+    final XFile? pickedFile = await _picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1024, // Resize to max 1024px width
+      imageQuality: 85, // Compress lightly
+    );
     if (pickedFile != null) {
       if (!mounted) return;
       await Navigator.push(
@@ -104,8 +107,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _pickImageFromGallery() async {
     _analyticsService.logGalleryClick();
     developer.log('갤러리 버튼 클릭됨', name: 'com.example.myapp.ui');
-    final XFile? pickedFile =
-        await _picker.pickImage(source: ImageSource.gallery);
+    final XFile? pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1024, // Resize to max 1024px width
+      imageQuality: 85, // Compress lightly
+    );
     if (pickedFile != null) {
       if (!mounted) return;
       await Navigator.push(
