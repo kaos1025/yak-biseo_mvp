@@ -111,7 +111,9 @@ class _ProductCardState extends State<ProductCard> {
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           onExpansionChanged: (expanded) {
             setState(() => _isExpanded = expanded);
-            if (widget.onTap != null) widget.onTap!();
+            if (widget.onTap != null) {
+              widget.onTap!();
+            }
           },
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

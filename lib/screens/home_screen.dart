@@ -44,7 +44,9 @@ class _HomeScreenState extends State<HomeScreen> {
       final locale = Localizations.localeOf(context);
       if (locale.languageCode == 'en') {
         final prefs = await SharedPreferences.getInstance();
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         final agreed = prefs.getBool('fda_disclaimer_agreed') ?? false;
         if (!agreed) {
           _showDisclaimerDialog();
@@ -74,7 +76,9 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () async {
               final prefs = await SharedPreferences.getInstance();
               await prefs.setBool('fda_disclaimer_agreed', true);
-              if (dialogContext.mounted) Navigator.pop(dialogContext);
+              if (dialogContext.mounted) {
+                Navigator.pop(dialogContext);
+              }
             },
             child: Text(l10n.disclaimerAgree),
           ),
@@ -91,7 +95,9 @@ class _HomeScreenState extends State<HomeScreen> {
       imageQuality: 85, // Compress lightly
     );
     if (pickedFile != null) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       await Navigator.push(
         context,
         MaterialPageRoute(
@@ -113,7 +119,9 @@ class _HomeScreenState extends State<HomeScreen> {
       imageQuality: 85, // Compress lightly
     );
     if (pickedFile != null) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       await Navigator.push(
         context,
         MaterialPageRoute(

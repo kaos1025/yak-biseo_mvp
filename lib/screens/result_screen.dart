@@ -139,7 +139,7 @@ class _ResultScreenState extends State<ResultScreen> {
     try {
       final locale = Localizations.localeOf(context).languageCode;
       final jsonString =
-          await ApiService.analyzeDrugImage(widget.image, locale);
+          await ApiService.analyzeWithDualApi(widget.image, locale);
 
       final cleanJson =
           jsonString.replaceAll('```json', '').replaceAll('```', '').trim();
@@ -412,12 +412,11 @@ class _ResultScreenState extends State<ResultScreen> {
                     : KoreanPill(
                         id: item.id,
                         name: item.name,
-                        brand:
-                            item.desc.isNotEmpty ? item.desc : l10n.tagAiResult,
+                        brand: l10n.tagAiResult, // AI 분석 결과 태그
                         imageUrl: '',
                         dailyDosage: finalDosage,
                         category: '',
-                        ingredients: '',
+                        ingredients: item.desc, // 성분 정보를 원재료에 매핑
                       );
 
                 final displayStatus = apiPill != null ? 'SAFE' : item.status;

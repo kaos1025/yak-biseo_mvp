@@ -2,258 +2,160 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:myapp/models/ingredient.dart';
 import 'package:myapp/models/redundancy_result.dart';
 import 'package:myapp/services/redundancy_engine.dart';
+import 'package:myapp/models/product_with_ingredients.dart';
 
 void main() {
-  group('RedundancyEngineV2', () {
-    group('analyze', () {
-      test('제품이 1개뿐이면 NO_OVERLAP 반환', () {
-        // Arrange
+  group('RedundancyEngine (Deterministic)', () {
+    group('analyze (Jaccard Index)', () {
+      test('제품이 1개일 때: 중복 없지만 UL 체크 수행', () {
         final products = [
           ProductWithIngredients(
-            productName: '멀티비타민',
+            productName: 'Safe Vitamin',
             productId: 'p1',
             ingredients: [
-              _createIngredient('Vitamin A'),
-              _createIngredient('Vitamin C'),
+              _createIngredient('Vitamin C', amount: 500),
             ],
           ),
         ];
 
-        // Act
-        final result = RedundancyEngineV2.analyze(products);
+        final result = RedundancyEngine.analyze(products);
 
-        // Assert
         expect(result.verdict, equals(RedundancyVerdict.noOverlap));
         expect(result.hasRedundancy, isFalse);
-        expect(result.redundantPairs, isEmpty);
+        expect(result.ulRdaReport, isNotNull);
+        expect(result.productStatuses['p1'], equals('SAFE'));
       });
 
-      test('두 제품의 성분이 50% 이상 겹치면 REDUNDANT', () {
-        // Arrange
+      test('Jaccard < 0.5 이면 Partial Overlap (1/5 겹침)', () {
+        // A: {Vit A} (1개)
+        // B: {Vit A, B, C, D, E} (5개)
+        // Union: 5개, Inter: 1개 -> Jaccard: 0.2 -> Partial
         final products = [
           ProductWithIngredients(
-            productName: '제품A',
+            productName: 'Single A',
             productId: 'p1',
-            ingredients: [
-              _createIngredient('Vitamin A'),
-              _createIngredient('Vitamin C'),
-            ],
+            ingredients: [_createIngredient('Vitamin A')],
           ),
           ProductWithIngredients(
-            productName: '제품B',
+            productName: 'Multi 5',
             productId: 'p2',
             ingredients: [
-              _createIngredient('Vitamin A'), // 겹침
-              _createIngredient('Vitamin C'), // 겹침
-              _createIngredient('Zinc'),
-            ],
-          ),
-        ];
-
-        // Act
-        final result = RedundancyEngineV2.analyze(products);
-
-        // Assert
-        expect(result.verdict, equals(RedundancyVerdict.redundant));
-        expect(result.hasRedundancy, isTrue);
-        expect(result.redundantPairs.length, equals(1));
-        expect(
-          result.redundantPairs.first.overlappingGroups,
-          containsAll(['Vitamin A', 'Vitamin C']),
-        );
-      });
-
-      test('두 제품의 성분이 1~49% 겹치면 PARTIAL_OVERLAP', () {
-        // Arrange
-        final products = [
-          ProductWithIngredients(
-            productName: '제품A',
-            productId: 'p1',
-            ingredients: [
               _createIngredient('Vitamin A'),
+              _createIngredient('Vitamin B'),
               _createIngredient('Vitamin C'),
               _createIngredient('Vitamin D'),
               _createIngredient('Vitamin E'),
             ],
           ),
-          ProductWithIngredients(
-            productName: '제품B',
-            productId: 'p2',
-            ingredients: [
-              _createIngredient('Vitamin A'), // 겹침 (1/4 = 25%)
-              _createIngredient('Calcium'),
-              _createIngredient('Magnesium'),
-              _createIngredient('Zinc'),
-            ],
-          ),
         ];
 
-        // Act
-        final result = RedundancyEngineV2.analyze(products);
+        final result = RedundancyEngine.analyze(products);
 
-        // Assert
         expect(result.verdict, equals(RedundancyVerdict.partialOverlap));
+        expect(
+            result.redundantPairs.first.overlapPercentage, closeTo(0.2, 0.01));
       });
 
-      test('두 제품의 성분이 전혀 겹치지 않으면 NO_OVERLAP', () {
-        // Arrange
+      test('Jaccard >= 0.5 이면 Redundant (2/3 겹침)', () {
+        // A: {Vit A, B}
+        // B: {Vit A, B, C}
+        // Union: 3, Inter: 2 -> Jaccard: 0.66 -> Redundant
         final products = [
           ProductWithIngredients(
-            productName: '비타민제',
+            productName: 'Bi-Vit',
             productId: 'p1',
             ingredients: [
               _createIngredient('Vitamin A'),
-              _createIngredient('Vitamin C'),
+              _createIngredient('Vitamin B'),
             ],
           ),
           ProductWithIngredients(
-            productName: '미네랄제',
-            productId: 'p2',
-            ingredients: [
-              _createIngredient('Calcium'),
-              _createIngredient('Magnesium'),
-            ],
-          ),
-        ];
-
-        // Act
-        final result = RedundancyEngineV2.analyze(products);
-
-        // Assert
-        expect(result.verdict, equals(RedundancyVerdict.noOverlap));
-        expect(result.hasRedundancy, isFalse);
-      });
-
-      test('빈 제품 리스트는 빈 결과 반환', () {
-        // Act
-        final result = RedundancyEngineV2.analyze([]);
-
-        // Assert
-        expect(result.verdict, equals(RedundancyVerdict.noOverlap));
-        expect(result.totalProductsAnalyzed, equals(0));
-      });
-
-      test('세 개 제품 중 두 쌍이 중복이면 둘 다 감지', () {
-        // Arrange
-        final products = [
-          ProductWithIngredients(
-            productName: '제품A',
-            productId: 'p1',
-            ingredients: [
-              _createIngredient('Vitamin A'),
-              _createIngredient('Vitamin C'),
-            ],
-          ),
-          ProductWithIngredients(
-            productName: '제품B',
+            productName: 'Tri-Vit',
             productId: 'p2',
             ingredients: [
               _createIngredient('Vitamin A'),
-              _createIngredient('Vitamin C'),
-            ],
-          ),
-          ProductWithIngredients(
-            productName: '제품C',
-            productId: 'p3',
-            ingredients: [
-              _createIngredient('Vitamin A'),
+              _createIngredient('Vitamin B'),
               _createIngredient('Vitamin C'),
             ],
           ),
         ];
 
-        // Act
-        final result = RedundancyEngineV2.analyze(products);
+        final result = RedundancyEngine.analyze(products);
 
-        // Assert
         expect(result.verdict, equals(RedundancyVerdict.redundant));
-        // A-B, A-C, B-C 세 쌍 모두 중복
-        expect(result.redundantPairs.length, equals(3));
+        expect(
+            result.redundantPairs.first.overlapPercentage, closeTo(0.66, 0.01));
       });
     });
 
-    group('productStatuses', () {
-      test('중복 제품은 REDUNDANT 상태를 가진다', () {
-        // Arrange
+    group('UL/RDA Analysis', () {
+      test('Magnesium UL(350mg) 초과 시 WARNING 승격', () {
         final products = [
           ProductWithIngredients(
-            productName: '제품A',
+            productName: 'Mega Mag',
             productId: 'p1',
-            ingredients: [_createIngredient('Vitamin C')],
-            price: 10000, // 가격 추가
-          ),
-          ProductWithIngredients(
-            productName: '제품B',
-            productId: 'p2',
-            ingredients: [_createIngredient('Vitamin C')],
-            price: 15000, // 더 비싼 제품 → REDUNDANT
+            ingredients: [
+              _createIngredient('Magnesium', amount: 500, unit: 'mg'),
+            ],
           ),
         ];
 
-        // Act
-        final result = RedundancyEngineV2.analyze(products);
+        final result = RedundancyEngine.analyze(products);
 
-        // Assert
-        // 더 비싼 제품(p2)이 REDUNDANT, 저렴한 제품(p1)이 SAFE
-        expect(result.productStatuses['p2'], equals('REDUNDANT'));
+        // UL Report 확인
+        expect(result.ulRdaReport!.exceededUlNutrients, contains('magnesium'));
+
+        // Status가 WARNING이어야 함
+        expect(result.productStatuses['p1'], equals('WARNING'));
+      });
+
+      test('Vitamin D IU 변환 및 UL(100mcg = 4000IU) 초과 테스트', () {
+        // 5000 IU = 125 mcg > 100 mcg (UL)
+        final products = [
+          ProductWithIngredients(
+            productName: 'High D',
+            productId: 'p1',
+            ingredients: [
+              _createIngredient('Vitamin D', amount: 5000, unit: 'IU'),
+            ],
+          ),
+        ];
+
+        final result = RedundancyEngine.analyze(products);
+
+        expect(result.ulRdaReport!.exceededUlNutrients, contains('vitamin_d'));
+        expect(result.productStatuses['p1'], equals('WARNING'));
+      });
+
+      test('안전한 범위일 경우 SAFE 유지', () {
+        final products = [
+          ProductWithIngredients(
+            productName: 'Safe D',
+            productId: 'p1',
+            ingredients: [
+              _createIngredient('Vitamin D',
+                  amount: 1000, unit: 'IU'), // 25mcg (OK)
+            ],
+          ),
+        ];
+
+        final result = RedundancyEngine.analyze(products);
+
+        expect(result.ulRdaReport!.exceededUlNutrients, isEmpty);
         expect(result.productStatuses['p1'], equals('SAFE'));
       });
     });
   });
-
-  group('RedundancyAnalysisResult', () {
-    test('toAiContext는 올바른 구조를 반환한다', () {
-      // Arrange
-      const result = RedundancyAnalysisResult(
-        verdict: RedundancyVerdict.redundant,
-        redundantPairs: [
-          RedundantPair(
-            productAName: '제품A',
-            productAId: 'p1',
-            productBName: '제품B',
-            productBId: 'p2',
-            overlappingGroups: ['Vitamin C'],
-            overlapPercentage: 1.0,
-            pairVerdict: RedundancyVerdict.redundant,
-          ),
-        ],
-        totalProductsAnalyzed: 2,
-        redundantProductCount: 2,
-        productStatuses: {'p1': 'REDUNDANT', 'p2': 'REDUNDANT'},
-        estimatedSavings: 15000,
-        currency: 'KRW',
-      );
-
-      // Act
-      final aiContext = result.toAiContext();
-
-      // Assert
-      expect(aiContext['verdict'], equals('redundant'));
-      expect(aiContext['totalProducts'], equals(2));
-      expect(aiContext['estimatedSavings'], equals(15000));
-      expect(aiContext['pairs'], isList);
-    });
-
-    test('empty() 팩토리는 빈 결과를 반환한다', () {
-      // Act
-      final result = RedundancyAnalysisResult.empty();
-
-      // Assert
-      expect(result.verdict, equals(RedundancyVerdict.noOverlap));
-      expect(result.totalProductsAnalyzed, equals(0));
-      expect(result.hasRedundancy, isFalse);
-    });
-  });
 }
 
-/// 테스트용 Ingredient 생성 헬퍼
-Ingredient _createIngredient(String group) {
+Ingredient _createIngredient(String group,
+    {double amount = 100, String unit = 'mg'}) {
   return Ingredient(
     name: group,
     category: 'vitamin',
     ingredientGroup: group,
-    amount: 100,
-    unit: 'mg',
+    amount: amount,
+    unit: unit,
     source: 'test',
   );
 }

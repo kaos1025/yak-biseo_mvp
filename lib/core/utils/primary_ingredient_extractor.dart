@@ -135,7 +135,9 @@ class PrimaryIngredientExtractor {
     final result = <String>{};
     for (final ing in ingredients) {
       final group = ing.ingredientGroup;
-      if (group.isEmpty) continue;
+      if (group.isEmpty) {
+        continue;
+      }
 
       if (isPrimaryByAmount(ing)) {
         result.add(group);

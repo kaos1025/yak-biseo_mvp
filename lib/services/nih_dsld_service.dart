@@ -23,14 +23,21 @@ class NihDsldService {
   ///
   /// 검색 결과에서 id(dsld_id)를 추출하여 [getProductIngredients]에 전달
   static Future<List<DsldSearchResult>> searchProducts(
-      String productName) async {
+    String productName, {
+    String? brandName,
+  }) async {
     if (productName.isEmpty) {
       return [];
     }
 
     try {
       final encodedQuery = Uri.encodeComponent(productName);
-      final url = '$_baseUrl/browse-products?query=$encodedQuery&pagesize=10';
+      var url = '$_baseUrl/search-filter?q=$encodedQuery';
+
+      if (brandName != null && brandName.isNotEmpty) {
+        final encodedBrand = Uri.encodeComponent(brandName);
+        url += '&brand=$encodedBrand';
+      }
 
       final response = await http.get(
         Uri.parse(url),
@@ -41,22 +48,39 @@ class NihDsldService {
         return [];
       }
 
-      final data = jsonDecode(response.body);
-      final hits = data['hits'] as List<dynamic>? ?? [];
+      final dynamic data = jsonDecode(response.body);
+
+      // Handle response structure (standard likely 'hits', or direct list)
+      List<dynamic> hits = [];
+      if (data is Map && data.containsKey('hits')) {
+        // Some endpoints wrap in 'hits': { 'hits': [...] }
+        hits = data['hits'] as List<dynamic>;
+      } else if (data is List) {
+        hits = data;
+      }
 
       return hits
           .map((hit) {
-            final source = hit['_source'] as Map<String, dynamic>? ?? {};
+            // Adapt to potential structure variations
+            final source = (hit is Map && hit.containsKey('_source'))
+                ? (hit['_source'] as Map<String, dynamic>)
+                : (hit as Map<String, dynamic>);
+
             return DsldSearchResult(
-              id: (hit['_id'] ?? source['id'])?.toString() ?? '',
-              fullName: source['fullName'] as String? ?? '',
-              brandName: source['brandName'] as String? ?? '',
+              id: (hit['_id'] ?? source['id'] ?? source['dsld_id'])
+                      ?.toString() ??
+                  '',
+              fullName: source['fullName'] as String? ??
+                  source['product_name'] as String? ??
+                  '',
+              brandName: source['brandName'] as String? ??
+                  source['brand'] as String? ??
+                  '',
             );
           })
           .where((r) => r.id.isNotEmpty)
           .toList();
     } catch (e) {
-      // API 실패 시 빈 리스트 반환 (graceful degradation)
       return [];
     }
   }

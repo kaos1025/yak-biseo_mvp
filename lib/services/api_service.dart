@@ -8,6 +8,7 @@ import '../core/utils/keyword_cleaner.dart';
 import '../models/pill.dart';
 import '../models/ingredient.dart';
 import '../models/redundancy_result.dart';
+import '../models/product_with_ingredients.dart';
 import 'redundancy_engine.dart';
 import 'nih_dsld_service.dart';
 import 'kr_food_safety_service.dart';
@@ -55,7 +56,9 @@ class ApiService {
       for (var response in responses) {
         if (response.statusCode == 200) {
           final body = response.body;
-          if (body.trim().startsWith('<')) continue;
+          if (body.trim().startsWith('<')) {
+            continue;
+          }
 
           final data = jsonDecode(body);
           if (data[_serviceId] != null && data[_serviceId]['row'] != null) {
@@ -111,7 +114,58 @@ class ApiService {
       }
 
       // === PHASE 2: Deterministic Redundancy Check ===
-      final redundancyResult = RedundancyEngine.analyze(extractedProducts);
+      // Convert ExtractedProduct -> ProductWithIngredients (for Engine)
+      final engineInputs = extractedProducts.map((p) {
+        List<Ingredient> ingredients = p.parsedIngredients ?? [];
+
+        // Fallback: 파싱된 성분이 없으면 문자열에서 이름만이라도 추출
+        if (ingredients.isEmpty && p.ingredients.isNotEmpty) {
+          final names = p.ingredients
+              .split(',')
+              .map((s) => s.trim())
+              .where((s) => s.isNotEmpty);
+          ingredients = names
+              .map((n) => Ingredient(
+                    name: n,
+                    category: 'unknown',
+                    ingredientGroup: n, // Fallback to name
+                    source: 'ai_fallback',
+                    amount: 0,
+                    unit: '',
+                  ))
+              .toList();
+        }
+
+        // 보정: ingredientGroup이 비어있으면 name으로 채움
+        ingredients = ingredients.map((i) {
+          if (i.ingredientGroup.isEmpty) {
+            return Ingredient(
+              name: i.name,
+              category: i.category,
+              ingredientGroup: i.name,
+              amount: i.amount,
+              unit: i.unit,
+              source: i.source,
+              notes: i.notes,
+              sourceProductId: i.sourceProductId,
+            );
+          }
+          return i;
+        }).toList();
+
+        return ProductWithIngredients(
+          productId: p.id,
+          productName: p.name,
+          ingredients: ingredients,
+          price: p.price,
+          servingsPerDay: 1.0, // MVP Default
+        );
+      }).toList();
+
+      final redundancyResult = RedundancyEngine.analyze(
+        engineInputs,
+        currency: locale == 'en' ? 'USD' : 'KRW',
+      );
 
       // === PHASE 3: Generate Summary (AI explains the result) ===
       final summary = await _generateSummary(
@@ -146,7 +200,7 @@ class ApiService {
   static Future<List<ExtractedProduct>> _extractProductsFromImage(
       String apiKey, XFile image, String locale) async {
     final model = GenerativeModel(
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       apiKey: apiKey,
       generationConfig: GenerationConfig(
         responseMimeType: 'application/json',
@@ -170,15 +224,28 @@ RULES:
 2. DO NOT judge redundancy or safety. Just extract information.
 3. $currencyInstruction
 4. Extract ingredient keywords from labels if visible.
+5. IMPORTANT: Always extract the original English product name as "originalName" exactly as it appears on the label.
+6. CRITICAL: "name" must NOT include the brand name. Extract brand separately in "brand" field.
+   - WRONG: {"name": "세노비스 오메가-3", "brand": "세노비스"}
+   - CORRECT: {"name": "트리플러스 오메가-3", "brand": "세노비스"}
+   - The product name should only contain the product line name, not the manufacturer/brand.
 
-OUTPUT (JSON array):
 {
   "products": [
     {
       "id": "unique_string",
-      "name": "Product Name",
-      "brand": "Brand/Manufacturer",
-      "ingredients": "comma-separated ingredient keywords (e.g., 'Vitamin C, Zinc, Calcium')",
+      "name": "Product Name WITHOUT brand (in user's language)",
+      "originalName": "Original English product name from label WITHOUT brand (e.g. 'Omega-3 Triple Plus')",
+      "brand": "Brand/Manufacturer (e.g. 'CENOVIS', 'NOW', 'Nature Made')",
+      "ingredients": "comma-separated ingredient names (e.g., 'Vitamin C, Zinc')",
+      "parsedIngredients": [
+         {
+           "name": "Ingredient Name (e.g. Vitamin C)",
+           "ingredientGroup": "Standardized Name (e.g. Vitamin C)",
+           "amount": 1000,
+           "unit": "mg"
+         }
+      ],
       "dosage": "Usage info (e.g., '1 tablet daily')",
       "price": 0
     }
@@ -214,10 +281,10 @@ OUTPUT (JSON array):
   static Future<String> _generateSummary(
       String apiKey,
       List<ExtractedProduct> products,
-      RedundancyResult redundancyResult,
+      RedundancyAnalysisResult redundancyResult,
       String locale) async {
     final model = GenerativeModel(
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       apiKey: apiKey,
       generationConfig: GenerationConfig(
         temperature: 0.3, // Slightly higher for natural language
@@ -230,7 +297,7 @@ OUTPUT (JSON array):
     final redundancyInfo = redundancyResult.hasRedundancy
         ? redundancyResult.redundantPairs
             .map((p) =>
-                "${p.productA} + ${p.productB}: ${p.overlappingCategories.join(', ')}")
+                "${p.productAName} + ${p.productBName}: ${p.overlappingGroups.join(', ')}")
             .join('\n')
         : (isEnglish ? "No redundancy detected." : "중복이 발견되지 않았습니다.");
 
@@ -314,7 +381,9 @@ If no redundancy, briefly confirm the combination is safe.
 
       for (final product in extractedProducts) {
         List<Ingredient> ingredients = [];
-        final isKoreanProduct = _isKoreanProduct(product.name, product.brand);
+        // originalName이 있으면 그것으로 판별 (원본 라벨 언어 기준)
+        final nameForCheck = product.originalName ?? product.name;
+        final isKoreanProduct = _isKoreanProduct(nameForCheck, product.brand);
 
         if (useOfficialApi) {
           // 캐시에서 먼저 조회 (TTL 7일)
@@ -327,30 +396,90 @@ If no redundancy, briefly confirm the combination is safe.
 
             if (isKoreanProduct) {
               // 식약처 API: 제품명 검색 → STDR_STND 파싱
-              final searchResults =
+              // 원본 제품명으로 먼저 시도
+              var searchResults =
                   await KrFoodSafetyService.searchProducts(product.name);
+
+              // 원본으로 결과 없으면 클린 버전으로 재시도 (특수문자 제거)
+              if (searchResults.isEmpty) {
+                final cleanedName = KeywordCleaner.clean(product.name);
+                if (cleanedName != product.name) {
+                  searchResults =
+                      await KrFoodSafetyService.searchProducts(cleanedName);
+                }
+              }
+
+              // 여전히 결과 없으면 브랜드명 제거 후 재시도
+              if (searchResults.isEmpty && product.brand.isNotEmpty) {
+                final nameWithoutBrand = product.name
+                    .replaceAll(
+                        RegExp(RegExp.escape(product.brand),
+                            caseSensitive: false),
+                        '')
+                    .trim();
+                if (nameWithoutBrand.isNotEmpty &&
+                    nameWithoutBrand != product.name) {
+                  searchResults = await KrFoodSafetyService.searchProducts(
+                      nameWithoutBrand);
+                }
+              }
+
               if (searchResults.isNotEmpty) {
                 // 검색 결과의 첫 번째 제품에서 STDR_STND 파싱
                 ingredients = searchResults.first.parseIngredients();
+              }
 
-                // STDR_STND 파싱 결과가 없으면 AI 추출 결과 사용
-                if (ingredients.isEmpty) {
+              // 식약처에서 결과 없으면 NIH API도 시도 (해외직구 영양제일 수 있음)
+              if (ingredients.isEmpty) {
+                // NIH는 영문 검색만 가능하므로 originalName 우선 사용
+                final nihSearchName = product.originalName ?? product.name;
+                final nihResults = await NihDsldService.searchProducts(
+                  nihSearchName,
+                  brandName: product.brand,
+                );
+                if (nihResults.isNotEmpty) {
+                  final dsldId = nihResults.first.id;
                   ingredients =
-                      _parseAiIngredientsAsKr(product.ingredients, product.id);
+                      await NihDsldService.getProductIngredients(dsldId);
                 }
-              } else {
-                // 검색 결과가 없으면 AI 추출 결과 사용
+              }
+
+              // 둘 다 실패하면 AI 추출 결과 사용
+              if (ingredients.isEmpty) {
                 ingredients =
                     _parseAiIngredientsAsKr(product.ingredients, product.id);
               }
             } else {
-              // NIH DSLD API: 제품명 검색 → 성분 조회
-              final searchResults =
-                  await NihDsldService.searchProducts(product.name);
+              // NIH DSLD API: 제품명 + 브랜드명 검색 (영문 우선)
+              final nihSearchName = product.originalName ?? product.name;
+              final searchResults = await NihDsldService.searchProducts(
+                nihSearchName,
+                brandName: product.brand,
+              );
               if (searchResults.isNotEmpty) {
                 final dsldId = searchResults.first.id;
                 ingredients =
                     await NihDsldService.getProductIngredients(dsldId);
+              }
+
+              // NIH에서 결과 없으면 식약처도 시도 (한국 정식 수입 제품일 수 있음)
+              if (ingredients.isEmpty) {
+                // 원본으로 먼저 시도
+                var krResults =
+                    await KrFoodSafetyService.searchProducts(product.name);
+
+                // 원본으로 결과 없으면 클린 버전으로 재시도
+                if (krResults.isEmpty) {
+                  final cleanedName = KeywordCleaner.clean(product.name);
+                  if (cleanedName != product.name) {
+                    krResults =
+                        await KrFoodSafetyService.searchProducts(cleanedName);
+                  }
+                }
+
+                if (krResults.isNotEmpty) {
+                  ingredients = krResults.first.parseIngredients();
+                }
               }
             }
 
@@ -366,8 +495,20 @@ If no redundancy, briefly confirm the combination is safe.
 
         // Fallback: Use AI-extracted ingredients if official APIs fail
         if (ingredients.isEmpty) {
-          ingredients =
-              _parseAiIngredientsAsKr(product.ingredients, product.id);
+          // 1. Check if AI prompt extracted parsed ingredients
+          ingredients = product.parsedIngredients ?? [];
+
+          // 2. If not, try legacy parsing from string
+          if (ingredients.isEmpty) {
+            ingredients =
+                _parseAiIngredientsAsKr(product.ingredients, product.id);
+          }
+        }
+
+        // 3. FINAL FALLBACK: If ingredients are STILL empty, infer from Product Name
+        // (Handles cases where API fails AND label text is unreadable, e.g. "Calcium & Magnesium")
+        if (ingredients.isEmpty) {
+          ingredients = _inferIngredientsFromName(product.name, product.id);
         }
 
         productsWithIngredients.add(ProductWithIngredients(
@@ -380,7 +521,7 @@ If no redundancy, briefly confirm the combination is safe.
 
       // === PHASE 3: Deterministic Redundancy Check (Rules Engine) ===
       final currency = locale == 'en' ? 'USD' : 'KRW';
-      final redundancyResult = RedundancyEngineV2.analyze(
+      final redundancyResult = RedundancyEngine.analyze(
         productsWithIngredients,
         currency: currency,
       );
@@ -395,12 +536,31 @@ If no redundancy, briefly confirm the combination is safe.
 
       // === Combine Results ===
       final products = extractedProducts.map((p) {
+        // Find refined ingredients for this product
+        final refinedProduct = productsWithIngredients.firstWhere(
+          (pi) => pi.productId == p.id,
+          orElse: () => ProductWithIngredients(
+            productName: p.name,
+            ingredients: [],
+            productId: p.id,
+          ),
+        );
+
+        final ingredientListStr = refinedProduct.ingredients
+            .map((i) => i.name)
+            .toSet() // Remove duplicates
+            .join(', ');
+
         return {
           'id': p.id,
           'name': p.name,
           'brand': p.brand,
           'dosage': p.dosage,
-          'description': '',
+          // UI shows this as '원재료' or description. Populate with refined ingredients.
+          'description': ingredientListStr.isNotEmpty
+              ? ingredientListStr
+              : p.ingredients, // Fallback to raw AI text
+          'ingredients': ingredientListStr, // Add explicit key just in case
           'status': redundancyResult.productStatuses[p.id] ?? 'SAFE',
           'price': p.price,
         };
@@ -431,7 +591,9 @@ If no redundancy, briefly confirm the combination is safe.
     String ingredientsStr,
     String productId,
   ) {
-    if (ingredientsStr.isEmpty) return [];
+    if (ingredientsStr.isEmpty) {
+      return [];
+    }
 
     // 쉼표로 분리 후 각각 Ingredient로 변환
     return ingredientsStr
@@ -453,7 +615,7 @@ If no redundancy, briefly confirm the combination is safe.
     String locale,
   ) async {
     final model = GenerativeModel(
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       apiKey: apiKey,
       generationConfig: GenerationConfig(
         temperature: 0.3,
@@ -479,17 +641,69 @@ ANALYSIS RESULT (from Rules Engine - DO NOT CONTRADICT):
 - Redundant Pairs:
 $pairsInfo
 - Estimated Savings: ${result.estimatedSavings} ${result.currency}
+- UL Risks: 
+${result.ulRdaReport?.exceededUlNutrients.isNotEmpty == true ? result.ulRdaReport!.summaries.where((s) => s.status == NutrientStatus.exceedsUl).map((s) => "- ${s.messageKo} (${s.nutrientKey})").join('\n') : "None"}
 
-PRODUCTS:
-${products.map((p) => "- ${p.productName} (${result.productStatuses[p.productId]})").join('\n')}
+PRODUCTS WITH INGREDIENTS:
+${products.map((p) => "- ${p.productName} (${result.productStatuses[p.productId]}): ${p.ingredients.map((i) => i.name).take(10).join(', ')}${p.ingredients.length > 10 ? '...' : ''}").join('\n')}
 
 $languageInstruction
 Your job is to EXPLAIN the result above, NOT to judge redundancy yourself.
-If redundancy is found, explain which products overlap and why.
+If redundancy is found, explain which products overlap and why based on the ingredient data.
 If no redundancy, briefly confirm the combination is safe.
 ''';
 
     final response = await model.generateContent([Content.text(prompt)]);
     return response.text ?? (isEnglish ? "Analysis complete." : "분석이 완료되었습니다.");
+  }
+
+  /// 제품명에서 핵심 성분 추론 (API/AI 모두 실패 시 최후 수단)
+  static List<Ingredient> _inferIngredientsFromName(
+      String name, String productId) {
+    final lowerName = name.toLowerCase();
+    final inferred = <Ingredient>[];
+
+    final keywords = {
+      'calcium': 'Calcium',
+      'magnesium': 'Magnesium',
+      'zinc': 'Zinc',
+      'iron': 'Iron',
+      'vitamin c': 'Vitamin C',
+      'vitamin d': 'Vitamin D',
+      'vitamin b': 'Vitamin B',
+      'omega': 'Omega-3',
+      'fish oil': 'Fish Oil',
+      'arginine': 'L-Arginine',
+      'probiotic': 'Probiotics',
+      'lutein': 'Lutein',
+      'saw palmetto': 'Saw Palmetto',
+      'milk thistle': 'Milk Thistle',
+      '칼슘': 'Calcium',
+      '마그네슘': 'Magnesium',
+      '아연': 'Zinc',
+      '철분': 'Iron',
+      '비타민': 'Vitamin',
+      '오메가': 'Omega-3',
+      '유산균': 'Probiotics',
+      '루테인': 'Lutein',
+      '밀크씨슬': 'Milk Thistle',
+      '쏘팔메토': 'Saw Palmetto',
+    };
+
+    keywords.forEach((key, standardName) {
+      if (lowerName.contains(key)) {
+        inferred.add(Ingredient(
+          name: standardName,
+          category: 'inferred',
+          ingredientGroup: standardName,
+          amount: 0, // 함량은 알 수 없음
+          unit: '',
+          source: 'name_inference',
+          sourceProductId: productId,
+        ));
+      }
+    });
+
+    return inferred;
   }
 }
