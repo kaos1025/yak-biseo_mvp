@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../poc_test_screen.dart';
 import '../../core/utils/unit_converter.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -160,6 +161,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(12)),
                   ),
                   child: Text(l10n.saveBtn),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const PocTestScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.science),
+                  label: const Text('🧪 PoC Test Mode (Gemini 2.5)'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
                 ),
               ),
             ],
