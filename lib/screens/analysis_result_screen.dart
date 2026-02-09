@@ -259,9 +259,8 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                       backgroundColor: cardBgColor,
                       brand: product.brand,
                       name: product.nameKo ?? product.name,
-                      price: product.estimatedPrice != null
-                          ? "${product.estimatedPrice}원"
-                          : "",
+                      price:
+                          "", // Price info not needed for non-redundant items per user request
                       imageUrl: null, // Product model does not have image field
                       tags: tags,
                       tagColors: tagColors,
