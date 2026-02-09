@@ -40,9 +40,8 @@ class _ResultScreenState extends State<ResultScreen> {
       // This is the "Fast" step (relatively)
       final jsonResult = await _analyzerService.analyzeImage(imageBytes);
 
-      // 3. Step 2: Consultant Report (Markdown)
-      // This uses the previous JSON result for consistency and adds "Advice"
-      final String report =
+      // 3. Step 2: Consultant Analysis (JSON with markdown report)
+      final consultantResult =
           await _analyzerService.analyzeImageWithConsultantMode(
         imageBytes,
         previousAnalysis: jsonResult,
@@ -56,7 +55,7 @@ class _ResultScreenState extends State<ResultScreen> {
         MaterialPageRoute(
           builder: (context) => AnalysisResultScreen(
             result: jsonResult,
-            report: report,
+            consultantResult: consultantResult,
           ),
         ),
       );

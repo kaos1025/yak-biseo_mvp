@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/supplement_analysis.dart';
+import '../models/consultant_result.dart';
 
 class GeminiAnalyzerService {
   final List<String> _apiKeys = [];
@@ -99,68 +100,72 @@ class GeminiAnalyzerService {
     }
   }
 
-  /// 컨설턴트 모드 (Markdown Report - JSON 데이터 기반)
-  Future<String> analyzeImageWithConsultantMode(Uint8List imageBytes,
+  /// 컨설턴트 모드 (JSON 응답 + 마크다운 리포트 포함)
+  Future<ConsultantResult> analyzeImageWithConsultantMode(Uint8List imageBytes,
       {required AnalyzeResult previousAnalysis}) async {
     final jsonString = jsonEncode(previousAnalysis.toJson());
 
     String prompt = """
 당신은 약사(Pharmacist)이자 헬스케어 재무 전문가입니다.
-아래 제공된 영양제 분석 데이터(JSON)를 기반으로 **마크다운(Markdown)** 리포트를 작성하세요.
+아래 제공된 영양제 분석 데이터(JSON)를 기반으로 분석 결과를 **JSON 형식**으로 반환하세요.
 
-## 📋 분석할 영양제 데이터 (JSON)
+## 📋 분석할 영양제 데이터
 다음 JSON 데이터는 이미지 분석과 가격 검색을 통해 추출된 정보입니다.
-**이 데이터만을 기준으로** 리포트를 작성하세요. 추가 검색은 하지 마세요.
+**이 데이터만을 기준으로** 분석하세요. 추가 검색은 하지 마세요.
 
 ```json
 $jsonString
 ```
 
-## 🛑 중요: 일관된 판단 기준 (Decision Logic)
-분석 시 반드시 다음 기준을 엄격하게 따르세요.
+## 🛑 판단 기준 (Decision Logic)
+1.  **중복 판정**: 같은 성분이 2개 이상 제품에 포함되면 중복 지적
+2.  **제외 우선순위**:
+    - 1순위: 부작용 위험 (상한 섭취량 초과)
+    - 2순위: 단순 중복 (종합비타민과 단일제 중복 시 단일제 제외)
+    - 3순위: 효능 입증 부족
 
-1.  **중복 판정 (Redundancy Check)**
-    - 같은 성분(예: Vitamin D, Magnesium 등)이 2개 이상의 제품에 중복 포함된 경우, **반드시 지적**하세요.
-    - 총 함량이 상한 섭취량(UL)을 초과하면 **"위험"**으로 경고하세요.
-    - 단순히 겹치는 정도라면 **"과다/낭비"**로 분류하세요.
+## ⚠️ 중요: name 필드 규칙
+- excluded_products의 "name" 값은 **반드시 위 JSON 데이터의 products[].name 필드 값을 그대로 복사**하세요.
+- 한글로 번역하거나 줄여 쓰지 마세요. 정확한 매칭을 위해 필수입니다.
 
-2.  **제외 권장 순위 (Priority)**
-    제외할 영양제를 선택할 때 다음 우선순위를 따르세요:
-    1순위: **부작용 위험** (상한 섭취량 초과)
-    2순위: **단순 중복** (종합비타민과 단일제 중복 시, 가성비가 떨어지는 단일제를 제외 권장)
-    3순위: **효능 입증 부족** (일반적인 건강한 성인에게 불필요한 성분)
+## 출력 형식 (JSON)
+다음 형식으로 정확히 반환하세요:
+{
+  "excluded_products": [
+    {
+      "name": "제품의 name 필드 값 (영문 그대로)",
+      "reason": "제외 권장 이유 (한글, 1-2문장)",
+      "monthly_savings": 숫자 (해당 제품의 monthly_price 값)
+    }
+  ],
+  "total_monthly_savings": 숫자 (제외 제품들의 monthly_price 합계),
+  "report_markdown": "상세 마크다운 리포트 (성분 분석, 중복 점검, 전문가 조언 포함)"
+}
 
-##  이름 표기 규칙:
-- **제외 권장** 제품을 언급할 때는, 반드시 위 **JSON 데이터의 'name' 필드 값**을 **그대로** 사용하세요.
-- 임의로 한국어로 번역하거나 줄여 쓰지 마세요. (정확한 매칭을 위해 필수)
+report_markdown 내용:
+1. 영양제 성분 분석 및 필요성 평가 (필수/권장/선택/불필요)
+2. 중복 성분 분석 및 제외 권장 이유
+3. 월간/연간 절약 금액
+4. 전문가 조언 (섭취 타이밍, 시너지 효과 등)
 
-## 분석 내용
-1.  **영양제 성분 분석 및 필요성 평가**
-    - 각 제품의 주요 성분과 효능 요약
-    - 일반적인 건강한 성인 남성 기준으로 섭취 필요성 등급 (필수/권장/선택/불필요) 매기기
-    - **중복 점검**: 중복된 성분만 따로 모아서 명시
-
-2.  **섭취 제외 권장 및 비용 절감액 (추정)**
-    - 줄여도 되는 영양제 선정 및 이유 (위 판정 기준 근거)
-    - 해당 제품 제외 시 월간/연간 절약 가능 금액 추정 (JSON의 monthly_price 필드 활용)
-
-3.  **전문가 조언**
-    - 섭취 타이밍, 주의사항, 시너지 효과 등
-
-## 보고서 스타일
-- 친절하고 전문적인 어조
-- 가독성 좋은 마크다운 포맷 (볼드체, 리스트, 헤더 사용)
-- 결론적으로 "어떻게 조합해 먹는 것이 가성비와 건강 모두 챙기는 길인지" 제안
+## 주의사항
+- 제외할 제품이 없으면 excluded_products를 빈 배열 []로 반환
+- JSON만 반환하세요. 다른 텍스트를 추가하지 마세요.
 """;
 
     try {
-      return await _sendRestRequest(
+      final responseText = await _sendRestRequest(
         prompt: prompt,
         imageBytes: imageBytes,
         responseMimeType: 'text/plain',
       );
+
+      // Parse the JSON response
+      final cleanedJson = _cleanJsonString(responseText);
+      final Map<String, dynamic> jsonResult = jsonDecode(cleanedJson);
+      return ConsultantResult.fromJson(jsonResult);
     } catch (e) {
-      throw Exception('Consultant Analysis (REST) Failed: $e');
+      throw Exception('Consultant Analysis Failed: $e');
     }
   }
 

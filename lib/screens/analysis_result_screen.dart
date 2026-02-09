@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/models/supplement_analysis.dart';
+import 'package:myapp/models/consultant_result.dart';
 import 'package:myapp/models/pill.dart';
 import 'package:myapp/services/my_pill_service.dart';
 import 'package:myapp/widgets/expandable_product_card.dart';
@@ -9,12 +10,12 @@ import 'package:myapp/l10n/app_localizations.dart';
 
 class AnalysisResultScreen extends StatefulWidget {
   final AnalyzeResult result;
-  final String report;
+  final ConsultantResult consultantResult;
 
   const AnalysisResultScreen({
     super.key,
     required this.result,
-    required this.report,
+    required this.consultantResult,
   });
 
   @override
@@ -54,125 +55,57 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
   }
 
   void _parseReportAndApplyRecommendations() {
-    final report = widget.report;
-    if (report.length < 20) return;
+    final excludedProducts = widget.consultantResult.excludedProducts;
+    if (excludedProducts.isEmpty) return;
 
-    // Find the exclusion section in the report
-    final exclusionStart = report.indexOf('제외 권장');
-    if (exclusionStart == -1) return;
+    // Process each excluded product from the JSON
+    for (var excluded in excludedProducts) {
+      final excludedNameLower = excluded.name.toLowerCase();
 
-    // Get text from "제외 권장" to end of report or next major section
-    String exclusionSection = report.substring(exclusionStart);
-    final nextSection = RegExp(r'###\s*3\.').firstMatch(exclusionSection);
-    if (nextSection != null) {
-      exclusionSection = exclusionSection.substring(0, nextSection.start);
-    }
+      // Find matching product in the analysis result
+      for (var product in widget.result.products) {
+        if (_productStatus[product.name] == 'REDUNDANT') continue;
 
-    // Normalize for comparison (remove special chars, lowercase)
-    final exclusionLower = exclusionSection
-        .replaceAll(RegExp(r'[*\[\]()&\-]'), ' ')
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .toLowerCase();
+        // Check for match (exact or partial)
+        final productNameLower = product.name.toLowerCase();
+        final isMatch = productNameLower == excludedNameLower ||
+            productNameLower.contains(excludedNameLower) ||
+            excludedNameLower.contains(productNameLower);
 
-    // Extract savings amount from entire report
-    int? parsedSavings;
-    final savingsMatch =
-        RegExp(r'월간?\s*절[약감]\s*가능?\s*금액\s*[:：]?\s*([\d,]+)\s*원')
-            .firstMatch(report);
-    if (savingsMatch != null) {
-      final savingsStr = savingsMatch.group(1)?.replaceAll(',', '');
-      parsedSavings = int.tryParse(savingsStr ?? '');
-    }
+        if (isMatch) {
+          if (!mounted) return;
 
-    // For each product, check if it's mentioned in the exclusion section
-    for (var product in widget.result.products) {
-      if (_productStatus[product.name] == 'REDUNDANT') continue;
+          setState(() {
+            _productStatus[product.name] = 'REDUNDANT';
 
-      bool isExcluded = false;
-
-      // Prepare search terms from product
-      final searchTerms = <String>[];
-
-      // Add full name (English)
-      final nameLower = product.name
-          .toLowerCase()
-          .replaceAll(RegExp(r'[&\-]'), ' ')
-          .replaceAll(RegExp(r'\s+'), ' ')
-          .trim();
-      if (nameLower.length > 3) searchTerms.add(nameLower);
-
-      // Add Korean name
-      if (product.nameKo != null && product.nameKo!.isNotEmpty) {
-        final nameKoLower = product.nameKo!
-            .toLowerCase()
-            .replaceAll(RegExp(r'[&\-]'), ' ')
-            .replaceAll(RegExp(r'\s+'), ' ')
-            .trim();
-        if (nameKoLower.length > 3) searchTerms.add(nameKoLower);
-      }
-
-      // Add brand + name combination
-      if (product.brand != null) {
-        final brandName = '${product.brand!.toLowerCase()} ${nameLower}'.trim();
-        searchTerms.add(brandName);
-      }
-
-      // Check if any search term appears in exclusion section
-      for (var term in searchTerms) {
-        if (exclusionLower.contains(term)) {
-          isExcluded = true;
-          break;
-        }
-      }
-
-      // If not found, try matching individual significant words
-      if (!isExcluded) {
-        // Split all terms into words and check for multiple matches
-        final allWords = searchTerms
-            .join(' ')
-            .split(' ')
-            .where((w) => w.length >= 3)
-            .toSet();
-
-        int matchCount = 0;
-        for (var word in allWords) {
-          if (exclusionLower.contains(word)) {
-            matchCount++;
-          }
-        }
-
-        // If 2+ significant words match, consider it excluded
-        if (matchCount >= 2) {
-          isExcluded = true;
-        }
-      }
-
-      if (isExcluded) {
-        if (!mounted) return;
-
-        setState(() {
-          _productStatus[product.name] = 'REDUNDANT';
-
-          if (!_redundantItemNames.contains(product.nameKo ?? product.name)) {
-            int savings = parsedSavings ?? 0;
-            if (savings == 0) {
-              if (product.monthlyPrice != null && product.monthlyPrice! > 0) {
-                savings = product.monthlyPrice!;
-              } else if (product.estimatedPrice != null &&
-                  product.estimatedPrice! > 0) {
-                savings = (product.estimatedPrice! /
-                        (product.supplyPeriodMonths ?? 1))
-                    .round();
-              } else {
-                savings = 5500;
+            if (!_redundantItemNames.contains(product.nameKo ?? product.name)) {
+              // Use monthly_savings from JSON, fallback to product data
+              int savings = excluded.monthlySavings;
+              if (savings <= 0) {
+                if (product.monthlyPrice != null && product.monthlyPrice! > 0) {
+                  savings = product.monthlyPrice!;
+                } else if (product.estimatedPrice != null &&
+                    product.estimatedPrice! > 0) {
+                  savings = (product.estimatedPrice! /
+                          (product.supplyPeriodMonths ?? 1))
+                      .round();
+                }
               }
-            }
 
-            _totalSavings += savings;
-            _redundantItemNames.add(product.nameKo ?? product.name);
-          }
-        });
+              _totalSavings += savings;
+              _redundantItemNames.add(product.nameKo ?? product.name);
+            }
+          });
+          break; // Found match, move to next excluded product
+        }
       }
+    }
+
+    // Override total savings from JSON if provided
+    if (widget.consultantResult.totalMonthlySavings > 0) {
+      setState(() {
+        _totalSavings = widget.consultantResult.totalMonthlySavings;
+      });
     }
   }
 
@@ -188,7 +121,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
       dailyDosage: product.servingSize,
       category: 'General',
       ingredients: product.ingredients
-          .map((i) => '${i.nameKo ?? i.name} (${i.amount}${i.unit})')
+          .map((i) => i.amount > 0
+              ? '${i.nameKo ?? i.name} (${i.amount}${i.unit})'
+              : i.nameKo ?? i.name)
           .join(', '),
       imageUrl: '',
     );
@@ -260,8 +195,8 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                 ),
 
                 // 2. Warning Banners (Mock for Demo/Parsing placeholder)
-                if (widget.report.contains("주의 성분") &&
-                    widget.report.contains("마그네슘"))
+                if (widget.consultantResult.reportMarkdown.contains("주의 성분") &&
+                    widget.consultantResult.reportMarkdown.contains("마그네슘"))
                   const WarningBanner(
                     ingredientName: "마그네슘",
                     currentAmount: "595mg",
@@ -330,8 +265,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                     if (isRedundant) cardBgColor = const Color(0xFFFFEBEE);
 
                     String ingredientsSummary = product.ingredients
-                        .map((i) =>
-                            '${i.nameKo ?? i.name} (${i.amount}${i.unit})')
+                        .map((i) => i.amount > 0
+                            ? '${i.nameKo ?? i.name} (${i.amount}${i.unit})'
+                            : i.nameKo ?? i.name)
                         .join(', ');
 
                     return ExpandableProductCard(
@@ -416,7 +352,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                           child: SelectableText(
-                            widget.report,
+                            widget.consultantResult.reportMarkdown,
                             style: const TextStyle(
                                 fontSize: 15,
                                 height: 1.6,

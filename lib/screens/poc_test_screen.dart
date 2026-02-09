@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:myapp/models/supplement_analysis.dart';
+import 'package:myapp/models/consultant_result.dart';
 import 'package:myapp/services/gemini_analyzer_service.dart';
 
 class PocTestScreen extends StatefulWidget {
@@ -23,7 +24,7 @@ class _PocTestScreenState extends State<PocTestScreen> {
 
   // Consultant Mode State
   bool _isConsultantMode = false;
-  String? _consultantReport;
+  ConsultantResult? _consultantReport;
 
   bool _isLoading = false;
   String? _error;
@@ -409,7 +410,9 @@ class _PocTestScreenState extends State<PocTestScreen> {
                             'brand': p.brand,
                             'name': p.name,
                             'ingredients': p.ingredients
-                                .map((i) => '${i.name} (${i.amount}${i.unit})')
+                                .map((i) => i.amount > 0
+                                    ? '${i.name} (${i.amount}${i.unit})'
+                                    : i.name)
                                 .toList()
                           })
                       .toList(),
@@ -461,7 +464,7 @@ class _PocTestScreenState extends State<PocTestScreen> {
             border: Border.all(color: Colors.purple.shade100),
           ),
           child: SelectableText(
-            _consultantReport!,
+            _consultantReport!.reportMarkdown,
             style: const TextStyle(fontSize: 15, height: 1.5),
           ),
         ),
