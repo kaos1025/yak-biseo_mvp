@@ -25,7 +25,6 @@ class AnalysisResultScreen extends StatefulWidget {
 class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
   final Set<String> _addedPillNames = {};
   final Map<String, String> _productStatus = {}; // SAFE, WARNING, REDUNDANT
-  final Set<String> _excludedPills = {}; // Set of product names to exclude
   List<String> _redundantItemNames = []; // Names of redundant items for banner
   bool _isReportExpanded = true;
   int _totalSavings = 0;
@@ -239,26 +238,13 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
 
                     // Recommendation Logic
                     final isRedundant = status == 'REDUNDANT';
-                    int mockSavings = 0;
 
-                    if (product.monthlyPrice != null &&
-                        product.monthlyPrice! > 0) {
-                      mockSavings = product.monthlyPrice!;
-                    } else if (product.estimatedPrice != null &&
-                        product.estimatedPrice! > 0) {
-                      mockSavings = (product.estimatedPrice! /
-                              (product.supplyPeriodMonths ?? 1))
-                          .round();
-                    } else {
-                      // Mock Price for demo
-                      mockSavings = 5500;
-                      if (product.name.contains("Omega"))
-                        mockSavings =
-                            35000; // Keep high for visible test? No, adhere to monthly.
-                      if (product.name.contains("Vitamin")) mockSavings = 4000;
-                      if (product.name.contains("Magnesium"))
-                        mockSavings = 5500;
-                    }
+                    // Lookup extended info from ConsultantResult
+                    final excludedProduct = widget
+                        .consultantResult.excludedProducts
+                        .firstWhere((e) => e.name == product.name,
+                            orElse: () => ExcludedProduct(
+                                name: '', reason: '', monthlySavings: 0));
 
                     Color? cardBgColor = Colors.white;
                     if (isRedundant) cardBgColor = const Color(0xFFFFEBEE);
@@ -273,26 +259,21 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                       backgroundColor: cardBgColor,
                       brand: product.brand,
                       name: product.nameKo ?? product.name,
-                      price: "", // Hide price
+                      price: product.estimatedPrice != null
+                          ? "${product.estimatedPrice}원"
+                          : "",
+                      imageUrl: null, // Product model does not have image field
                       tags: tags,
                       tagColors: tagColors,
                       tagTextColors: tagTextColors,
                       ingredients: ingredientsSummary,
-                      dosage: product.servingSize,
+                      dosage: product.servingSize, // Correct field
                       isAdded: isAdded,
-                      onAdd: () => _handleSavePill(product),
-                      // New Properties
+                      onAdd: () => _handleSavePill(product), // Correct method
                       isRecommendedToRemove: isRedundant,
-                      removalSavingsAmount: mockSavings,
-                      onRemoveCheckChanged: (val) {
-                        setState(() {
-                          if (val == true) {
-                            _excludedPills.add(product.name);
-                          } else {
-                            _excludedPills.remove(product.name);
-                          }
-                        });
-                      },
+                      removalSavingsAmount: excludedProduct.monthlySavings,
+                      originalPrice: excludedProduct.originalPrice,
+                      durationMonths: excludedProduct.durationMonths,
                     );
                   },
                 ),

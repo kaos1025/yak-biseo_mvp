@@ -45,12 +45,16 @@ class ConsultantResult {
 class ExcludedProduct {
   final String name;
   final String reason;
+  final int originalPrice;
+  final num durationMonths;
   final int monthlySavings;
 
   ExcludedProduct({
     required this.name,
     required this.reason,
     required this.monthlySavings,
+    this.originalPrice = 0,
+    this.durationMonths = 1,
   });
 
   factory ExcludedProduct.fromJson(Map<String, dynamic> json) {
@@ -58,6 +62,8 @@ class ExcludedProduct {
       name: json['name'] as String? ?? '',
       reason: json['reason'] as String? ?? '',
       monthlySavings: (json['monthly_savings'] as num?)?.round() ?? 0,
+      originalPrice: (json['original_price'] as num?)?.round() ?? 0,
+      durationMonths: (json['duration_months'] as num?) ?? 1,
     );
   }
 
@@ -66,6 +72,8 @@ class ExcludedProduct {
       'name': name,
       'reason': reason,
       'monthly_savings': monthlySavings,
+      'original_price': originalPrice,
+      'duration_months': durationMonths,
     };
   }
 

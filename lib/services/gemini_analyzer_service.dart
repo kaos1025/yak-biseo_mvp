@@ -135,10 +135,12 @@ $jsonString
     {
       "name": "제품의 name 필드 값 (영문 그대로)",
       "reason": "제외 권장 이유 (한글, 1-2문장)",
-      "monthly_savings": 숫자 (해당 제품의 monthly_price 값)
+      "original_price": 숫자 (제품의 판매 가격, 추정치),
+      "duration_months": 숫자 (제품 용기/설명에 따른 섭취 기간, 예: 2개월분이면 2),
+      "monthly_savings": 숫자 (original_price / duration_months)
     }
   ],
-  "total_monthly_savings": 숫자 (제외 제품들의 monthly_price 합계),
+  "total_monthly_savings": 숫자 (제외 제품들의 monthly_savings 합계),
   "exclusion_reason": "전체적인 제외 권장 이유 요약 (한글, 100자 이내)",
   "report_markdown": "상세 마크다운 리포트 (성분 분석, 중복 점검, 전문가 조언 포함)"
 }

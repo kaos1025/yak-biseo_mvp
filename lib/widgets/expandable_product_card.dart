@@ -33,11 +33,15 @@ class ExpandableProductCard extends StatefulWidget {
     this.imageUrl,
     this.isRecommendedToRemove = false,
     this.removalSavingsAmount = 0,
+    this.originalPrice = 0,
+    this.durationMonths = 1,
     this.onRemoveCheckChanged,
   });
 
   final bool isRecommendedToRemove;
   final int removalSavingsAmount;
+  final int originalPrice;
+  final num durationMonths;
   final ValueChanged<bool?>? onRemoveCheckChanged;
 
   @override
@@ -161,11 +165,11 @@ class _ExpandableProductCardState extends State<ExpandableProductCard> {
                     if (widget.isRecommendedToRemove)
                       Expanded(
                         child: Text(
-                          "💰 빼면 월 ${NumberFormat('#,###').format(widget.removalSavingsAmount)}원 절감",
+                          "💰 ${NumberFormat('#,###').format(widget.originalPrice)}원 (${widget.durationMonths}개월) / 이 제품 빼면 월 ${NumberFormat('#,###').format(widget.removalSavingsAmount)}원 절감",
                           style: TextStyle(
                             color: Colors.green[700],
                             fontWeight: FontWeight.w600,
-                            fontSize: 13,
+                            fontSize: 12,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
