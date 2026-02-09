@@ -62,9 +62,29 @@ class ExcludedProduct {
       name: json['name'] as String? ?? '',
       reason: json['reason'] as String? ?? '',
       monthlySavings: (json['monthly_savings'] as num?)?.round() ?? 0,
-      originalPrice: (json['original_price'] as num?)?.round() ?? 0,
-      durationMonths: (json['duration_months'] as num?) ?? 1,
+      originalPrice: _parseInt(json['original_price']),
+      durationMonths: _parseNum(json['duration_months']) ?? 1,
     );
+  }
+
+  static int _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.round();
+    if (value is String) {
+      // Remove non-digit characters except decimal point (though we want int)
+      final cleanStr = value.replaceAll(RegExp(r'[^0-9]'), '');
+      return int.tryParse(cleanStr) ?? 0;
+    }
+    return 0;
+  }
+
+  static num? _parseNum(dynamic value) {
+    if (value is num) return value;
+    if (value is String) {
+      final cleanStr = value.replaceAll(RegExp(r'[^0-9.]'), '');
+      return num.tryParse(cleanStr);
+    }
+    return null;
   }
 
   Map<String, dynamic> toJson() {

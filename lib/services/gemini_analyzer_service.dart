@@ -135,8 +135,8 @@ $jsonString
     {
       "name": "제품의 name 필드 값 (영문 그대로)",
       "reason": "제외 권장 이유 (한글, 1-2문장)",
-      "original_price": 숫자 (제품의 판매 가격, 추정치),
-      "duration_months": 숫자 (제품 용기/설명에 따른 섭취 기간, 예: 2개월분이면 2),
+      "original_price": 숫자 (제품의 판매 가격 추정치. 모르면 30000 등 평균가 입력. 절대 0이나 null 금지),
+      "duration_months": 숫자 (섭취 기간 추정치. 모르면 1 입력),
       "monthly_savings": 숫자 (original_price / duration_months)
     }
   ],
