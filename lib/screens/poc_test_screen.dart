@@ -67,8 +67,16 @@ class _PocTestScreenState extends State<PocTestScreen> {
 
     try {
       if (_isConsultantMode) {
-        final report = await _analyzerService
-            .analyzeImageWithConsultantMode(_selectedImageBytes!);
+        if (_analysisResult == null) {
+          setState(() {
+            _error = '먼저 일반 모드에서 분석을 실행해주세요.';
+          });
+          return;
+        }
+        final report = await _analyzerService.analyzeImageWithConsultantMode(
+          _selectedImageBytes!,
+          previousAnalysis: _analysisResult!,
+        );
         setState(() {
           _consultantReport = report;
           _elapsedTime = stopwatch.elapsed;
@@ -243,9 +251,7 @@ class _PocTestScreenState extends State<PocTestScreen> {
           onSelectionChanged: (Set<bool> newSelection) {
             setState(() {
               _isConsultantMode = newSelection.first;
-              _analysisResult = null;
-              _consultantReport = null;
-              _consistencyResult = null;
+              // 모드 전환 시 기존 결과 유지 (데이터 재사용을 위해)
             });
           },
           style: ButtonStyle(

@@ -30,7 +30,14 @@ class ExpandableProductCard extends StatefulWidget {
     this.onAdd,
     this.backgroundColor,
     this.imageUrl,
+    this.isRecommendedToRemove = false,
+    this.removalSavingsAmount = 0,
+    this.onRemoveCheckChanged,
   });
+
+  final bool isRecommendedToRemove;
+  final int removalSavingsAmount;
+  final ValueChanged<bool?>? onRemoveCheckChanged;
 
   @override
   State<ExpandableProductCard> createState() => _ExpandableProductCardState();
@@ -144,20 +151,51 @@ class _ExpandableProductCardState extends State<ExpandableProductCard> {
                 ),
               ),
 
-              // Action Bar (Visible in collapsed)
+              // Action Bar
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      widget.price,
-                      style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF131613)),
-                    ),
-                    if (widget.onAdd != null) _buildAddButton(),
+                    if (widget.isRecommendedToRemove)
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Checkbox(
+                              value: false, // Visual only for now
+                              onChanged: widget.onRemoveCheckChanged,
+                              activeColor: Colors.red,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4)),
+                            ),
+                            Expanded(
+                              child: Text(
+                                "빼면 월 ${widget.removalSavingsAmount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}원 절감",
+                                style: const TextStyle(
+                                  color: Color(0xFFD32F2F),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (widget.price.isNotEmpty)
+                      Text(
+                        widget.price,
+                        style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF131613)),
+                      )
+                    else
+                      const SizedBox
+                          .shrink(), // Empty placeholder if price is empty
+
+                    if (!widget.isRecommendedToRemove && widget.onAdd != null)
+                      _buildAddButton(),
                   ],
                 ),
               ),

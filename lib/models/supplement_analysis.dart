@@ -32,6 +32,14 @@ class AnalyzeResult {
       usageMetadata: usageMetadata ?? this.usageMetadata,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'products': products.map((e) => e.toJson()).toList(),
+      'confidence': confidence,
+      'notes': notes,
+    };
+  }
 }
 
 class Product {
@@ -39,14 +47,22 @@ class Product {
   final String name;
   final String? nameKo;
   final String servingSize;
+  final String? efficacy; // 제품 주요 효능
   final List<Ingredient> ingredients;
+  final int? estimatedPrice; // Estimated full price (KRW)
+  final int? monthlyPrice; // Estimated monthly cost
+  final int? supplyPeriodMonths; // How many months it lasts
 
   Product({
     required this.brand,
     required this.name,
     this.nameKo,
     required this.servingSize,
+    this.efficacy,
     required this.ingredients,
+    this.estimatedPrice,
+    this.monthlyPrice,
+    this.supplyPeriodMonths,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -55,11 +71,29 @@ class Product {
       name: json['name'] as String? ?? '',
       nameKo: json['name_ko'] as String?,
       servingSize: json['serving_size'] as String? ?? '',
+      efficacy: json['efficacy'] as String?,
       ingredients: (json['ingredients'] as List<dynamic>?)
               ?.map((e) => Ingredient.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
+      estimatedPrice: (json['estimated_price'] as num?)?.round(),
+      monthlyPrice: (json['monthly_price'] as num?)?.round(),
+      supplyPeriodMonths: (json['supply_period_months'] as num?)?.round(),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'brand': brand,
+      'name': name,
+      'name_ko': nameKo,
+      'serving_size': servingSize,
+      'efficacy': efficacy,
+      'ingredients': ingredients.map((e) => e.toJson()).toList(),
+      'estimated_price': estimatedPrice,
+      'monthly_price': monthlyPrice,
+      'supply_period_months': supplyPeriodMonths,
+    };
   }
 }
 
@@ -69,6 +103,7 @@ class Ingredient {
   final double amount;
   final String unit;
   final double? dailyValuePercent;
+  final String? efficacy; // 성분 효능
 
   Ingredient({
     required this.name,
@@ -76,6 +111,7 @@ class Ingredient {
     required this.amount,
     required this.unit,
     this.dailyValuePercent,
+    this.efficacy,
   });
 
   factory Ingredient.fromJson(Map<String, dynamic> json) {
@@ -85,7 +121,19 @@ class Ingredient {
       amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
       unit: json['unit'] as String? ?? '',
       dailyValuePercent: (json['daily_value_percent'] as num?)?.toDouble(),
+      efficacy: json['efficacy'] as String?,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'name_ko': nameKo,
+      'amount': amount,
+      'unit': unit,
+      'daily_value_percent': dailyValuePercent,
+      'efficacy': efficacy,
+    };
   }
 }
 
