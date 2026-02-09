@@ -190,7 +190,11 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
               children: [
                 // 1. Savings Banner
                 SavingsBanner(
-                  savingAmount: _totalSavings,
+                  bannerType: _redundantItemNames.isEmpty ? 'good' : 'savings',
+                  monthlySavings: _totalSavings,
+                  yearlySavings: _totalSavings * 12,
+                  exclusionReason:
+                      widget.consultantResult.exclusionReason ?? '',
                   excludedProductNames: _redundantItemNames,
                 ),
 
@@ -223,19 +227,14 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
 
                     // Tags
                     final tags = <String>[];
-                    if (status == 'SAFE') tags.add(l10n.tagVerified);
-                    if (status == 'WARNING') tags.add(l10n.tagDuplicateWarning);
-                    if (status == 'REDUNDANT') tags.add(l10n.redundant);
+                    // Removed 'Certified' tag as per request
+                    if (status == 'REDUNDANT') tags.add("중복");
 
                     final tagColors = {
-                      l10n.tagVerified: const Color(0xFFE8F5E9),
-                      l10n.tagDuplicateWarning: const Color(0xFFFFF3E0),
-                      l10n.redundant: const Color(0xFFFFEBEE),
+                      "중복": const Color(0xFFFFEBEE),
                     };
                     final tagTextColors = {
-                      l10n.tagVerified: const Color(0xFF2E7D32),
-                      l10n.tagDuplicateWarning: const Color(0xFFE65100),
-                      l10n.redundant: const Color(0xFFC62828),
+                      "중복": const Color(0xFFC62828),
                     };
 
                     // Recommendation Logic

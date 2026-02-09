@@ -3,11 +3,13 @@ class ConsultantResult {
   final List<ExcludedProduct> excludedProducts;
   final int totalMonthlySavings;
   final String reportMarkdown;
+  final String? exclusionReason;
 
   ConsultantResult({
     required this.excludedProducts,
     required this.totalMonthlySavings,
     required this.reportMarkdown,
+    this.exclusionReason,
   });
 
   factory ConsultantResult.fromJson(Map<String, dynamic> json) {
@@ -19,6 +21,7 @@ class ConsultantResult {
       totalMonthlySavings:
           (json['total_monthly_savings'] as num?)?.round() ?? 0,
       reportMarkdown: json['report_markdown'] as String? ?? '',
+      exclusionReason: json['exclusion_reason'] as String?,
     );
   }
 
@@ -27,6 +30,7 @@ class ConsultantResult {
       'excluded_products': excludedProducts.map((e) => e.toJson()).toList(),
       'total_monthly_savings': totalMonthlySavings,
       'report_markdown': reportMarkdown,
+      'exclusion_reason': exclusionReason,
     };
   }
 

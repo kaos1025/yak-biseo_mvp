@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:myapp/l10n/app_localizations.dart';
 
 class ExpandableProductCard extends StatefulWidget {
@@ -159,27 +160,14 @@ class _ExpandableProductCardState extends State<ExpandableProductCard> {
                   children: [
                     if (widget.isRecommendedToRemove)
                       Expanded(
-                        child: Row(
-                          children: [
-                            Checkbox(
-                              value: false, // Visual only for now
-                              onChanged: widget.onRemoveCheckChanged,
-                              activeColor: Colors.red,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4)),
-                            ),
-                            Expanded(
-                              child: Text(
-                                "빼면 월 ${widget.removalSavingsAmount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}원 절감",
-                                style: const TextStyle(
-                                  color: Color(0xFFD32F2F),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          "💰 빼면 월 ${NumberFormat('#,###').format(widget.removalSavingsAmount)}원 절감",
+                          style: TextStyle(
+                            color: Colors.green[700],
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       )
                     else if (widget.price.isNotEmpty)

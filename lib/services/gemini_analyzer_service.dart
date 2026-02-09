@@ -139,6 +139,7 @@ $jsonString
     }
   ],
   "total_monthly_savings": 숫자 (제외 제품들의 monthly_price 합계),
+  "exclusion_reason": "전체적인 제외 권장 이유 요약 (한글, 100자 이내)",
   "report_markdown": "상세 마크다운 리포트 (성분 분석, 중복 점검, 전문가 조언 포함)"
 }
 
