@@ -21,7 +21,8 @@ class AnalysisResultScreen extends StatefulWidget {
 
 class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
   final Set<String> _addedPillNames = {};
-  bool _isReportExpanded = true;
+  bool _isReportExpanded = true; // Default expanded
+  bool _isPremiumUnlocked = false; // Dev/MVP: Unlock premium report
 
   Future<void> _handleSavePill(UnifiedProduct product) async {
     final newPill = KoreanPill(
@@ -205,7 +206,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                                     size: 20, color: Colors.purple),
                               ),
                               const SizedBox(width: 12),
-                              const Text("AI 상세 분석 리포트",
+                              const Text("AI 성분 분석 리포트",
                                   style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold)),
@@ -225,8 +226,8 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                              // Limit height or show partial content
-                              height: 150, // Fixed height for preview
+                              // Limit height if not unlocked
+                              height: _isPremiumUnlocked ? null : 150,
                               child: Text(
                                 // Remove greeting if present manually just in case
                                 widget.result.premiumReport
@@ -239,68 +240,75 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                                     fontSize: 15,
                                     height: 1.6,
                                     color: Color(0xFF424242)),
-                                maxLines: 5,
-                                overflow: TextOverflow.fade,
+                                maxLines: _isPremiumUnlocked ? null : 5,
+                                overflow: _isPremiumUnlocked
+                                    ? TextOverflow.visible
+                                    : TextOverflow.fade,
                               ),
                             ),
-                            // Blur Overlay
-                            Positioned.fill(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    stops: const [0.0, 0.4, 1.0],
-                                    colors: [
-                                      Colors.white.withValues(alpha: 0.0),
-                                      Colors.white.withValues(alpha: 0.5),
-                                      Colors.white.withValues(alpha: 1.0),
+                            // Blur Overlay & Lock (Show only if NOT unlocked)
+                            if (!_isPremiumUnlocked) ...[
+                              Positioned.fill(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      stops: const [0.0, 0.4, 1.0],
+                                      colors: [
+                                        Colors.white.withValues(alpha: 0.0),
+                                        Colors.white.withValues(alpha: 0.5),
+                                        Colors.white.withValues(alpha: 1.0),
+                                      ],
+                                    ),
+                                    borderRadius: const BorderRadius.vertical(
+                                        bottom: Radius.circular(16)),
+                                  ),
+                                ),
+                              ),
+                              Positioned.fill(
+                                child: Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade100,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(Icons.lock_rounded,
+                                            size: 24, color: Colors.grey),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          // Dev Mode: Unlock immediately
+                                          setState(() {
+                                            _isPremiumUnlocked = true;
+                                          });
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                                content: Text(
+                                                    "DEV MODE: 프리미엄 리포트가 해제되었습니다.")),
+                                          );
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.purple,
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(20)),
+                                        ),
+                                        child:
+                                            const Text("전체 리포트 열람하기 (Premium)"),
+                                      ),
                                     ],
                                   ),
-                                  borderRadius: const BorderRadius.vertical(
-                                      bottom: Radius.circular(16)),
                                 ),
                               ),
-                            ),
-                            // Lock Icon & Button
-                            Positioned.fill(
-                              child: Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey.shade100,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(Icons.lock_rounded,
-                                          size: 24, color: Colors.grey),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          const SnackBar(
-                                              content:
-                                                  Text("프리미엄 기능 준비 중입니다.")),
-                                        );
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.purple,
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(20)),
-                                      ),
-                                      child:
-                                          const Text("전체 리포트 열람하기 (Premium)"),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                            ],
                           ],
                         ),
                     ],
