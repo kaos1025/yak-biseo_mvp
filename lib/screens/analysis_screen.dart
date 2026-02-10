@@ -296,20 +296,10 @@ class AnalysisScreen extends StatelessWidget {
           name: p["name"] as String,
           price: p["price"] as String,
           tags: p["tags"] as List<String>,
-          tagColors: {
-            l10n.tagVerified: const Color(0xFFE8F5E9),
-            l10n.tagAiResult: const Color(0xFFE3F2FD),
-            l10n.tagDuplicateWarning: const Color(0xFFFFF3E0),
-            l10n.tagImported: const Color(0xFFF3E5F5),
-            l10n.tagPopular: const Color(0xFFFFEBEE),
-          },
-          tagTextColors: {
-            l10n.tagVerified: const Color(0xFF2E7D32),
-            l10n.tagAiResult: const Color(0xFF1565C0),
-            l10n.tagDuplicateWarning: const Color(0xFFE65100),
-            l10n.tagImported: const Color(0xFF7B1FA2),
-            l10n.tagPopular: const Color(0xFFC62828),
-          },
+          ingredients: "비타민C 1000mg", // Mock data
+          dosage: "1일 1회 1정", // Mock data
+          isAdded: false,
+          onAdd: () {},
         );
       }).toList(),
     );

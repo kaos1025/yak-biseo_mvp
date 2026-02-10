@@ -36,26 +36,18 @@ class _ResultScreenState extends State<ResultScreen> {
       // 1. Image Encoding
       final Uint8List imageBytes = await widget.image.readAsBytes();
 
-      // 2. Step 1: Analyze Ingredients (JSON)
-      // This is the "Fast" step (relatively)
-      final jsonResult = await _analyzerService.analyzeImage(imageBytes);
-
-      // 3. Step 2: Consultant Analysis (JSON with markdown report)
-      final consultantResult =
-          await _analyzerService.analyzeImageWithConsultantMode(
-        imageBytes,
-        previousAnalysis: jsonResult,
-      );
+      // 2. Unified Analysis (Single Step)
+      final unifiedResult =
+          await _analyzerService.analyzeSupplements(imageBytes);
 
       if (!mounted) return;
 
-      // 4. Navigate to Result Screen
+      // 3. Navigate to Result Screen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => AnalysisResultScreen(
-            result: jsonResult,
-            consultantResult: consultantResult,
+            result: unifiedResult,
           ),
         ),
       );

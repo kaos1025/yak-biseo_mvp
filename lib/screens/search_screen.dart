@@ -298,10 +298,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                       // Since this is MVP search, maybe we don't show price or show "Info".
                                       price: l10n.viewDetails,
                                       tags: const [], // Mock tags for search list
-                                      tagColors: const {},
-                                      tagTextColors: const {},
-                                      backgroundColor: Colors.white.withAlpha(
-                                          217), // 0.85 * 255 = 216.75
+                                      status: 'safe', // Default for search
                                       ingredients: ingredients,
                                       imageUrl: pill.imageUrl,
                                       onAdd: () => _addToCabinet(pill),

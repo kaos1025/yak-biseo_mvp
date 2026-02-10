@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/supplement_analysis.dart';
 import '../models/consultant_result.dart';
+import '../models/unified_analysis_result.dart';
 
 class GeminiAnalyzerService {
   final List<String> _apiKeys = [];
@@ -142,8 +143,24 @@ $jsonString
   ],
   "total_monthly_savings": 숫자 (제외 제품들의 monthly_savings 합계),
   "exclusion_reason": "전체적인 제외 권장 이유 요약 (한글, 100자 이내)",
-  "report_markdown": "상세 마크다운 리포트 (성분 분석, 중복 점검, 전문가 조언 포함)"
+  "report_markdown": "상세 마크다운 리포트 (성분 분석, 중복 점검, 전문가 조언 포함)",
+  "products_ui": [
+    {
+      "name": "제품의 name 필드 값 (영문 그대로)",
+      "status": "danger | safe",
+      "reason": "status가 danger일 경우, 제외 권장 이유 (한글, 1-2문장)"
+    }
+  ]
 }
+
+### products_ui[].status
+- "danger": 명확한 중복이거나 심각한 상한 초과로 **제외를 강력히 권장**하는 경우.
+- "safe": 섭취해도 무방한 경우.
+
+## 🛑 최종 확인 (Final Check)
+- 당신의 응답은 반드시 `{` 문자로 시작해야 합니다.
+- `report_markdown` 내용은 JSON 내부의 "문자열(String)"이어야 합니다. 마크다운을 JSON 밖으로 꺼내지 마세요.
+- 인사말이나 부연 설명을 절대 추가하지 마세요.
 
 report_markdown 내용:
 1. 영양제 성분 분석 및 필요성 평가 (필수/권장/선택/불필요)
@@ -267,19 +284,25 @@ report_markdown 내용:
     throw Exception('API 요청 실패: 모든 키 시도 완료');
   }
 
-  /// JSON 문자열 정리 (Markdown 코드 블록 제거)
+  /// JSON 문자열 정리 (Markdown 코드 블록 제거 및 순수 JSON 추출)
   String _cleanJsonString(String text) {
-    String clean = text.trim();
-    if (clean.startsWith('```json')) {
-      clean = clean.replaceAll('```json', '').replaceAll('```', '');
-    } else if (clean.startsWith('```')) {
-      clean = clean.replaceAll('```', '');
+    String clean = text;
+
+    // 1. Find the first '{' and last '}'
+    final startIndex = clean.indexOf('{');
+    final endIndex = clean.lastIndexOf('}');
+
+    // 2. If valid JSON brackets allow extraction
+    if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
+      return clean.substring(startIndex, endIndex + 1);
     }
+
+    // 3. Fallback: Try removing markdown if brackets weren't found (rare case)
+    clean = clean.replaceAll('```json', '').replaceAll('```', '');
     return clean.trim();
   }
 
   /// 일관성 테스트 (Consistency Test)
-  /// [iterations] 횟수만큼 반복 요청하여 결과의 일관성을 검증합니다.
   Future<Map<String, dynamic>> consistencyTest(Uint8List imageBytes,
       {int iterations = 5}) async {
     final results = <AnalyzeResult>[];
@@ -290,6 +313,10 @@ report_markdown 내용:
 
     for (var i = 0; i < iterations; i++) {
       try {
+        // Use standard analyzeImage (old method) or new?
+        // consistencyTest was using analyzeImage which returns AnalyzeResult.
+        // analyzeImage is still there (lines 87-102 of original).
+        // So this is fine.
         final result = await analyzeImage(imageBytes);
         results.add(result);
         successCount++;
@@ -300,7 +327,6 @@ report_markdown 내용:
 
     final duration = DateTime.now().difference(startTime);
 
-    // 간단한 일관성 점수 계산 (성분 개수가 동일하면 +점수)
     double consistencyScore = 0.0;
     if (successCount > 1) {
       int consistentCount = 0;
@@ -315,7 +341,7 @@ report_markdown 내용:
       }
       consistencyScore = (consistentCount + 1) / results.length * 100;
     } else if (successCount == 1) {
-      consistencyScore = 100.0; // 비교 대상이 없으므로 일단 100
+      consistencyScore = 100.0;
     }
 
     return {
@@ -326,5 +352,109 @@ report_markdown 내용:
       'errors': errors,
       'results': results,
     };
+  }
+
+  static const String _unifiedPrompt = '''
+당신은 대한민국 약사(Pharmacist)이자 건강기능식품 분석 전문가입니다.
+첨부된 영양제 라벨 이미지를 분석하여 **오직 JSON 형식**으로만 출력하세요.
+
+## 🎯 분석 목표
+사용자가 복용 중인 영양제들의 성분을 분석하여 **중복 섭취**, **상한량 초과** 위험을 알리고, 불필요한 제품을 제외했을 때의 **경제적 이득(절감액)**을 계산해줍니다.
+
+## ⚠️ 필수 규칙 (Strict Rules)
+1.  **순수 JSON 반환**: 
+    -   출력 결과의 **첫 글자는 반드시 `{`** 여야 합니다.
+    -   Markdown 코드 블록(```json)을 사용하지 마세요. 그냥 raw text로 JSON만 출력하세요.
+    -   "안녕하세요", "분석 결과입니다" 등의 사족을 절대 달지 마세요.
+2.  **화폐 단위**: 모든 가격 정보(`original_price`, `monthly_price`, `monthly_savings` 등)는 반드시 **대한민국 원화(KRW)** 기준입니다.
+    -   **절대 주의**: "4원", "15원" 같은 비현실적인 소액은 허용하지 않습니다.
+    -   가격 정보가 없으면 Google Search를 통해 한국 내 일반적인 판매가를 검색하여 추정하세요. (예: 1개월분 30,000원 등)
+    -   최소 단위는 100원 단위로 반올림하세요. (예: 32450 -> 32500)
+3.  **상한량 판단**: 
+    -   특정 수치에 기계적으로 얽매이지 말고, **성인의 일반적인 일일 상한 섭취량(UL)**을 기준으로 유연하게 판단하세요.
+    -   단순히 성분이 겹친다고 무조건 제외하지 말고, 총 함량이 건강에 위해를 줄 수 있는 수준인지 고려하세요.
+4.  **성분 추출**:
+    -   라벨에 "Ingredients" 또는 "Supplement Facts"가 보이면 최대한 상세히 추출하세요.
+    -   라벨이 잘 안 보이면 Google Search를 통해 해당 제품명(`brand` + `name`)의 성분 정보를 보완하세요.
+5.  **언어**:
+    -   분석 리포트(`premium_report`)와 이유(`exclusion_reason`)는 한국어로, 약사가 상담하듯 친절하고 전문적으로 작성하세요.
+    -   `premium_report` 내용은 JSON 문자열 값 내부여야 합니다.
+
+## 출력 JSON 구조 (Strict)
+
+```json
+{
+  "products": [
+    {
+      "brand": "브랜드명 (영어/한글)",
+      "name": "제품명 (영어/한글)",
+      "ingredients": [
+        {"name": "성분명", "amount": 숫자, "unit": "mg/mcg/IU 등"}
+      ],
+      "estimated_monthly_price": 월환산가격(KRW_숫자),
+      "original_price": 제품판매가격(KRW_숫자, 검색 또는 추정, 최소 1000원 이상),
+      "duration_months": 섭취기간(숫자, 예: 2개월분이면 2),
+      "dosage": "섭취방법 (예: 1일 1회 1정)"
+    }
+  ],
+  "analysis": {
+    "banner_type": "savings 또는 good",
+    "has_duplicate": true/false,
+    "has_over_limit": true/false,
+    "excluded_product": "제외권장 제품명 또는 null",
+    "monthly_savings": 월환산_월절감총액(KRW_숫자),
+    "yearly_savings": 연간절감총액(KRW_숫자),
+    "exclusion_reason": "핵심 제외 이유 1문장 요약",
+    "duplicate_ingredients": ["중복성분명1", "중복성분명2"],
+    "over_limit_ingredients": [
+      {"name": "성분명", "total": 총함량, "limit": 상한기준, "unit": "단위"}
+    ]
+  },
+  "products_ui": [
+    {
+      "name": "제품명",
+      "brand": "브랜드명", 
+      "status": "danger 또는 safe",
+      "tag": "중복 또는 null",
+      "monthly_price": 월환산가격(KRW_숫자)
+    }
+  ],
+  "premium_report": "## 💊 전문 약사 상세 분석 리포트\\n\\n(여기에 500자 이상 상세히 작성)\\n1. **성분 종합 평가**: 현재 조합의 장단점\\n2. **중복/과다 섭취 분석**: 구체적인 수치와 위험성 설명\\n3. **제외 제안 및 근거**: 왜 이 제품을 빼는 게 좋은지 경제적/건강적 이득 설명\\n4. **섭취 가이드**: 식후 섭취 등 팁"
+}
+```
+
+## 필드 가이드
+
+### products_ui[].status
+- "danger": 명확한 중복이거나 심각한 상한 초과로 **제외를 강력히 권장**하는 경우.
+- "safe": 섭취해도 무방한 경우.
+
+## 🛑 최종 확인 (Final Check)
+- 당신의 응답은 반드시 `{` 문자로 시작해야 합니다.
+- `premium_report` 내용은 JSON 내부의 "문자열(String)"이어야 합니다. 마크다운을 JSON 밖으로 꺼내지 마세요.
+- 인사말이나 부연 설명을 절대 추가하지 마세요.
+''';
+
+  /// Unified Single-Step Analysis
+  Future<UnifiedAnalysisResult> analyzeSupplements(Uint8List imageBytes) async {
+    try {
+      final jsonText = await _sendRestRequest(
+        prompt: _unifiedPrompt,
+        imageBytes: imageBytes,
+        responseMimeType: 'application/json', // Force JSON mime type
+      );
+
+      final cleanJson = _cleanJsonString(jsonText);
+      final json = jsonDecode(cleanJson);
+      return UnifiedAnalysisResult.fromJson(json);
+    } catch (e) {
+      if (e is FormatException) {
+        // Retry once with a simpler prompt or just re-throw with clear message
+        // For now, let's allow the UI to show the error but make it clearer
+        throw Exception(
+            'AI가 올바른 형식으로 응답하지 않았습니다. 다시 시도해주세요. (Error: ${e.message})');
+      }
+      throw Exception('Unified Analysis Failed: $e');
+    }
   }
 }

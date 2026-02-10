@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/models/supplement_analysis.dart';
-import 'package:myapp/models/consultant_result.dart';
+import 'package:myapp/models/unified_analysis_result.dart';
 import 'package:myapp/models/pill.dart';
 import 'package:myapp/services/my_pill_service.dart';
 import 'package:myapp/widgets/expandable_product_card.dart';
@@ -9,13 +8,11 @@ import 'package:myapp/widgets/warning_banner.dart';
 import 'package:myapp/l10n/app_localizations.dart';
 
 class AnalysisResultScreen extends StatefulWidget {
-  final AnalyzeResult result;
-  final ConsultantResult consultantResult;
+  final UnifiedAnalysisResult result;
 
   const AnalysisResultScreen({
     super.key,
     required this.result,
-    required this.consultantResult,
   });
 
   @override
@@ -24,105 +21,20 @@ class AnalysisResultScreen extends StatefulWidget {
 
 class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
   final Set<String> _addedPillNames = {};
-  final Map<String, String> _productStatus = {}; // SAFE, WARNING, REDUNDANT
-  List<String> _redundantItemNames = []; // Names of redundant items for banner
   bool _isReportExpanded = true;
-  int _totalSavings = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _checkRedundancy();
-    _parseReportForWarnings(); // Placeholder for future advanced parsing
-  }
-
-  Future<void> _checkRedundancy() async {
-    // Initialize all products as SAFE
-    // REDUNDANT status is determined ONLY by AI report analysis (업로드된 사진만 기준)
-    if (!mounted) return;
-
-    setState(() {
-      for (var product in widget.result.products) {
-        _productStatus[product.name] = 'SAFE';
-      }
-      _totalSavings = 0;
-      _redundantItemNames = [];
-    });
-
-    // Parse AI Report - the ONLY source of truth for REDUNDANT and savings
-    _parseReportAndApplyRecommendations();
-  }
-
-  void _parseReportAndApplyRecommendations() {
-    final excludedProducts = widget.consultantResult.excludedProducts;
-    if (excludedProducts.isEmpty) return;
-
-    // Process each excluded product from the JSON
-    for (var excluded in excludedProducts) {
-      final excludedNameLower = excluded.name.toLowerCase();
-
-      // Find matching product in the analysis result
-      for (var product in widget.result.products) {
-        if (_productStatus[product.name] == 'REDUNDANT') continue;
-
-        // Check for match (exact or partial)
-        final productNameLower = product.name.toLowerCase();
-        final isMatch = productNameLower == excludedNameLower ||
-            productNameLower.contains(excludedNameLower) ||
-            excludedNameLower.contains(productNameLower);
-
-        if (isMatch) {
-          if (!mounted) return;
-
-          setState(() {
-            _productStatus[product.name] = 'REDUNDANT';
-
-            if (!_redundantItemNames.contains(product.nameKo ?? product.name)) {
-              // Use monthly_savings from JSON, fallback to product data
-              int savings = excluded.monthlySavings;
-              if (savings <= 0) {
-                if (product.monthlyPrice != null && product.monthlyPrice! > 0) {
-                  savings = product.monthlyPrice!;
-                } else if (product.estimatedPrice != null &&
-                    product.estimatedPrice! > 0) {
-                  savings = (product.estimatedPrice! /
-                          (product.supplyPeriodMonths ?? 1))
-                      .round();
-                }
-              }
-
-              _totalSavings += savings;
-              _redundantItemNames.add(product.nameKo ?? product.name);
-            }
-          });
-          break; // Found match, move to next excluded product
-        }
-      }
-    }
-
-    // Override total savings from JSON if provided
-    if (widget.consultantResult.totalMonthlySavings > 0) {
-      setState(() {
-        _totalSavings = widget.consultantResult.totalMonthlySavings;
-      });
-    }
-  }
-
-  void _parseReportForWarnings() {
-    // TODO: Parse the "⚠️ 주의 성분" section from widget.report string
-  }
-
-  Future<void> _handleSavePill(Product product) async {
+  Future<void> _handleSavePill(UnifiedProduct product) async {
     final newPill = KoreanPill(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
-      name: product.nameKo ?? product.name,
+      name: product
+          .name, // UnifiedProduct has name (no nameKo separate field in user prompt, maybe check prompt)
       brand: product.brand,
-      dailyDosage: product.servingSize,
+      dailyDosage:
+          '', // prompt didn't strictly have serving_size in Products list? Wait.
       category: 'General',
       ingredients: product.ingredients
-          .map((i) => i.amount > 0
-              ? '${i.nameKo ?? i.name} (${i.amount}${i.unit})'
-              : i.nameKo ?? i.name)
+          .map(
+              (i) => i.amount > 0 ? '${i.name} (${i.amount}${i.unit})' : i.name)
           .join(', '),
       imageUrl: '',
     );
@@ -146,21 +58,15 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final analysis = widget.result.analysis;
+    final productsUI = widget.result.productsUI;
+    final rawProducts = widget.result.products;
 
-    // Sort products: REDUNDANT -> WARNING -> SAFE
-    final sortedProducts = List<Product>.from(widget.result.products);
-    sortedProducts.sort((a, b) {
-      final statusA = _productStatus[a.name] ?? 'SAFE';
-      final statusB = _productStatus[b.name] ?? 'SAFE';
-
-      int score(String s) {
-        if (s == 'REDUNDANT') return 0;
-        if (s == 'WARNING') return 1;
-        return 2;
-      }
-
-      return score(statusA).compareTo(score(statusB));
-    });
+    // Collect excluded product names for banner
+    final excludedNames = productsUI
+        .where((p) => p.status == 'danger')
+        .map((p) => p.name)
+        .toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -180,31 +86,27 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
         children: [
           SingleChildScrollView(
             padding: const EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: 100), // Add bottom padding for button
+                left: 20, right: 20, top: 20, bottom: 100),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // 1. Savings Banner
                 SavingsBanner(
-                  bannerType: _redundantItemNames.isEmpty ? 'good' : 'savings',
-                  monthlySavings: _totalSavings,
-                  yearlySavings: _totalSavings * 12,
-                  exclusionReason:
-                      widget.consultantResult.exclusionReason ?? '',
-                  excludedProductNames: _redundantItemNames,
+                  bannerType: analysis.bannerType,
+                  monthlySavings: analysis.monthlySavings,
+                  yearlySavings: analysis.yearlySavings,
+                  exclusionReason: analysis.exclusionReason ?? '',
+                  excludedProductNames: excludedNames,
                 ),
 
-                // 2. Warning Banners (Mock for Demo/Parsing placeholder)
-                if (widget.consultantResult.reportMarkdown.contains("주의 성분") &&
-                    widget.consultantResult.reportMarkdown.contains("마그네슘"))
-                  const WarningBanner(
-                    ingredientName: "마그네슘",
-                    currentAmount: "595mg",
-                    limitAmount: "350mg",
-                  ),
+                // 2. Warning Banners
+                ...analysis.overLimitIngredients
+                    .map((ingredient) => WarningBanner(
+                          ingredientName: ingredient.name,
+                          currentAmount:
+                              "${ingredient.total}${ingredient.unit}",
+                          limitAmount: "${ingredient.limit}${ingredient.unit}",
+                        )),
 
                 const SizedBox(height: 10),
 
@@ -217,62 +119,51 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                 ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: sortedProducts.length,
+                  itemCount: productsUI.length,
                   itemBuilder: (context, index) {
-                    final product = sortedProducts[index];
-                    final status = _productStatus[product.name] ?? 'SAFE';
-                    final isAdded = _addedPillNames
-                        .contains(product.nameKo ?? product.name);
+                    final uiProduct = productsUI[index];
+                    // Find detailed info
+                    final rawProduct = rawProducts.firstWhere(
+                      (p) =>
+                          p.name.trim().toLowerCase() ==
+                              uiProduct.name.trim().toLowerCase() ||
+                          (uiProduct.name.contains(p.name) ||
+                              p.name.contains(uiProduct.name)),
+                      orElse: () => UnifiedProduct(
+                          brand: uiProduct.brand,
+                          name: uiProduct.name,
+                          ingredients: [],
+                          estimatedMonthlyPrice: 0),
+                    );
+
+                    final isAdded = _addedPillNames.contains(uiProduct.name);
+                    final isRedundant = uiProduct.status == 'danger';
 
                     // Tags
                     final tags = <String>[];
-                    // Removed 'Certified' tag as per request
-                    if (status == 'REDUNDANT') tags.add("중복");
+                    if (uiProduct.tag != null) tags.add(uiProduct.tag!);
 
-                    final tagColors = {
-                      "중복": const Color(0xFFFFEBEE),
-                    };
-                    final tagTextColors = {
-                      "중복": const Color(0xFFC62828),
-                    };
-
-                    // Recommendation Logic
-                    final isRedundant = status == 'REDUNDANT';
-
-                    // Lookup extended info from ConsultantResult
-                    final excludedProduct = widget
-                        .consultantResult.excludedProducts
-                        .firstWhere((e) => e.name == product.name,
-                            orElse: () => ExcludedProduct(
-                                name: '', reason: '', monthlySavings: 0));
-
-                    Color? cardBgColor = Colors.white;
-                    if (isRedundant) cardBgColor = const Color(0xFFFFEBEE);
-
-                    String ingredientsSummary = product.ingredients
+                    String ingredientsSummary = rawProduct.ingredients
                         .map((i) => i.amount > 0
-                            ? '${i.nameKo ?? i.name} (${i.amount}${i.unit})'
-                            : i.nameKo ?? i.name)
+                            ? '${i.name} (${i.amount}${i.unit})'
+                            : i.name)
                         .join(', ');
 
                     return ExpandableProductCard(
-                      backgroundColor: cardBgColor,
-                      brand: product.brand,
-                      name: product.nameKo ?? product.name,
-                      price:
-                          "", // Price info not needed for non-redundant items per user request
-                      imageUrl: null, // Product model does not have image field
+                      status: uiProduct.status,
+                      brand: uiProduct.brand,
+                      name: uiProduct.name,
+                      price: "",
+                      imageUrl: null,
                       tags: tags,
-                      tagColors: tagColors,
-                      tagTextColors: tagTextColors,
                       ingredients: ingredientsSummary,
-                      dosage: product.servingSize, // Correct field
+                      dosage: rawProduct.dosage ?? "섭취방법 정보 없음",
                       isAdded: isAdded,
-                      onAdd: () => _handleSavePill(product), // Correct method
+                      onAdd: () => _handleSavePill(rawProduct),
                       isRecommendedToRemove: isRedundant,
-                      removalSavingsAmount: excludedProduct.monthlySavings,
-                      originalPrice: excludedProduct.originalPrice,
-                      durationMonths: excludedProduct.durationMonths,
+                      removalSavingsAmount: uiProduct.monthlyPrice,
+                      originalPrice: rawProduct.originalPrice,
+                      durationMonths: rawProduct.durationMonths,
                     );
                   },
                 ),
@@ -295,6 +186,8 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                     children: [
                       InkWell(
                         onTap: () {
+                          // Toggle expanded state logic if we want to allow user to try to open it
+                          // For now, let's keep it 'open' but blurred at bottom
                           setState(() {
                             _isReportExpanded = !_isReportExpanded;
                           });
@@ -327,16 +220,88 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                         ),
                       ),
                       if (_isReportExpanded)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                          child: SelectableText(
-                            widget.consultantResult.reportMarkdown,
-                            style: const TextStyle(
-                                fontSize: 15,
-                                height: 1.6,
-                                color: Color(0xFF424242)),
-                          ),
+                        Stack(
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                              // Limit height or show partial content
+                              height: 150, // Fixed height for preview
+                              child: Text(
+                                // Remove greeting if present manually just in case
+                                widget.result.premiumReport
+                                    .replaceAll(
+                                        RegExp(r'^안녕하세요.*?\n',
+                                            multiLine: true, dotAll: true),
+                                        '')
+                                    .trim(),
+                                style: const TextStyle(
+                                    fontSize: 15,
+                                    height: 1.6,
+                                    color: Color(0xFF424242)),
+                                maxLines: 5,
+                                overflow: TextOverflow.fade,
+                              ),
+                            ),
+                            // Blur Overlay
+                            Positioned.fill(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    stops: const [0.0, 0.4, 1.0],
+                                    colors: [
+                                      Colors.white.withValues(alpha: 0.0),
+                                      Colors.white.withValues(alpha: 0.5),
+                                      Colors.white.withValues(alpha: 1.0),
+                                    ],
+                                  ),
+                                  borderRadius: const BorderRadius.vertical(
+                                      bottom: Radius.circular(16)),
+                                ),
+                              ),
+                            ),
+                            // Lock Icon & Button
+                            Positioned.fill(
+                              child: Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade100,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.lock_rounded,
+                                          size: 24, color: Colors.grey),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                              content:
+                                                  Text("프리미엄 기능 준비 중입니다.")),
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.purple,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(20)),
+                                      ),
+                                      child:
+                                          const Text("전체 리포트 열람하기 (Premium)"),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                     ],
                   ),

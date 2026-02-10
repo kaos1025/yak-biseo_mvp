@@ -26,7 +26,8 @@ class WarningBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.warning_amber_rounded, color: Color(0xFFD32F2F)),
+          const Icon(Icons.warning_amber_rounded,
+              size: 32, color: Color(0xFFD32F2F)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -48,17 +49,24 @@ class WarningBanner extends StatelessWidget {
                     children: [
                       TextSpan(
                           text: ingredientName,
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                          style: const TextStyle(fontWeight: FontWeight.w800)),
                       const TextSpan(text: " "),
                       TextSpan(
                           text: currentAmount,
                           style: const TextStyle(
+                              fontWeight: FontWeight.bold,
                               decoration: TextDecoration.underline)),
                       const TextSpan(text: " (상한 "),
                       TextSpan(
                           text: limitAmount,
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
-                      const TextSpan(text: " 초과)"),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFFB71C1C))),
+                      const TextSpan(
+                          text: " 초과)",
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFB71C1C))),
                     ],
                   ),
                 ),
