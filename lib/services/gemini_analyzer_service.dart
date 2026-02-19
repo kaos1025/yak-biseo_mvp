@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/supplement_analysis.dart';
 import '../models/consultant_result.dart';
+import '../models/supplement_product.dart';
 import '../models/unified_analysis_result.dart';
 
 class GeminiAnalyzerService {
@@ -192,7 +193,7 @@ report_markdown 내용:
   /// 공통 REST API 요청 헬퍼 (Retry + Key Rotation + Grounding)
   Future<String> _sendRestRequest({
     required String prompt,
-    required Uint8List imageBytes,
+    Uint8List? imageBytes, // Changed to nullable
     required String responseMimeType,
   }) async {
     int keysTriedCount = 0;
@@ -203,22 +204,25 @@ report_markdown 내용:
           'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$_currentApiKey');
 
       try {
+        final List<Map<String, dynamic>> parts = [
+          {"text": prompt}
+        ];
+
+        if (imageBytes != null && imageBytes.isNotEmpty) {
+          parts.add({
+            "inline_data": {
+              "mime_type": "image/jpeg",
+              "data": base64Encode(imageBytes)
+            }
+          });
+        }
+
         final response = await http.post(
           url,
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
             "contents": [
-              {
-                "parts": [
-                  {"text": prompt},
-                  {
-                    "inline_data": {
-                      "mime_type": "image/jpeg",
-                      "data": base64Encode(imageBytes)
-                    }
-                  }
-                ]
-              }
+              {"parts": parts}
             ],
             "tools": [
               {
@@ -288,17 +292,20 @@ report_markdown 내용:
   String _cleanJsonString(String text) {
     String clean = text;
 
-    // 1. Find the first '{' and last '}'
+    // 1. Remove Markdown code blocks first
+    clean = clean
+        .replaceAll(RegExp(r'```json', caseSensitive: false), '')
+        .replaceAll(RegExp(r'```', caseSensitive: false), '');
+
+    // 2. Find the first '{' and last '}'
     final startIndex = clean.indexOf('{');
     final endIndex = clean.lastIndexOf('}');
 
-    // 2. If valid JSON brackets allow extraction
+    // 3. If valid JSON brackets allow extraction
     if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
       return clean.substring(startIndex, endIndex + 1);
     }
 
-    // 3. Fallback: Try removing markdown if brackets weren't found (rare case)
-    clean = clean.replaceAll('```json', '').replaceAll('```', '');
     return clean.trim();
   }
 
@@ -366,6 +373,8 @@ report_markdown 내용:
     -   출력 결과의 **첫 글자는 반드시 `{`** 여야 합니다.
     -   Markdown 코드 블록(```json)을 사용하지 마세요. 그냥 raw text로 JSON만 출력하세요.
     -   "안녕하세요", "분석 결과입니다" 등의 사족을 절대 달지 마세요.
+    -   **중요**: 문자열 내의 큰따옴표(")는 반드시 역슬래시(\)로 이스케이프 처리하세요.
+    -   배열(List)의 마지막 항목 뒤에 쉼표(,)를 남기지 마세요 (No Trailing Commas).
 2.  **화폐 단위**: 모든 가격 정보(`original_price`, `monthly_price`, `monthly_savings` 등)는 반드시 **대한민국 원화(KRW)** 기준입니다.
     -   **절대 주의**: "4원", "15원" 같은 비현실적인 소액은 허용하지 않습니다.
     -   가격 정보가 없으면 Google Search를 통해 한국 내 일반적인 판매가를 검색하여 추정하세요. (예: 1개월분 30,000원 등)
@@ -421,8 +430,7 @@ report_markdown 내용:
       "tag": "중복 또는 null",
       "monthly_price": 월환산가격(KRW_숫자)
     }
-  ],
-  "premium_report": "## 🤖 AI 성분 분석 리포트\\n\\n(여기에 500자 이상 상세히 작성)\\n1. **성분 종합 평가**: 현재 조합의 장단점\\n2. **중복/과다 섭취 분석**: 구체적인 수치와 위험성 설명\\n3. **제외 제안 및 근거**: 왜 이 제품을 빼는 게 좋을지 경제적/건강적 이득 설명 (중립적 제안)\\n4. **섭취 가이드**: 식후 섭취 등 팁\\n\\n*본 분석 결과는 AI에 의한 것으로 의학적 진단을 대신할 수 없습니다.*"
+  ]
 }
 ```
 
@@ -434,8 +442,39 @@ report_markdown 내용:
 
 ## 🛑 최종 확인 (Final Check)
 - 당신의 응답은 반드시 `{` 문자로 시작해야 합니다.
-- `premium_report` 내용은 JSON 내부의 "문자열(String)"이어야 합니다. 마크다운을 JSON 밖으로 꺼내지 마세요.
 - 인사말이나 부연 설명을 절대 추가하지 마세요.
+''';
+
+  static const String _premiumReportPrompt = '''
+당신은 대한민국 최고의 약사(Pharmacist)이자 헬스케어 전문가입니다.
+사용자의 영양제 조합 분석 결과를 바탕으로, 돈을 지불한 프리미엄 사용자를 위한 **심층 분석 리포트**를 작성하세요.
+
+## 📋 분석 데이터 (JSON)
+{{JSON_DATA}}
+
+## ✍️ 리포트 작성 가이드
+다음 4가지 섹션으로 구성된 마크다운(Markdown) 리포트를 작성하세요.
+
+1.  **💊 성분 종합 평가 (Overall Evaluation)**
+    -   현재 조합의 장점과 아쉬운 점을 명확히 설명하세요.
+    -   "전반적으로 균형 잡혀 있습니다" 또는 "과다 섭취가 우려됩니다" 등 결론 제시.
+
+2.  **⚠️ 중복/과다 섭취 심층 분석**
+    -   위 데이터에서 `has_duplicate` 또는 `has_over_limit`가 true인 경우, 어떤 성분이 얼마나 기준치를 초과했는지 구체적으로 설명하세요.
+    -   건강에 미칠 수 있는 구체적인 영향(부작용)을 경고하세요.
+
+3.  **📉 최적화 및 제외 제안 (Optimization)**
+    -   `excluded_product`가 있다면, 왜 이 제품을 빼는 것이 좋은지 **경제적 이득(월 절감액)**과 **건강 이득** 관점에서 설득력 있게 설명하세요.
+
+4.  **💡 전문 섭취 가이드 (Timing & Tips)**
+    -   식후/식전, 아침/저녁 등 구체적인 섭취 타이밍을 제안하세요.
+    -   성분 간의 궁합(시너지/상충) 정보를 제공하세요.
+
+## 🛑 필수 규칙
+-   **톤앤매너**: 전문적이고 신뢰감 있게, 하지만 이해하기 쉽게(친절하게).
+-   **형식**: 순수 마크다운(Markdown) 텍스트만 출력하세요. JSON 형식이 아닙니다.
+-   인사말("안녕하세요 AI입니다")은 생략하고 바로 리포트 본문(제목 포함)부터 시작하세요.
+-   제목은 `## 📝 프리미엄 상세 분석 리포트` 로 시작하세요.
 ''';
 
   /// Unified Single-Step Analysis
@@ -448,16 +487,136 @@ report_markdown 내용:
       );
 
       final cleanJson = _cleanJsonString(jsonText);
+      // Debug print to see raw output if parsing fails
+      // print("Cleaned JSON: $cleanJson");
+
       final json = jsonDecode(cleanJson);
       return UnifiedAnalysisResult.fromJson(json);
     } catch (e) {
       if (e is FormatException) {
         // Retry once with a simpler prompt or just re-throw with clear message
         // For now, let's allow the UI to show the error but make it clearer
-        throw Exception(
-            'AI가 올바른 형식으로 응답하지 않았습니다. 다시 시도해주세요. (Error: ${e.message})');
+        throw Exception('AI 응답 형식이 올바르지 않습니다. (JSON Parsing Error)');
       }
       throw Exception('Unified Analysis Failed: $e');
+    }
+  }
+
+  /// Step 2: Generate Premium Report (Paid)
+  Future<String> generatePremiumReport(UnifiedAnalysisResult result) async {
+    try {
+      final summary = _createSummaryFromResult(result);
+      final prompt = _premiumReportPrompt.replaceAll('{{JSON_DATA}}', summary);
+
+      final reportMarkdown = await _sendRestRequest(
+        prompt: prompt,
+        imageBytes: null, // No image needed
+        responseMimeType: 'text/plain',
+      );
+
+      return reportMarkdown;
+    } catch (e) {
+      throw Exception('Premium Report Generation Failed: $e');
+    }
+  }
+
+  String _createSummaryFromResult(UnifiedAnalysisResult result) {
+    // Helper to allow AI to understand the context
+    // Using jsonEncode to safe-guard against unescaped quotes
+    final Map<String, dynamic> summaryMap = {
+      "products": result.products
+          .map((p) => {
+                "brand": p.brand,
+                "name": p.name,
+                "ingredients": p.ingredients
+                    .map((i) => "${i.name} ${i.amount}${i.unit}")
+                    .toList(),
+              })
+          .toList(),
+      "analysis": {
+        "has_duplicate": result.analysis.hasDuplicate,
+        "has_over_limit": result.analysis.hasOverLimit,
+        "excluded_product": result.analysis.excludedProduct,
+        "monthly_savings": result.analysis.monthlySavings,
+        "duplicate_ingredients": result.analysis.duplicateIngredients,
+        "over_limit_ingredients": result.analysis.overLimitIngredients
+            .map((i) => "${i.name} (Total: ${i.total}, Limit: ${i.limit})")
+            .toList(),
+      }
+    };
+
+    return jsonEncode(summaryMap);
+  }
+
+  /// 로컬 DB 영양제 중복 성분 분석
+  ///
+  /// [products] 사용자가 선택한 영양제 제품 목록
+  /// 반환: Gemini 분석 결과 (중복 성분, 상한 초과, 제외 권장 등)
+  Future<Map<String, dynamic>> analyzeRedundancy(
+      List<SupplementProduct> products) async {
+    if (products.isEmpty) {
+      return {'error': '분석할 제품이 없습니다.'};
+    }
+
+    // 제품 정보를 Gemini context로 변환
+    final contextLines =
+        products.map((p) => p.toGeminiContext()).join('\n---\n');
+
+    final prompt = '''
+당신은 영양제 성분 중복 분석 전문가입니다.
+
+## 분석 대상 영양제 목록
+$contextLines
+
+## 분석 요청
+위 영양제들을 동시에 복용할 때:
+1. **중복 성분**: 2개 이상 제품에 포함된 동일 성분 찾기
+2. **총 합산 함량**: 중복 성분의 합산 함량이 일일 상한 섭취량(UL)을 초과하는지 확인
+3. **제외 권장 제품**: 불필요한 중복으로 제외 가능한 제품 판단
+
+## 출력 형식 (JSON)
+{
+  "duplicate_ingredients": [
+    {
+      "name": "성분명",
+      "products": ["제품명1", "제품명2"],
+      "total_amount": 총합산함량(숫자),
+      "unit": "단위",
+      "daily_upper_limit": 일일상한(숫자 또는 null),
+      "risk_level": "safe | warning | danger"
+    }
+  ],
+  "excluded_products": [
+    {
+      "name": "제외 권장 제품명",
+      "reason": "제외 이유 (한글, 1-2문장)"
+    }
+  ],
+  "overall_assessment": "전체적인 평가 (한글, 2-3문장)",
+  "synergy_tips": "섭취 시너지 팁 (한글, 1-2문장)"
+}
+
+## 규칙
+- 순수 JSON만 반환. 첫 글자는 반드시 {
+- 중복이 없으면 duplicate_ingredients를 빈 배열 []로
+- 언어: 한국어
+''';
+
+    try {
+      final responseText = await _sendRestRequest(
+        prompt: prompt,
+        responseMimeType: 'text/plain',
+      );
+
+      final cleanedJson = _cleanJsonString(responseText);
+      return jsonDecode(cleanedJson) as Map<String, dynamic>;
+    } catch (e) {
+      return {
+        'error': '중복 분석 실패: $e',
+        'duplicate_ingredients': <Map<String, dynamic>>[],
+        'excluded_products': <Map<String, dynamic>>[],
+        'overall_assessment': '분석에 실패했습니다. 다시 시도해주세요.',
+      };
     }
   }
 }

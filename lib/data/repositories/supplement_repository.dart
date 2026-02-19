@@ -44,4 +44,26 @@ abstract class SupplementRepository {
 
   /// 캐시 무효화 (구현체에 따라 다름)
   Future<void> invalidateCache();
+
+  // ── 로컬 DB 검색 메서드 ──
+
+  /// 브랜드명으로 검색
+  ///
+  /// [query] 검색어
+  /// [limit] 최대 결과 수 (기본값 20)
+  Future<List<SupplementProduct>> searchByBrand(String query, {int limit = 20});
+
+  /// 성분으로 검색
+  ///
+  /// [ingredientName] 성분명 또는 정규화된 성분명
+  /// [limit] 최대 결과 수 (기본값 20)
+  Future<List<SupplementProduct>> searchByIngredient(String ingredientName,
+      {int limit = 20});
+
+  /// OCR 텍스트 → 유사 제품 매칭 (fuzzy)
+  ///
+  /// [ocrText] OCR로 인식된 텍스트
+  /// [limit] 최대 결과 수 (기본값 5)
+  Future<List<SupplementProduct>> fuzzyMatchFromOcr(String ocrText,
+      {int limit = 5});
 }

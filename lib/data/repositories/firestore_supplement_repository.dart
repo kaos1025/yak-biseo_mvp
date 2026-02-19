@@ -147,4 +147,25 @@ class FirestoreSupplementRepository implements SupplementRepository {
       return 0;
     }
   }
+
+  @override
+  Future<List<SupplementProduct>> searchByBrand(String query,
+      {int limit = 20}) async {
+    // Firestore에서는 브랜드 검색 미지원 (로컬 DB 사용 권장)
+    return [];
+  }
+
+  @override
+  Future<List<SupplementProduct>> searchByIngredient(String ingredientName,
+      {int limit = 20}) async {
+    // Firestore에서는 성분 검색 미지원 (로컬 DB 사용 권장)
+    return [];
+  }
+
+  @override
+  Future<List<SupplementProduct>> fuzzyMatchFromOcr(String ocrText,
+      {int limit = 5}) async {
+    // Firestore에서는 fuzzy 매칭 미지원 (로컬 DB 사용 권장)
+    return [];
+  }
 }
