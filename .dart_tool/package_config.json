@@ -206,6 +206,12 @@
       "languageVersion": "3.8"
     },
     {
+      "name": "flutter_markdown",
+      "rootUri": "file:///C:/Users/jully/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_markdown-0.7.7+1",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
       "name": "flutter_plugin_android_lifecycle",
       "rootUri": "file:///C:/Users/jully/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.33",
       "packageUri": "lib/",
@@ -222,6 +228,12 @@
       "rootUri": "file:///C:/juji/flutter/packages/flutter_web_plugins",
       "packageUri": "lib/",
       "languageVersion": "3.8"
+    },
+    {
+      "name": "get_it",
+      "rootUri": "file:///C:/Users/jully/AppData/Local/Pub/Cache/hosted/pub.dev/get_it-8.3.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
     },
     {
       "name": "google_generative_ai",
@@ -296,6 +308,30 @@
       "languageVersion": "3.6"
     },
     {
+      "name": "in_app_purchase",
+      "rootUri": "file:///C:/Users/jully/AppData/Local/Pub/Cache/hosted/pub.dev/in_app_purchase-3.2.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.5"
+    },
+    {
+      "name": "in_app_purchase_android",
+      "rootUri": "file:///C:/Users/jully/AppData/Local/Pub/Cache/hosted/pub.dev/in_app_purchase_android-0.4.0+8",
+      "packageUri": "lib/",
+      "languageVersion": "3.9"
+    },
+    {
+      "name": "in_app_purchase_platform_interface",
+      "rootUri": "file:///C:/Users/jully/AppData/Local/Pub/Cache/hosted/pub.dev/in_app_purchase_platform_interface-1.4.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
+    },
+    {
+      "name": "in_app_purchase_storekit",
+      "rootUri": "file:///C:/Users/jully/AppData/Local/Pub/Cache/hosted/pub.dev/in_app_purchase_storekit-0.4.7",
+      "packageUri": "lib/",
+      "languageVersion": "3.9"
+    },
+    {
       "name": "intl",
       "rootUri": "file:///C:/Users/jully/AppData/Local/Pub/Cache/hosted/pub.dev/intl-0.20.2",
       "packageUri": "lib/",
@@ -330,6 +366,12 @@
       "rootUri": "file:///C:/Users/jully/AppData/Local/Pub/Cache/hosted/pub.dev/lints-4.0.0",
       "packageUri": "lib/",
       "languageVersion": "3.1"
+    },
+    {
+      "name": "markdown",
+      "rootUri": "file:///C:/Users/jully/AppData/Local/Pub/Cache/hosted/pub.dev/markdown-7.3.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
     },
     {
       "name": "matcher",

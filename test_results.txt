@@ -1,0 +1,42 @@
+﻿00:00 +0: loading C:/juji/yak-biseo_mvp/test/my_pill_service_test.dart
+00:00 +0: C:/juji/yak-biseo_mvp/test/my_pill_service_test.dart: MyPillService Tests ?곸뼇?????諛?濡쒕뱶 ?뚯뒪??00:00 +1: C:/juji/yak-biseo_mvp/test/my_pill_service_test.dart: MyPillService Tests 以묐났 ???諛⑹? ?뚯뒪??00:00 +2: C:/juji/yak-biseo_mvp/test/my_pill_service_test.dart: MyPillService Tests ?곸뼇????젣 ?뚯뒪??00:00 +3: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: (setUpAll)
+00:01 +3: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill returns empty list for empty query
+00:01 +4: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill returns empty list for query that cleaned to empty
+00:01 +5: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:01 +6: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:01 +7: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:01 +8: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:01 +9: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:01 +10: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:01 +11: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:01 +12: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:01 +13: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:01 +14: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:01 +15: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:02 +16: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:02 +17: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:02 +18: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:02 +19: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +20: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +21: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +22: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +23: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +24: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +25: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +26: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +27: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +28: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +29: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +30: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +31: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +32: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +33: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +34: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +35: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +36: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +37: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:04 +38: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:05 +38 ~1: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill fetches and maps data correctly for known product
+00:06 +39 ~1: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: ApiService Tests searchPill handles noise in query correctly via KeywordCleaner
+00:11 +40 ~1: C:/juji/yak-biseo_mvp/test/unit/api_service_test.dart: (tearDownAll)
+00:11 +40 ~1: All tests passed!

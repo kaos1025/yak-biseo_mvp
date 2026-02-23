@@ -2,10 +2,13 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import '../models/analysis_input.dart';
 import '../models/supplement_analysis.dart';
 import '../models/consultant_result.dart';
 import '../models/supplement_product.dart';
+import '../models/supplecut_analysis_result.dart';
 import '../models/unified_analysis_result.dart';
+import '../data/repositories/local_supplement_repository.dart';
 
 class GeminiAnalyzerService {
   final List<String> _apiKeys = [];
@@ -289,24 +292,37 @@ report_markdown 내용:
   }
 
   /// JSON 문자열 정리 (Markdown 코드 블록 제거 및 순수 JSON 추출)
+  /// + Trailing Comma 제거
   String _cleanJsonString(String text) {
-    String clean = text;
-
-    // 1. Remove Markdown code blocks first
-    clean = clean
+    String clean = text
         .replaceAll(RegExp(r'```json', caseSensitive: false), '')
         .replaceAll(RegExp(r'```', caseSensitive: false), '');
 
-    // 2. Find the first '{' and last '}'
-    final startIndex = clean.indexOf('{');
-    final endIndex = clean.lastIndexOf('}');
+    // 2. Find the first '{' or '[' and last '}' or ']'
+    final objectStart = clean.indexOf('{');
+    final arrayStart = clean.indexOf('[');
+    final start = (objectStart != -1 && arrayStart != -1)
+        ? (objectStart < arrayStart ? objectStart : arrayStart)
+        : (objectStart != -1 ? objectStart : arrayStart);
 
-    // 3. If valid JSON brackets allow extraction
-    if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
-      return clean.substring(startIndex, endIndex + 1);
+    final objectEnd = clean.lastIndexOf('}');
+    final arrayEnd = clean.lastIndexOf(']');
+    final end = (objectEnd != -1 && arrayEnd != -1)
+        ? (objectEnd > arrayEnd ? objectEnd : arrayEnd)
+        : (objectEnd != -1 ? objectEnd : arrayEnd);
+
+    // 3. Extract JSON block
+    if (start != -1 && end != -1 && end > start) {
+      clean = clean.substring(start, end + 1);
+    } else {
+      clean = clean.trim();
     }
 
-    return clean.trim();
+    // 4. Remove trailing commas (e.g. "a": 1, } -> "a": 1 })
+    final trailingCommaRegex = RegExp(r',\s*([\]}])');
+    clean = clean.replaceAll(trailingCommaRegex, r'$1');
+
+    return clean;
   }
 
   /// 일관성 테스트 (Consistency Test)
@@ -320,10 +336,6 @@ report_markdown 내용:
 
     for (var i = 0; i < iterations; i++) {
       try {
-        // Use standard analyzeImage (old method) or new?
-        // consistencyTest was using analyzeImage which returns AnalyzeResult.
-        // analyzeImage is still there (lines 87-102 of original).
-        // So this is fine.
         final result = await analyzeImage(imageBytes);
         results.add(result);
         successCount++;
@@ -373,7 +385,7 @@ report_markdown 내용:
     -   출력 결과의 **첫 글자는 반드시 `{`** 여야 합니다.
     -   Markdown 코드 블록(```json)을 사용하지 마세요. 그냥 raw text로 JSON만 출력하세요.
     -   "안녕하세요", "분석 결과입니다" 등의 사족을 절대 달지 마세요.
-    -   **중요**: 문자열 내의 큰따옴표(")는 반드시 역슬래시(\)로 이스케이프 처리하세요.
+    -   **중요**: 문자열 내의 큰따옴표(")는 반드시 역슬래시(\\)로 이스케이프 처리하세요.
     -   배열(List)의 마지막 항목 뒤에 쉼표(,)를 남기지 마세요 (No Trailing Commas).
 2.  **화폐 단위**: 모든 가격 정보(`original_price`, `monthly_price`, `monthly_savings` 등)는 반드시 **대한민국 원화(KRW)** 기준입니다.
     -   **절대 주의**: "4원", "15원" 같은 비현실적인 소액은 허용하지 않습니다.
@@ -487,15 +499,10 @@ report_markdown 내용:
       );
 
       final cleanJson = _cleanJsonString(jsonText);
-      // Debug print to see raw output if parsing fails
-      // print("Cleaned JSON: $cleanJson");
-
       final json = jsonDecode(cleanJson);
       return UnifiedAnalysisResult.fromJson(json);
     } catch (e) {
       if (e is FormatException) {
-        // Retry once with a simpler prompt or just re-throw with clear message
-        // For now, let's allow the UI to show the error but make it clearer
         throw Exception('AI 응답 형식이 올바르지 않습니다. (JSON Parsing Error)');
       }
       throw Exception('Unified Analysis Failed: $e');
@@ -517,6 +524,92 @@ report_markdown 내용:
       return reportMarkdown;
     } catch (e) {
       throw Exception('Premium Report Generation Failed: $e');
+    }
+  }
+
+  /// SuppleCut 프리미엄 상세 리포트 생성 (On-Demand)
+  ///
+  /// 1차 분석 결과를 기반으로 서술형 마크다운 리포트를 생성한다.
+  Future<String> generateSuppleCutReport(SuppleCutAnalysisResult result) async {
+    // 1차 분석 데이터를 JSON 요약으로 변환
+    final summaryMap = {
+      'products': result.products
+          .map((p) => {
+                'name': p.name,
+                'source': p.source,
+                'estimatedMonthlyPrice': p.estimatedMonthlyPrice,
+                'ingredients': p.ingredients
+                    .map((i) => '${i.name} ${i.amount}${i.unit}')
+                    .toList(),
+                'note': p.note,
+              })
+          .toList(),
+      'duplicates': result.duplicates
+          .map((d) => {
+                'ingredient': d.ingredient,
+                'riskLevel': d.riskLevel,
+                'advice': d.advice,
+                'products': d.products,
+                'totalAmount': d.totalAmount,
+                'dailyLimit': d.dailyLimit,
+              })
+          .toList(),
+      'overallRisk': result.overallRisk,
+      'monthlySavings': result.monthlySavings,
+      'yearlySavings': result.yearlySavings,
+      'excludedProduct': result.excludedProduct,
+    };
+
+    final jsonData = jsonEncode(summaryMap);
+
+    final prompt = '''
+당신은 대한민국 최고의 약사(Pharmacist)이자 헬스케어 재무 전문가입니다.
+아래 분석 데이터를 바탕으로, 프리미엄 사용자를 위한 **심층 컨설턴트 리포트**를 작성하세요.
+
+## 📋 1차 분석 데이터 (JSON)
+$jsonData
+
+## ✍️ 리포트 작성 가이드
+아래 4개 섹션으로 구성된 **마크다운(Markdown) 리포트**를 작성하세요.
+
+### 1. 영양제 성분 분석 및 필요성 평가
+각 제품별로:
+- **주요 성분 및 효능** (성분명, 함량, 효능 설명)
+- **일반 성인 섭취 필요성** (필수/권장/선택/불필요 중 하나 + 이유)
+
+### 2. 중복 성분 점검 결과
+- 중복되는 성분명, 각 제품별 함량, 총 섭취량
+- 상한 섭취량(UL) 대비 판정 (안전/주의/위험)
+- 과다 섭취 시 구체적 부작용 설명
+
+### 3. 섭취 제외 권장 및 비용 절감액
+- 제외 권장 제품명 및 이유 (우선순위: 부작용 위험 > 단순 중복 > 효능 입증 부족)
+- 월간/연간 절감액 (위 JSON 데이터의 monthlySavings/yearlySavings 사용)
+
+### 4. 전문가 조언
+- **섭취 타이밍**: 식전/식후, 아침/저녁 구체적 추천
+- **성분 간 궁합**: 시너지/상충 관계 설명
+- **대안 제안**: 제외 제품의 핵심 성분을 식품이나 대안 제품으로 보충하는 방법
+
+## 🛑 필수 규칙
+- **톤앤매너**: 전문적이고 신뢰감 있게, 하지만 이해하기 쉽게(4050 세대 타겟)
+- **형식**: 순수 마크다운 텍스트만 출력하세요. JSON이 아닙니다.
+- 인사말 생략, 바로 리포트 본문부터 시작하세요.
+- 제목은 `## 📝 AI 상세 분석 리포트` 로 시작하세요.
+- 각 섹션은 `### 1.`, `### 2.` 등 번호를 붙여 구분하세요.
+- 구체적 수치(mg, IU, UL 등)를 적극 활용하세요.
+''';
+
+    try {
+      final reportMarkdown = await _sendRestRequest(
+        prompt: prompt,
+        imageBytes: null,
+        responseMimeType: 'text/plain',
+      );
+
+      return reportMarkdown;
+    } catch (e) {
+      throw Exception('SuppleCut 상세 리포트 생성 실패: $e');
     }
   }
 
@@ -549,16 +642,12 @@ report_markdown 내용:
   }
 
   /// 로컬 DB 영양제 중복 성분 분석
-  ///
-  /// [products] 사용자가 선택한 영양제 제품 목록
-  /// 반환: Gemini 분석 결과 (중복 성분, 상한 초과, 제외 권장 등)
   Future<Map<String, dynamic>> analyzeRedundancy(
       List<SupplementProduct> products) async {
     if (products.isEmpty) {
       return {'error': '분석할 제품이 없습니다.'};
     }
 
-    // 제품 정보를 Gemini context로 변환
     final contextLines =
         products.map((p) => p.toGeminiContext()).join('\n---\n');
 
@@ -618,5 +707,353 @@ $contextLines
         'overall_assessment': '분석에 실패했습니다. 다시 시도해주세요.',
       };
     }
+  }
+
+  // ── SuppleCut 분석 메서드 ──
+
+  /// 로컬 DB 제품만 중복 분석 (SuppleCutAnalysisResult 반환)
+  Future<SuppleCutAnalysisResult> analyzeWithLocalData({
+    required List<SupplementProduct> products,
+    String locale = 'ko',
+  }) async {
+    if (products.isEmpty) {
+      throw ArgumentError('분석할 제품이 없습니다.');
+    }
+
+    final inputs = products.map((p) => AnalysisInput.fromLocalDb(p)).toList();
+    return analyzeWithFallback(inputs: inputs, locale: locale);
+  }
+
+  /// 로컬 DB + Fallback 혼합 분석
+  Future<SuppleCutAnalysisResult> analyzeWithFallback({
+    required List<AnalysisInput> inputs,
+    String locale = 'ko',
+  }) async {
+    if (inputs.isEmpty) {
+      throw ArgumentError('분석할 제품이 없습니다.');
+    }
+
+    final prompt = _buildFallbackPrompt(inputs, locale);
+    String responseText = '';
+
+    try {
+      responseText = await _sendRestRequest(
+        prompt: prompt,
+        responseMimeType: 'text/plain',
+      );
+
+      final cleanedJson = _cleanJsonString(responseText);
+      final json = jsonDecode(cleanedJson) as Map<String, dynamic>;
+
+      // ── 제품 목록을 로컬에서 직접 구성 ──
+      // AI는 분석 결과(duplicates/risk/summary)만 반환.
+      // fallbackProducts에서 AI 추정 성분 정보를 가져옴.
+      final fallbackProducts =
+          (json['fallbackProducts'] as List<dynamic>?) ?? [];
+
+      final productJsonList = <Map<String, dynamic>>[];
+      int fallbackIdx = 0;
+
+      for (final input in inputs) {
+        if (input.source == ProductSource.localDb && input.localData != null) {
+          // 로컬 DB 제품: 성분 정보를 로컬에서 직접 구성
+          final localIngredients = input.localData!.localIngredients.map((ing) {
+            return {
+              "name": ing.name,
+              "amount": ing.amount,
+              "unit": ing.unit,
+              "dailyValue": ing.dailyValue,
+            };
+          }).toList();
+
+          productJsonList.add({
+            "name": input.productName,
+            "source": "local_db",
+            "ingredients": localIngredients,
+          });
+        } else {
+          // Fallback 제품: AI 응답에서 성분 정보 가져오기
+          if (fallbackIdx < fallbackProducts.length) {
+            final fbProduct =
+                fallbackProducts[fallbackIdx] as Map<String, dynamic>;
+            fbProduct['source'] = 'ai_estimated';
+            productJsonList.add(fbProduct);
+            fallbackIdx++;
+          } else {
+            // AI가 fallback 제품 정보를 반환하지 않은 경우
+            productJsonList.add({
+              "name": input.productName,
+              "source": "ai_estimated",
+              "ingredients": [],
+              "confidence": "low",
+              "note": "AI 응답에서 제품 정보를 찾지 못했습니다.",
+            });
+          }
+        }
+      }
+
+      // ── 가격 매핑 (DB 가격 우선) ──
+      final estimatedPrices = (json['estimatedPrices'] as List<dynamic>?) ?? [];
+      final aiPriceMap = <String, int>{};
+      for (final ep in estimatedPrices) {
+        if (ep is Map<String, dynamic>) {
+          final name = ep['productName'] as String? ?? '';
+          final price = (ep['estimatedMonthlyPrice'] as num?)?.round() ?? 0;
+          if (name.isNotEmpty && price > 0) {
+            aiPriceMap[name] = price;
+          }
+        }
+      }
+
+      // 각 제품에 estimatedMonthlyPrice 설정
+      for (var i = 0; i < productJsonList.length; i++) {
+        final productName = productJsonList[i]['name'] as String? ?? '';
+
+        // 로컬 DB 제품: DB 가격으로 월 환산 가격 계산 (우선)
+        if (i < inputs.length &&
+            inputs[i].source == ProductSource.localDb &&
+            inputs[i].localData != null) {
+          final monthlyPrice = _calculateMonthlyPrice(inputs[i].localData!);
+          if (monthlyPrice > 0) {
+            productJsonList[i]['estimatedMonthlyPrice'] = monthlyPrice;
+            continue; // DB 가격 사용 성공 → AI 가격 불필요
+          }
+        }
+
+        // Fallback: AI 추정 가격
+        final aiPrice = aiPriceMap[productName] ?? 0;
+        if (aiPrice > 0) {
+          productJsonList[i]['estimatedMonthlyPrice'] = aiPrice;
+        }
+      }
+
+      // products를 로컬에서 구성한 데이터로 설정
+      json['products'] = productJsonList;
+      // 임시 필드 제거
+      json.remove('fallbackProducts');
+      json.remove('estimatedPrices');
+
+      return SuppleCutAnalysisResult.fromJson(json);
+    } catch (e) {
+      if (e is FormatException) {
+        // ignore: avoid_print
+        print('JSON Parsing Error (Fallback). Prompt size: ${prompt.length}');
+        // ignore: avoid_print
+        print('JSON Parsing Error: $responseText');
+        throw Exception('AI 응답 형식이 올바르지 않습니다. (JSON Parsing Error)');
+      }
+      rethrow;
+    }
+  }
+
+  /// DB 제품 가격에서 월 환산 가격을 계산한다.
+  ///
+  /// 제품명에서 총 정수 (예: "250 Tablets" → 250),
+  /// servingSize에서 1회 섭취량 (예: "2 Tablets" → 2)을 파싱하여
+  /// price / (totalCount / servingsPerDay) * 30 으로 월 가격을 구한다.
+  int _calculateMonthlyPrice(SupplementProduct product) {
+    if (product.price == null || product.price! <= 0) return 0;
+
+    // 제품명에서 총 정수 추출 (예: "250 Tablets", "120 Capsules")
+    final totalCountMatch = RegExp(
+      r'(\d+)\s*(?:Tablets?|Capsules?|Softgels?|Veg\s+Capsules?|Veggie\s+Capsules?|Lozenges?)',
+      caseSensitive: false,
+    ).firstMatch(product.name);
+    if (totalCountMatch == null) return 0;
+    final totalCount = int.tryParse(totalCountMatch.group(1)!) ?? 0;
+    if (totalCount <= 0) return 0;
+
+    // servingSize에서 1회 섭취 정수 추출 (예: "2 Tablets" → 2)
+    int servingsPerDay = 1; // 기본값
+    if (product.servingSize != null) {
+      final servingMatch = RegExp(
+        r'(\d+)',
+      ).firstMatch(product.servingSize!);
+      if (servingMatch != null) {
+        servingsPerDay = int.tryParse(servingMatch.group(1)!) ?? 1;
+      }
+    }
+
+    // 월 환산: price / (totalCount / servingsPerDay) * 30
+    final daysSupply = totalCount / servingsPerDay;
+    if (daysSupply <= 0) return 0;
+    final monthlyPrice = (product.price! / daysSupply * 30).round();
+    return monthlyPrice;
+  }
+
+  /// Fallback 분석용 프롬프트 생성
+  ///
+  /// AI에게 분석 결과만 요청하고, 제품/성분 정보 에코를 제거하여
+  /// 출력 토큰을 최소화한다.
+  String _buildFallbackPrompt(List<AnalysisInput> inputs, String locale) {
+    final hasFallback =
+        inputs.any((i) => i.source == ProductSource.geminiFallback);
+
+    // 제품 섹션 조립
+    final productSections = inputs
+        .asMap()
+        .entries
+        .map((e) => e.value.toPromptSection(e.key))
+        .join('\n');
+
+    final lang = locale == 'ko' ? '한국어' : 'English';
+
+    // fallbackProducts 섹션: AI 추정이 필요한 제품인 경우에만 포함
+    final fallbackProductsSection = hasFallback
+        ? '''
+  "fallbackProducts": [
+    {
+      "name": "AI가 추정한 제품명",
+      "ingredients": [
+        {"name": "성분명", "amount": 숫자, "unit": "단위", "dailyValue": 숫자_또는_null}
+      ],
+      "confidence": "high/medium/low",
+      "note": "추정 근거 (1문장)"
+    }
+  ],'''
+        : '';
+
+    return '''
+당신은 영양제 성분 중복 분석 전문가입니다.
+
+## 분석할 영양제
+
+$productSections
+
+## 분석 요청
+${hasFallback ? '''
+1. **DB 매칭된 제품**: 성분 정보가 이미 제공되었으므로, 분석에 활용만 하고 출력에 성분을 반복하지 마세요.
+2. **DB 매칭 실패 제품**: Google Search를 사용하여 일반적인 성분 정보를 찾아 추정하세요.
+   - fallbackProducts에 추정한 성분 정보를 포함하세요.
+   - confidence를 "high"/"medium"/"low"로 표기하세요.
+3. 모든 제품의 성분을 종합하여 중복 성분 및 과잉 섭취 위험을 분석하세요.
+4. 각 제품의 **한국 내 판매 가격**을 Google Search로 검색하여 월 환산 가격(estimatedMonthlyPrice)을 추정하세요.
+''' : '''
+제공된 성분 정보를 사용하여 중복 성분 및 과잉 섭취 위험을 분석하세요.
+각 제품의 **한국 내 판매 가격**을 Google Search로 검색하여 월 환산 가격(estimatedMonthlyPrice)을 추정하세요.
+'''}
+
+## 출력 형식 (반드시 이 JSON 구조를 따르세요)
+{$fallbackProductsSection
+  "estimatedPrices": [
+    {
+      "productName": "제품명 (위 입력과 동일)",
+      "estimatedMonthlyPrice": 월환산가격_KRW숫자
+    }
+  ],
+  "duplicates": [
+    {
+      "ingredient": "성분명",
+      "products": ["제품명1", "제품명2"],
+      "totalAmount": "합산함량 + 단위",
+      "dailyLimit": "일일 상한 + 단위 또는 null",
+      "riskLevel": "safe | warning | danger",
+      "advice": "조언 (1-2문장)"
+    }
+  ],
+  "overallRisk": "safe | warning | danger",
+  "summary": "전체 분석 요약 (2-3문장)",
+  "recommendations": ["권장사항1", "권장사항2"],
+  "excludedProduct": "제외 권장 제품명 또는 null",
+  "monthlySavings": 제외제품의_월환산가격_KRW숫자_또는_0,
+  "yearlySavings": monthlySavings_곱하기_12,
+  "disclaimer": ${hasFallback ? '"일부 제품은 AI 추정치 기반입니다. 정확한 정보는 제품 라벨을 확인하세요."' : 'null'}
+}
+
+## 가격 규칙
+- 모든 가격은 **대한민국 원화(KRW)** 기준
+- 최소 1,000원 이상. "4원", "15원" 등 비현실적 금액 금지
+- 가격 정보를 모르면 Google Search로 한국 내 판매가를 검색하여 추정 (예: 1개월분 30,000원)
+- 100원 단위로 반올림 (예: 32450 → 32500)
+- estimatedMonthlyPrice = 판매가 / 섭취기간(개월)
+
+## 기타 규칙
+- 순수 JSON만 반환. 첫 글자는 반드시 {
+- DB 매칭 제품의 성분을 출력에 포함하지 마세요 (토큰 절약)
+- 중복이 없으면 duplicates를 빈 배열 []로
+- 제외 권장 제품이 없으면 excludedProduct를 null, monthlySavings를 0으로
+- 언어: $lang
+- 문자열 내의 큰따옴표(")는 반드시 역슬래시(\\)로 이스케이프 처리
+- 배열 마지막 항목 뒤에 쉼표(,) 금지
+''';
+  }
+
+  // ── 통합 파이프라인 메서드 ──
+
+  /// 이미지에서 제품명만 추출 (OCR 전용, 분석 없음)
+  Future<List<String>> extractProductNames(Uint8List imageBytes) async {
+    const prompt = '''
+이미지에서 영양제/건강기능식품 제품들의 정확한 제품명을 추출하세요.
+
+## 규칙
+1. 라벨에 보이는 브랜드명과 제품명을 최대한 정확히 읽으세요.
+2. 한 제품당 하나의 문자열로 출력하세요.
+3. "브랜드명, 제품명, 용량" 형식이 이상적입니다. (예: "NOW Foods, Calcium & Magnesium, 250 Tablets")
+4. 라벨이 부분적으로 보여도 읽을 수 있는 만큼 추출하세요.
+5. 순수 JSON 배열만 반환. 첫 글자는 반드시 [
+
+## 출력 형식
+["제품명1", "제품명2", "제품명3"]
+''';
+
+    try {
+      final responseText = await _sendRestRequest(
+        prompt: prompt,
+        imageBytes: imageBytes,
+        responseMimeType: 'application/json',
+      );
+
+      final cleaned = _cleanJsonString(responseText);
+      final decoded = jsonDecode(cleaned);
+
+      if (decoded is List) {
+        return decoded.map((e) => e.toString()).toList();
+      }
+      return [];
+    } catch (e) {
+      throw Exception('제품명 추출 실패: $e');
+    }
+  }
+
+  /// 이미지 기반 통합 분석 파이프라인
+  Future<SuppleCutAnalysisResult> analyzeWithImage(
+    Uint8List imageBytes,
+  ) async {
+    // Step 1: 이미지에서 제품명 추출
+    final productNames = await extractProductNames(imageBytes);
+
+    // ignore: avoid_print
+    print('🔍 OCR Extracted Names: $productNames');
+
+    if (productNames.isEmpty) {
+      throw Exception('이미지에서 영양제를 찾을 수 없습니다.');
+    }
+
+    // Step 2 & 3: 각 제품명 → 로컬 DB 매칭 → AnalysisInput 생성
+    final repo = LocalSupplementRepository.instance;
+    final inputs = <AnalysisInput>[];
+
+    for (final name in productNames) {
+      // fuzzyMatchFromOcr로 로컬 DB 검색
+      final matches = await repo.fuzzyMatchFromOcr(name, limit: 1);
+
+      if (matches.isNotEmpty) {
+        final match = matches.first;
+        // ignore: avoid_print
+        print('✅ Matched: "$name" -> "${match.name}" (Brand: ${match.brand})');
+
+        // 매칭 성공 → 로컬 DB 데이터 사용
+        inputs.add(AnalysisInput.fromLocalDb(match));
+      } else {
+        // ignore: avoid_print
+        print('❌ No Match for: "$name" -> Fallback to Gemini');
+
+        // 매칭 실패 → Gemini Fallback
+        inputs.add(AnalysisInput.fromFallback(productName: name));
+      }
+    }
+
+    // Step 4: 중복 분석 (Merge logic applied inside)
+    return analyzeWithFallback(inputs: inputs);
   }
 }

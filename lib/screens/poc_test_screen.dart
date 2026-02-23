@@ -34,7 +34,7 @@ class _PocTestScreenState extends State<PocTestScreen> {
     try {
       final XFile? image = await _picker.pickImage(
         source: source,
-        maxWidth: 1024,
+        maxWidth: 800,
         imageQuality: 85,
       );
 

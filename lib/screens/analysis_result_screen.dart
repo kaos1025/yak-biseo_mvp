@@ -1,18 +1,23 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:myapp/models/unified_analysis_result.dart';
-import 'package:myapp/models/pill.dart';
-import 'package:myapp/services/my_pill_service.dart';
-import 'package:myapp/widgets/expandable_product_card.dart';
-import 'package:myapp/widgets/savings_banner.dart';
-import 'package:myapp/widgets/warning_banner.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:intl/intl.dart';
+import 'package:myapp/models/supplecut_analysis_result.dart';
 import 'package:myapp/l10n/app_localizations.dart';
+import 'package:myapp/services/gemini_analyzer_service.dart';
 
+/// SuppleCut 분석 결과 화면
+///
+/// 무료: 절감 배너 + 과다 섭취 경고 + 제품 목록 + 제품별 성분
+/// 유료: AI 상세 분석 리포트 (중복성분 상세 + 요약 + 권장사항)
 class AnalysisResultScreen extends StatefulWidget {
-  final UnifiedAnalysisResult result;
+  final SuppleCutAnalysisResult result;
+  final bool isPremiumUser;
 
   const AnalysisResultScreen({
     super.key,
     required this.result,
+    this.isPremiumUser = false,
   });
 
   @override
@@ -20,54 +25,20 @@ class AnalysisResultScreen extends StatefulWidget {
 }
 
 class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
-  final Set<String> _addedPillNames = {};
-  bool _isReportExpanded = true; // Default expanded
-  bool _isPremiumUnlocked = false; // Dev/MVP: Unlock premium report
+  bool _isReportExpanded = true;
+  bool _isReportUnlocked = false;
+  bool _isReportLoading = false;
+  String? _detailedReport;
+  String? _reportError;
 
-  Future<void> _handleSavePill(UnifiedProduct product) async {
-    final newPill = KoreanPill(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      name: product
-          .name, // UnifiedProduct has name (no nameKo separate field in user prompt, maybe check prompt)
-      brand: product.brand,
-      dailyDosage:
-          '', // prompt didn't strictly have serving_size in Products list? Wait.
-      category: 'General',
-      ingredients: product.ingredients
-          .map(
-              (i) => i.amount > 0 ? '${i.name} (${i.amount}${i.unit})' : i.name)
-          .join(', '),
-      imageUrl: '',
-    );
+  SuppleCutAnalysisResult get result => widget.result;
+  bool get isPremium => widget.isPremiumUser || _isReportUnlocked;
 
-    final result = await MyPillService.savePill(newPill);
-    if (mounted) {
-      setState(() {
-        _addedPillNames.add(newPill.name);
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result == 0
-              ? AppLocalizations.of(context)!.addedToCabinet
-              : AppLocalizations.of(context)!.alreadyInCabinet),
-          duration: const Duration(seconds: 1),
-        ),
-      );
-    }
-  }
+  static final _currencyFormat = NumberFormat('#,###');
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final analysis = widget.result.analysis;
-    final productsUI = widget.result.productsUI;
-    final rawProducts = widget.result.products;
-
-    // Collect excluded product names for banner
-    final excludedNames = productsUI
-        .where((p) => p.status == 'danger')
-        .map((p) => p.name)
-        .toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -91,233 +62,37 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 1. Savings Banner
-                SavingsBanner(
-                  bannerType: analysis.bannerType,
-                  monthlySavings: analysis.monthlySavings,
-                  yearlySavings: analysis.yearlySavings,
-                  exclusionReason: analysis.exclusionReason ?? '',
-                  excludedProductNames: excludedNames,
-                ),
+                // ── 무료 섹션 ──
 
-                // 2. Warning Banners
-                ...analysis.overLimitIngredients
-                    .map((ingredient) => WarningBanner(
-                          ingredientName: ingredient.name,
-                          currentAmount:
-                              "${ingredient.total}${ingredient.unit}",
-                          limitAmount: "${ingredient.limit}${ingredient.unit}",
-                        )),
+                // 1. 절감 금액 배너
+                if (result.hasSavings) ...[
+                  _buildSavingsBanner(),
+                  const SizedBox(height: 16),
+                ],
 
-                const SizedBox(height: 10),
-
-                // 3. Product List
-                const Text("분석 결과 확인",
+                // 3. 제품 목록
+                const SizedBox(height: 20),
+                const Text('📦 분석된 제품',
                     style:
                         TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
+                ...result.products.map(_buildProductCard),
 
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: productsUI.length,
-                  itemBuilder: (context, index) {
-                    final uiProduct = productsUI[index];
-                    // Find detailed info
-                    final rawProduct = rawProducts.firstWhere(
-                      (p) =>
-                          p.name.trim().toLowerCase() ==
-                              uiProduct.name.trim().toLowerCase() ||
-                          (uiProduct.name.contains(p.name) ||
-                              p.name.contains(uiProduct.name)),
-                      orElse: () => UnifiedProduct(
-                          brand: uiProduct.brand,
-                          name: uiProduct.name,
-                          ingredients: [],
-                          estimatedMonthlyPrice: 0),
-                    );
+                // ── 유료 잠금 섹션: AI 상세 분석 리포트 ──
+                if (_hasPremiumContent()) ...[
+                  const SizedBox(height: 20),
+                  _buildPremiumReportCard(),
+                ],
 
-                    final isAdded = _addedPillNames.contains(uiProduct.name);
-                    final isRedundant = uiProduct.status == 'danger';
+                // Disclaimer
+                if (result.disclaimer != null) ...[
+                  const SizedBox(height: 20),
+                  _buildDisclaimerCard(),
+                ],
 
-                    // Tags
-                    final tags = <String>[];
-                    if (uiProduct.tag != null) tags.add(uiProduct.tag!);
+                const SizedBox(height: 16),
 
-                    String ingredientsSummary = rawProduct.ingredients
-                        .map((i) => i.amount > 0
-                            ? '${i.name} (${i.amount}${i.unit})'
-                            : i.name)
-                        .join(', ');
-
-                    return ExpandableProductCard(
-                      status: uiProduct.status,
-                      brand: uiProduct.brand,
-                      name: uiProduct.name,
-                      price: "",
-                      imageUrl: null,
-                      tags: tags,
-                      ingredients: ingredientsSummary,
-                      dosage: rawProduct.dosage ?? "섭취방법 정보 없음",
-                      isAdded: isAdded,
-                      onAdd: () => _handleSavePill(rawProduct),
-                      isRecommendedToRemove: isRedundant,
-                      removalSavingsAmount: uiProduct.monthlyPrice,
-                      originalPrice: rawProduct.originalPrice,
-                      durationMonths: rawProduct.durationMonths,
-                    );
-                  },
-                ),
-
-                const SizedBox(height: 24),
-
-                // 4. Collapsible AI Report
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4)),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      InkWell(
-                        onTap: () {
-                          // Toggle expanded state logic if we want to allow user to try to open it
-                          // For now, let's keep it 'open' but blurred at bottom
-                          setState(() {
-                            _isReportExpanded = !_isReportExpanded;
-                          });
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                    color: Colors.purple.shade50,
-                                    shape: BoxShape.circle),
-                                child: const Icon(Icons.auto_awesome,
-                                    size: 20, color: Colors.purple),
-                              ),
-                              const SizedBox(width: 12),
-                              const Text("AI 성분 분석 리포트",
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold)),
-                              const Spacer(),
-                              Icon(
-                                  _isReportExpanded
-                                      ? Icons.keyboard_arrow_up
-                                      : Icons.keyboard_arrow_down,
-                                  color: Colors.grey),
-                            ],
-                          ),
-                        ),
-                      ),
-                      if (_isReportExpanded)
-                        Stack(
-                          children: [
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                              // Limit height if not unlocked
-                              height: _isPremiumUnlocked ? null : 150,
-                              child: Text(
-                                // Remove greeting if present manually just in case
-                                widget.result.premiumReport
-                                    .replaceAll(
-                                        RegExp(r'^안녕하세요.*?\n',
-                                            multiLine: true, dotAll: true),
-                                        '')
-                                    .trim(),
-                                style: const TextStyle(
-                                    fontSize: 15,
-                                    height: 1.6,
-                                    color: Color(0xFF424242)),
-                                maxLines: _isPremiumUnlocked ? null : 5,
-                                overflow: _isPremiumUnlocked
-                                    ? TextOverflow.visible
-                                    : TextOverflow.fade,
-                              ),
-                            ),
-                            // Blur Overlay & Lock (Show only if NOT unlocked)
-                            if (!_isPremiumUnlocked) ...[
-                              Positioned.fill(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      stops: const [0.0, 0.4, 1.0],
-                                      colors: [
-                                        Colors.white.withValues(alpha: 0.0),
-                                        Colors.white.withValues(alpha: 0.5),
-                                        Colors.white.withValues(alpha: 1.0),
-                                      ],
-                                    ),
-                                    borderRadius: const BorderRadius.vertical(
-                                        bottom: Radius.circular(16)),
-                                  ),
-                                ),
-                              ),
-                              Positioned.fill(
-                                child: Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.shade100,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(Icons.lock_rounded,
-                                            size: 24, color: Colors.grey),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          // Dev Mode: Unlock immediately
-                                          setState(() {
-                                            _isPremiumUnlocked = true;
-                                          });
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            const SnackBar(
-                                                content: Text(
-                                                    "DEV MODE: 프리미엄 리포트가 해제되었습니다.")),
-                                          );
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.purple,
-                                          foregroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(20)),
-                                        ),
-                                        child:
-                                            const Text("전체 리포트 열람하기 (Premium)"),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                // 5. Disclaimer
+                // 기본 Disclaimer
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -369,7 +144,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                     elevation: 0,
                   ),
                   child: const Text(
-                    "홈으로 돌아가기",
+                    '홈으로 돌아가기',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -377,6 +152,592 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                     ),
                   ),
                 ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 유료 컨텐츠가 있는지 확인
+  bool _hasPremiumContent() {
+    return result.hasDuplicates ||
+        result.summary.isNotEmpty ||
+        result.recommendations.isNotEmpty;
+  }
+
+  // ── 위젯 빌더들 ──
+
+  /// 절감 금액 배너 (무료)
+  Widget _buildSavingsBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFF9A825), Color(0xFFFDD835)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF9A825).withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // 제외 제품명 (상단)
+          if (result.excludedProduct != null) ...[
+            Text(
+              '${result.excludedProduct} 제외 시',
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF5D4037),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // 라벨
+          const Text(
+            '💰 월 절감 가능 금액',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF795548),
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // 금액
+          Text(
+            '${_currencyFormat.format(result.monthlySavings)}원',
+            style: const TextStyle(
+              fontSize: 34,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF3E2723),
+            ),
+          ),
+
+          // 연간 절감 필
+          if (result.yearlySavings > 0) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '🎉 연간 ${_currencyFormat.format(result.yearlySavings)}원 아낄 수 있어요!',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF5D4037),
+                ),
+              ),
+            ),
+          ],
+
+          // 하단 설명
+          if (result.summary.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Text(
+              '💊 ${result.summary}',
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: Color(0xFF5D4037),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 제품 카드 (무료) — 제품명 + 소스 태그 + 월 가격 + 성분 칩 + 중복 뼉지
+  Widget _buildProductCard(AnalyzedProduct product) {
+    final isEstimated = product.isEstimated;
+
+    // 이 제품이 중복 성분에 포함되어 있는지 확인
+    final isDuplicate =
+        result.duplicates.any((dup) => dup.products.contains(product.name));
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: isEstimated
+            ? Border.all(color: const Color(0xFFFFB300).withValues(alpha: 0.5))
+            : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 제품명 + 소스 태그
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  product.name,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isEstimated
+                      ? const Color(0xFFFFF8E1)
+                      : const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  isEstimated ? '🤖 AI 추정' : '✅ DB 확인',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: isEstimated
+                        ? const Color(0xFFFF8F00)
+                        : const Color(0xFF2E7D32),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // 중복 뼉지
+          if (isDuplicate) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFEBEE),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                    color: const Color(0xFFEF5350).withValues(alpha: 0.3)),
+              ),
+              child: const Text(
+                '중복',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFE53935),
+                ),
+              ),
+            ),
+          ],
+
+          // 월 환산 가격
+          if (product.estimatedMonthlyPrice > 0) ...[
+            const SizedBox(height: 6),
+            Text(
+              '💰 월 ${_currencyFormat.format(product.estimatedMonthlyPrice)}원',
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.black54,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+
+          // AI 추정 노트
+          if (isEstimated && product.note != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              '📝 ${product.note}',
+              style: const TextStyle(
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                  color: Colors.black54),
+            ),
+          ],
+
+          // 성분 리스트
+          if (product.ingredients.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: product.ingredients.map((ing) {
+                final label = ing.amount > 0
+                    ? '${ing.name} ${ing.amount}${ing.unit}'
+                    : ing.name;
+                return Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(label,
+                      style:
+                          const TextStyle(fontSize: 12, color: Colors.black87)),
+                );
+              }).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// AI 상세 분석 리포트 카드 (유료 잠금)
+  Widget _buildPremiumReportCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isPremium ? const Color(0xFFE0E0E0) : const Color(0xFFE8D5F5),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 헤더
+          InkWell(
+            onTap: () => setState(() => _isReportExpanded = !_isReportExpanded),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF9C27B0), Color(0xFFE040FB)],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.auto_awesome,
+                        color: Colors.white, size: 18),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'AI 상세 분석 리포트',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    _isReportExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: Colors.grey,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // 컨텐츠 영역
+          if (_isReportExpanded)
+            isPremium ? _buildPremiumContent() : _buildLockedContent(),
+        ],
+      ),
+    );
+  }
+
+  /// 프리미엄 컨텐츠 (잠금 해제 상태) — 마크다운 리포트 렌더링
+  Widget _buildPremiumContent() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+          if (_isReportLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Column(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('📝 상세 리포트 생성 중...',
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black54)),
+                    SizedBox(height: 4),
+                    Text('10~20초 정도 소요됩니다',
+                        style: TextStyle(fontSize: 13, color: Colors.black38)),
+                  ],
+                ),
+              ),
+            )
+          else if (_reportError != null)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFEBEE),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  Text('리포트 생성 중 오류가 발생했습니다.\n$_reportError',
+                      style: const TextStyle(fontSize: 14, color: Colors.red)),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: _generateReport,
+                    child: const Text('다시 시도'),
+                  ),
+                ],
+              ),
+            )
+          else if (_detailedReport != null)
+            MarkdownBody(
+              data: _detailedReport!,
+              styleSheet: MarkdownStyleSheet(
+                h2: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87),
+                h3: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87),
+                h4: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87),
+                p: const TextStyle(
+                    fontSize: 14, height: 1.6, color: Colors.black87),
+                listBullet:
+                    const TextStyle(fontSize: 14, color: Colors.black87),
+                strong: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.black87),
+                horizontalRuleDecoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: Colors.grey.shade300, width: 1),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 상세 리포트 API 호출
+  Future<void> _generateReport() async {
+    setState(() {
+      _isReportUnlocked = true;
+      _isReportLoading = true;
+      _reportError = null;
+    });
+
+    try {
+      final report =
+          await GeminiAnalyzerService().generateSuppleCutReport(result);
+      if (!mounted) return;
+      setState(() {
+        _detailedReport = report;
+        _isReportLoading = false;
+        _isReportUnlocked = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _reportError = e.toString();
+        _isReportLoading = false;
+      });
+    }
+  }
+
+  /// 잠금 상태 컨텐츠 (미리보기 + 블러 + 잠금 배너)
+  Widget _buildLockedContent() {
+    return Column(
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: Divider(height: 1),
+        ),
+
+        // 미리보기 영역 (블러 처리)
+        ClipRRect(
+          borderRadius:
+              const BorderRadius.vertical(bottom: Radius.circular(14)),
+          child: Stack(
+            children: [
+              // 실제 컨텐츠 (블러됨)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (result.summary.isNotEmpty) ...[
+                      const Text('📋 상세 분석',
+                          style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87)),
+                      const SizedBox(height: 8),
+                      Text(
+                        result.summary,
+                        style: const TextStyle(
+                            fontSize: 14, height: 1.6, color: Colors.black87),
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    const SizedBox(height: 60),
+                  ],
+                ),
+              ),
+
+              // 블러 + 그라디언트 페이드
+              Positioned.fill(
+                child: Column(
+                  children: [
+                    // 상단 일부는 보여주기
+                    const SizedBox(height: 40),
+                    // 그라디언트 페이드 → 블러
+                    Expanded(
+                      child: ClipRect(
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.white.withValues(alpha: 0.0),
+                                  Colors.white.withValues(alpha: 0.7),
+                                  Colors.white.withValues(alpha: 0.95),
+                                ],
+                                stops: const [0.0, 0.3, 1.0],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // 잠금 해제 CTA
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFF3E5F5), Color(0xFFEDE7F6)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                const Icon(Icons.lock_outline,
+                    color: Color(0xFF7B1FA2), size: 28),
+                const SizedBox(height: 8),
+                const Text(
+                  '프리미엄 리포트 잠금 해제',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF7B1FA2),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '중복 성분 상세 · 영양제 상세 정보 · AI 권장사항',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF9C27B0),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _generateReport,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF7B1FA2),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text(
+                      '잠금 해제하기',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Disclaimer 카드
+  Widget _buildDisclaimerCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8E1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFE082)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('⚠️', style: TextStyle(fontSize: 18)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              result.disclaimer!,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.brown[700],
+                height: 1.4,
               ),
             ),
           ),

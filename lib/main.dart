@@ -5,6 +5,7 @@ import 'package:myapp/screens/home_screen.dart';
 import 'package:myapp/theme/app_theme.dart';
 import 'package:myapp/l10n/app_localizations.dart';
 import 'firebase_options.dart';
+import 'package:myapp/data/repositories/local_supplement_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,6 +13,10 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // 로컬 DB 초기화
+  await LocalSupplementRepository.instance.initialize();
+
   runApp(const YakBiseoApp());
 }
 

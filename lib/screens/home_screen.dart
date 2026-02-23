@@ -91,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _analyticsService.logCameraClick();
     final XFile? pickedFile = await _picker.pickImage(
       source: ImageSource.camera,
-      maxWidth: 1024, // Resize to max 1024px width
+      maxWidth: 800, // Resize to max 800px width
       imageQuality: 85, // Compress lightly
     );
     if (pickedFile != null) {
@@ -115,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
     developer.log('갤러리 버튼 클릭됨', name: 'com.example.myapp.ui');
     final XFile? pickedFile = await _picker.pickImage(
       source: ImageSource.gallery,
-      maxWidth: 1024, // Resize to max 1024px width
+      maxWidth: 800, // Resize to max 800px width
       imageQuality: 85, // Compress lightly
     );
     if (pickedFile != null) {

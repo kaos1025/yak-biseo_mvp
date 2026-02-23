@@ -2,17 +2,23 @@ class UnifiedAnalysisResult {
   final List<UnifiedProduct> products;
   final UnifiedAnalysis analysis;
   final List<UnifiedProductUI> productsUI;
-  final String premiumReport;
+  final String id;
+  final String? premiumReport;
 
   UnifiedAnalysisResult({
+    required this.id,
     required this.products,
     required this.analysis,
     required this.productsUI,
-    required this.premiumReport,
+    this.premiumReport,
   });
 
   factory UnifiedAnalysisResult.fromJson(Map<String, dynamic> json) {
     return UnifiedAnalysisResult(
+      id: json['id'] as String? ??
+          DateTime.now()
+              .millisecondsSinceEpoch
+              .toString(), // Generate simplified ID if missing
       products: (json['products'] as List<dynamic>?)
               ?.map((e) => UnifiedProduct.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -23,7 +29,7 @@ class UnifiedAnalysisResult {
               ?.map((e) => UnifiedProductUI.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      premiumReport: json['premium_report'] as String? ?? '',
+      premiumReport: json['premium_report'] as String?,
     );
   }
 }

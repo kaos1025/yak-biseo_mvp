@@ -140,11 +140,18 @@ class SupplementLocalDatasource {
     final tokens = _tokenize(ocrText);
     if (tokens.isEmpty) return [];
 
+    // ignore: avoid_print
+    print('🔍 OCR Tokens: $tokens');
+
     // 각 제품에 대해 유사도 점수 계산
     final scored = <({SupplementProduct product, double score})>[];
 
     for (final product in _products) {
       final score = _calculateMatchScore(tokens, product);
+      if (score > 3.0) {
+        // ignore: avoid_print
+        print('Possible Match: "${product.name}" Score: $score');
+      }
       if (score > 0.1) {
         scored.add((product: product, score: score));
       }
@@ -160,60 +167,99 @@ class SupplementLocalDatasource {
   List<String> _tokenize(String text) {
     return text
         .toLowerCase()
-        .split(RegExp(r'[\s,;:/\-\n\r]+'))
+        .split(RegExp(r'[\s,;:/\-\n\r\(\)]+'))
         .where((t) => t.length >= 2) // 너무 짧은 토큰 제외
+        .where((t) => !_noiseTokens.contains(t)) // 노이즈 토큰 제거
         .toSet() // 중복 제거
         .toList();
   }
 
-  /// 제품과 OCR 토큰 간 매칭 점수 계산
+  /// 매칭에 방해되는 노이즈 토큰
   ///
-  /// 브랜드 완전 매칭 = 높은 가중치
-  /// 제품명 토큰 매칭 = 중간 가중치
-  /// 성분명 매칭 = 낮은 가중치
+  /// 제품 설명에 자주 등장하지만 매칭에 도움이 안 되는 단어들.
+  /// 이 토큰들이 매칭 점수를 희석시키는 것을 방지한다.
+  static const _noiseTokens = <String>{
+    // 비율/강도 표현
+    'ratio', 'strength', 'double', 'triple', 'extra', 'high', 'ultra',
+    'maximum', 'super', 'plus', 'advanced', 'premium', 'pure',
+    // 제형 설명
+    'extract', 'powder', 'liquid', 'complex', 'formula', 'blend',
+    'supplement', 'dietary', 'food', 'foods',
+    // 단위/형태
+    'softgels', 'tablets', 'capsules', 'gummies', 'chewable',
+    'veggie', 'vegan', 'vegetarian',
+    'mg', 'mcg', 'g', 'kg', 'iu', 'ml', 'l', 'oz', // 측정 단위 추가
+    // 한글 노이즈
+    '건강기능식품', '건강', '기능', '식품', '보충제',
+  };
+
+  /// 제품과 OCR 토큰 간 매칭 점수 계산 (v3 - 2-Phase)
+  ///
+  /// Phase 1: 브랜드 매칭 → 통과 조건 (Gate)
+  /// Phase 2: 제품명 핵심 키워드 매칭 → 주 점수
+  /// Phase 3: 용량/정 수 매칭 → Tiebreaker
+  ///
+  /// 성분명 매칭은 제거됨 (false positive 방지)
   double _calculateMatchScore(
       List<String> ocrTokens, SupplementProduct product) {
-    double score = 0;
-
     final brandLower = product.brand.toLowerCase();
     final nameLower = product.name.toLowerCase();
     final nameKoLower = product.nameKo?.toLowerCase() ?? '';
 
-    // 제품명/브랜드 토큰화
-    final nameTokens = _tokenize('$nameLower $nameKoLower');
+    // ── Phase 1: Brand Match (Gate) ──
+    final brandTokens = _tokenize(brandLower);
+    final ocrJoined = ocrTokens.join(' ');
 
-    for (final token in ocrTokens) {
-      // 브랜드 매칭 (가중치 3)
-      if (brandLower.contains(token) || token.contains(brandLower)) {
-        score += 3.0;
-        continue;
-      }
-
-      // 제품명 정확 토큰 매칭 (가중치 2)
-      if (nameTokens.any((nt) => nt == token)) {
-        score += 2.0;
-        continue;
-      }
-
-      // 제품명 부분 매칭 (가중치 1)
-      if (nameLower.contains(token) || nameKoLower.contains(token)) {
-        score += 1.0;
-        continue;
-      }
-
-      // 성분명 매칭 (가중치 0.5)
-      for (final ing in product.localIngredients) {
-        final ingNameLower = ing.name.toLowerCase();
-        final ingKoLower = ing.nameKo?.toLowerCase() ?? '';
-        if (ingNameLower.contains(token) || ingKoLower.contains(token)) {
-          score += 0.5;
-          break;
-        }
+    bool brandMatched = ocrJoined.contains(brandLower);
+    for (final bt in brandTokens) {
+      if (ocrTokens.any((ot) => ot == bt)) {
+        brandMatched = true;
       }
     }
 
-    // 토큰 수로 정규화
-    return score / ocrTokens.length;
+    // 브랜드가 매칭되지 않으면 즉시 제외
+    if (!brandMatched) return 0.0;
+
+    // ── OCR 토큰 분류: 이름 키워드 vs 숫자 ──
+    final nameKeywords = <String>[];
+    final numberTokens = <String>[];
+
+    for (final token in ocrTokens) {
+      if (brandTokens.contains(token)) continue; // 브랜드 토큰 스킵
+      if (RegExp(r'^\d+$').hasMatch(token)) {
+        numberTokens.add(token);
+      } else {
+        nameKeywords.add(token);
+      }
+    }
+
+    // 제품명 토큰 (브랜드 제외)
+    final productNameTokens = _tokenize('$nameLower $nameKoLower')
+        .where((t) => !brandTokens.contains(t))
+        .toSet();
+
+    // ── Phase 2: Name Keyword Match (주 점수) ──
+    int nameMatches = 0;
+    for (final kw in nameKeywords) {
+      if (productNameTokens.any((pt) => pt == kw) ||
+          nameLower.contains(kw) ||
+          nameKoLower.contains(kw)) {
+        nameMatches++;
+      }
+    }
+
+    // 이름 키워드가 있는데 하나도 안 맞으면 → 다른 제품
+    if (nameMatches == 0 && nameKeywords.isNotEmpty) return 0.0;
+
+    // ── Phase 3: Number Match (Tiebreaker) ──
+    int numberMatches = 0;
+    for (final num in numberTokens) {
+      if (nameLower.contains(num)) {
+        numberMatches++;
+      }
+    }
+
+    return nameMatches * 5.0 + numberMatches * 2.0;
   }
 
   /// Levenshtein distance (편집 거리)

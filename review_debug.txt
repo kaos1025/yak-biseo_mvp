@@ -1,0 +1,30 @@
+﻿
+lib\services\gemini_analyzer_service.da
+rt:491:      // print("Cleaned JSON: $c
+leanJson");
+lib\services\report_purchase_service.da
+rt:31:        if (kDebugMode) print("Re
+portPurchaseService: IAP disabled on We
+b");
+lib\services\report_purchase_service.da
+rt:47:        if (kDebugMode) print("Re
+portPurchaseService Stream Error: $erro
+r");
+lib\services\report_purchase_service.da
+rt:51:      if (kDebugMode) print("Repo
+rtPurchaseService Initialization Failed
+: $e");
+lib\services\report_purchase_service.da
+rt:68:      if (kDebugMode) print("Erro
+r checking purchase status: $e");
+lib\services\report_purchase_service.da
+rt:81:        print("IAP not available 
+(Dev Mode). Simulating success...");
+lib\services\report_purchase_service.da
+rt:106:          print('Product not fou
+nd: ${response.notFoundIDs}');
+lib\services\report_purchase_service.da
+rt:114:          print("No products fou
+nd. Using Mock Purchase for Dev.");
+
+

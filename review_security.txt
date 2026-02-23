@@ -1,0 +1,146 @@
+﻿
+lib\models\supplement_analysis.dart:141
+:  final int promptTokenCount;
+lib\models\supplement_analysis.dart:142
+:  final int candidatesTokenCount;
+lib\models\supplement_analysis.dart:143
+:  final int totalTokenCount;
+lib\models\supplement_analysis.dart:146
+:    this.promptTokenCount = 0,
+lib\models\supplement_analysis.dart:147
+:    this.candidatesTokenCount = 0,
+lib\models\supplement_analysis.dart:148
+:    this.totalTokenCount = 0,
+lib\models\supplement_analysis.dart:158
+:    final inputCost = (promptTokenCoun
+t / 1000000) * inputPricePerM;
+lib\models\supplement_analysis.dart:159
+:    final outputCost = (candidatesToke
+nCount / 1000000) * outputPricePerM;
+lib\screens\poc_test_screen.dart:352:  
+                  _buildMetricItem('Tok
+ens', '${usage?.totalTokenCount ?? 0}',
+lib\screens\poc_test_screen.dart:353:  
+                      Icons.token),
+lib\screens\poc_test_screen.dart:422:  
+                        'prompt': usage
+.promptTokenCount,
+lib\screens\poc_test_screen.dart:423:  
+                        'output': usage
+.candidatesTokenCount
+lib\services\api_service.dart:36:    fi
+nal apiKey = dotenv.env['FOOD_SAFETY_KE
+Y'] ?? '';
+lib\services\api_service.dart:37:    if
+ (apiKey.isEmpty) {
+lib\services\api_service.dart:43:      
+  '$_baseUrl/$apiKey/$_serviceId/json/1
+/20/PRDLST_NM=$encodedQuery';
+lib\services\api_service.dart:45:      
+  '$_baseUrl/$apiKey/$_serviceId/json/1
+/20/BSSH_NM=$encodedQuery';
+lib\services\api_service.dart:100:    f
+inal apiKey = dotenv.env['API_KEY'] ?? 
+'';
+lib\services\api_service.dart:101:    i
+f (apiKey.isEmpty) {
+lib\services\api_service.dart:108:     
+     await _extractProductsFromImage(ap
+iKey, image, locale);
+lib\services\api_service.dart:172:     
+     apiKey, extractedProducts, redunda
+ncyResult, locale);
+lib\services\api_service.dart:201:     
+ String apiKey, XFile image, String loc
+ale) async {
+lib\services\api_service.dart:204:     
+ apiKey: apiKey,
+lib\services\api_service.dart:282:     
+ String apiKey,
+lib\services\api_service.dart:288:     
+ apiKey: apiKey,
+lib\services\api_service.dart:363:    f
+inal apiKey = dotenv.env['API_KEY'] ?? 
+'';
+lib\services\api_service.dart:364:    i
+f (apiKey.isEmpty) {
+lib\services\api_service.dart:371:     
+     await _extractProductsFromImage(ap
+iKey, image, locale);
+lib\services\api_service.dart:531:     
+   apiKey,
+lib\services\api_service.dart:612:    S
+tring apiKey,
+lib\services\api_service.dart:619:     
+ apiKey: apiKey,
+lib\services\gemini_analyzer_service.da
+rt:11:  final List<String> _apiKeys = [
+];
+lib\services\gemini_analyzer_service.da
+rt:14:  String get _currentApiKey => _a
+piKeys[_currentKeyIndex];
+lib\services\gemini_analyzer_service.da
+rt:16:  void _rotateApiKey() {
+lib\services\gemini_analyzer_service.da
+rt:17:    _currentKeyIndex = (_currentK
+eyIndex + 1) % _apiKeys.length;
+lib\services\gemini_analyzer_service.da
+rt:62:    // Load multiple API keys (GE
+MINI_API_KEY_1, GEMINI_API_KEY_2, etc.)
+lib\services\gemini_analyzer_service.da
+rt:64:      final key = dotenv.env['GEM
+INI_API_KEY_$i'];
+lib\services\gemini_analyzer_service.da
+rt:66:        _apiKeys.add(key);
+lib\services\gemini_analyzer_service.da
+rt:70:    // Fallback: try GEMINI_API_K
+EY or API_KEY if no numbered keys found
+lib\services\gemini_analyzer_service.da
+rt:71:    if (_apiKeys.isEmpty) {
+lib\services\gemini_analyzer_service.da
+rt:73:          dotenv.env['GEMINI_API_
+KEY'] ?? dotenv.env['API_KEY'] ?? '';
+lib\services\gemini_analyzer_service.da
+rt:75:        _apiKeys.add(fallbackKey)
+;
+lib\services\gemini_analyzer_service.da
+rt:79:    if (_apiKeys.isEmpty) {
+lib\services\gemini_analyzer_service.da
+rt:81:          'API Key not found in .
+env (GEMINI_API_KEY_1, GEMINI_API_KEY, 
+or API_KEY)');
+lib\services\gemini_analyzer_service.da
+rt:200:    final totalKeys = _apiKeys.l
+ength;
+lib\services\gemini_analyzer_service.da
+rt:204:          'https://generativelan
+guage.googleapis.com/v1beta/models/gemi
+ni-2.5-flash:generateContent?key=$_curr
+entApiKey');
+lib\services\gemini_analyzer_service.da
+rt:234:              "maxOutputTokens":
+ 8192,
+lib\services\gemini_analyzer_service.da
+rt:267:            _rotateApiKey();
+lib\services\gemini_analyzer_service.da
+rt:281:          _rotateApiKey();
+lib\services\kr_food_safety_service.dar
+t:26:    final apiKey = dotenv.env['FOO
+D_SAFETY_KEY'] ?? '';
+lib\services\kr_food_safety_service.dar
+t:27:    if (apiKey.isEmpty) {
+lib\services\kr_food_safety_service.dar
+t:34:          '$_baseUrl/$apiKey/$_ser
+viceId/json/1/10/PRDLST_NM=$encodedQuer
+y';
+lib\services\kr_food_safety_service.dar
+t:81:    final apiKey = dotenv.env['FOO
+D_SAFETY_KEY'] ?? '';
+lib\services\kr_food_safety_service.dar
+t:82:    if (apiKey.isEmpty) {
+lib\services\kr_food_safety_service.dar
+t:89:          '$_baseUrl/$apiKey/$_ser
+viceId/json/1/1/PRDLST_REPORT_NO=$encod
+edId';
+
+
