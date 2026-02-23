@@ -96,9 +96,9 @@ class ReportPurchaseService {
       }
 
       // Query Products
-      const Set<String> _kIds = {_kReportSingleId};
+      const Set<String> kIds = {_kReportSingleId};
       final ProductDetailsResponse response =
-          await _iap!.queryProductDetails(_kIds);
+          await _iap!.queryProductDetails(kIds);
 
       if (response.notFoundIDs.isNotEmpty) {
         // Even if ID is not found, we might still have products if one was found

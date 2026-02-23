@@ -1,0 +1,10 @@
+﻿Analyzing yak-biseo_mvp...                                      
+
+   info - Use 'const' with the constructor to improve performance - lib\presentation\home\widgets\recent_analysis_card.dart:79:11 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\presentation\home\widgets\recent_analysis_card.dart:80:23 - prefer_const_literals_to_create_immutables
+   info - The local variable '_kIds' starts with an underscore - lib\services\report_purchase_service.dart:99:25 - no_leading_underscores_for_local_identifiers
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\paid_report_section.dart:129:33 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance - lib\widgets\paid_report_section.dart:135:14 - prefer_const_constructors
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\paid_report_section.dart:186:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\paid_report_section.dart:240:34 - deprecated_member_use
+
