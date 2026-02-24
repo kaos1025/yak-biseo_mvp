@@ -5,6 +5,7 @@ class RecentAnalysisModel {
   final String overallRisk; // safe | warning | danger
   final String? riskSummary;
   final int productCount;
+  final String? analysisJson; // 상세 리포트용 원본 JSON 문자열 보관
 
   const RecentAnalysisModel({
     required this.id,
@@ -13,6 +14,7 @@ class RecentAnalysisModel {
     required this.overallRisk,
     this.riskSummary,
     required this.productCount,
+    this.analysisJson,
   });
 
   factory RecentAnalysisModel.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class RecentAnalysisModel {
       overallRisk: json['overallRisk'] as String,
       riskSummary: json['riskSummary'] as String?,
       productCount: json['productCount'] as int,
+      analysisJson: json['analysisJson'] as String?,
     );
   }
 
@@ -34,6 +37,7 @@ class RecentAnalysisModel {
       'overallRisk': overallRisk,
       'riskSummary': riskSummary,
       'productCount': productCount,
+      if (analysisJson != null) 'analysisJson': analysisJson,
     };
   }
 }

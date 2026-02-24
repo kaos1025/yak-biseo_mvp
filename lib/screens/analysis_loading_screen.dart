@@ -1,7 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:myapp/models/supplecut_analysis_result.dart';
 import 'package:myapp/screens/analysis_result_screen.dart';
+import 'package:myapp/data/local/recent_analysis_storage.dart';
+import 'package:myapp/data/models/recent_analysis_model.dart';
+import 'package:uuid/uuid.dart';
 
 enum AnalysisStep {
   imageRecognition, // 이미지 인식 (0-5초)
@@ -106,6 +110,9 @@ class _AnalysisLoadingScreenState extends State<AnalysisLoadingScreen> {
       _stepTimer?.cancel();
       _tipTimer?.cancel();
 
+      // 분석 완료 즉시 로컬 스토리지에 결과 저장
+      await _saveRecentAnalysis(result);
+
       if (!mounted) return;
 
       // 분석이 성공적으로 끝나면 무조건 진행률 100%와 완료 단계로 강제 설정
@@ -128,6 +135,24 @@ class _AnalysisLoadingScreenState extends State<AnalysisLoadingScreen> {
       // 에러 처리
       if (!mounted) return;
       _showErrorDialog(e.toString());
+    }
+  }
+
+  Future<void> _saveRecentAnalysis(SuppleCutAnalysisResult result) async {
+    try {
+      final analysisModel = RecentAnalysisModel(
+        id: const Uuid().v4(),
+        analyzedAt: DateTime.now(),
+        productNames: result.products.map((p) => p.name).toList(),
+        overallRisk: result.overallRisk,
+        riskSummary: result.summary,
+        productCount: result.products.length,
+        analysisJson: jsonEncode(result.toJson()),
+      );
+      await RecentAnalysisStorage.save(analysisModel);
+    } catch (e) {
+      // ignore: avoid_print
+      print('Failed to save recent analysis: $e');
     }
   }
 

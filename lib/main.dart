@@ -7,6 +7,9 @@ import 'package:myapp/l10n/app_localizations.dart';
 import 'firebase_options.dart';
 import 'package:myapp/data/repositories/local_supplement_repository.dart';
 
+final RouteObserver<ModalRoute<void>> routeObserver =
+    RouteObserver<ModalRoute<void>>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
@@ -31,6 +34,7 @@ class YakBiseoApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      navigatorObservers: [routeObserver],
       home: const HomeScreen(),
     );
   }

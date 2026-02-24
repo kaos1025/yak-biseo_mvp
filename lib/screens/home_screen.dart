@@ -11,6 +11,7 @@ import 'package:myapp/presentation/home/widgets/health_tip_banner.dart';
 import 'package:myapp/presentation/home/widgets/recent_analysis_card.dart';
 import 'package:myapp/widgets/bottom_action_area.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:myapp/main.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,7 +20,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final HomeViewModel _viewModel = HomeViewModel();
   final AnalyticsService _analyticsService = AnalyticsService();
   final ImagePicker _picker = ImagePicker();
@@ -29,6 +30,24 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _analyticsService.logAppOpen();
     _checkDisclaimer();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // Top route popped, returning to Home
+    _refreshMyPills();
   }
 
   void _refreshMyPills() {

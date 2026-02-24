@@ -66,6 +66,20 @@ class SuppleCutAnalysisResult {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'products': products.map((e) => e.toJson()).toList(),
+      'duplicates': duplicates.map((e) => e.toJson()).toList(),
+      'overallRisk': overallRisk,
+      'summary': summary,
+      'recommendations': recommendations,
+      if (disclaimer != null) 'disclaimer': disclaimer,
+      'monthlySavings': monthlySavings,
+      'yearlySavings': yearlySavings,
+      if (excludedProduct != null) 'excludedProduct': excludedProduct,
+    };
+  }
+
   /// 중복 성분이 있는지 여부
   bool get hasDuplicates => duplicates.isNotEmpty;
 
@@ -131,6 +145,17 @@ class AnalyzedProduct {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'source': source,
+      'ingredients': ingredients.map((e) => e.toJson()).toList(),
+      if (confidence != null) 'confidence': confidence,
+      if (note != null) 'note': note,
+      'estimatedMonthlyPrice': estimatedMonthlyPrice,
+    };
+  }
+
   /// AI 추정 제품인지 여부
   bool get isEstimated => source == 'ai_estimated';
 
@@ -166,6 +191,15 @@ class AnalyzedIngredient {
       unit: json['unit'] as String? ?? '',
       dailyValue: (json['dailyValue'] as num?)?.toDouble(),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'amount': amount,
+      'unit': unit,
+      if (dailyValue != null) 'dailyValue': dailyValue,
+    };
   }
 }
 
@@ -210,6 +244,17 @@ class DuplicateIngredient {
       riskLevel: json['riskLevel'] as String? ?? 'safe',
       advice: json['advice'] as String? ?? '',
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'ingredient': ingredient,
+      'products': products,
+      'totalAmount': totalAmount,
+      if (dailyLimit != null) 'dailyLimit': dailyLimit,
+      'riskLevel': riskLevel,
+      'advice': advice,
+    };
   }
 
   @override
