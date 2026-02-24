@@ -1,10 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:intl/intl.dart';
 import 'package:myapp/models/supplecut_analysis_result.dart';
 import 'package:myapp/l10n/app_localizations.dart';
 import 'package:myapp/services/gemini_analyzer_service.dart';
+import 'package:myapp/utils/localization_utils.dart';
 
 /// SuppleCut 분석 결과 화면
 ///
@@ -33,8 +33,6 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
 
   SuppleCutAnalysisResult get result => widget.result;
   bool get isPremium => widget.isPremiumUser || _isReportUnlocked;
-
-  static final _currencyFormat = NumberFormat('#,###');
 
   @override
   Widget build(BuildContext context) {
@@ -75,9 +73,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
 
                 // 3. 제품 목록
                 const SizedBox(height: 20),
-                const Text('📦 분석된 제품',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('📦 ${l10n.analyzedProducts}',
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 ...result.products.map(_buildProductCard),
 
@@ -146,9 +144,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    '홈으로 돌아가기',
-                    style: TextStyle(
+                  child: Text(
+                    l10n.btnBackHome,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -174,6 +172,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
 
   /// 절감 금액 배너 (무료)
   Widget _buildSavingsBanner() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       decoration: BoxDecoration(
@@ -208,9 +207,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
           ],
 
           // 라벨
-          const Text(
-            '💰 월 절감 가능 금액',
-            style: TextStyle(
+          Text(
+            '💰 ${l10n.analysisSavings}',
+            style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: Color(0xFF795548),
@@ -220,7 +219,8 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
 
           // 금액
           Text(
-            '${_currencyFormat.format(result.monthlySavings)}원',
+            LocalizationUtils.formatCurrency(
+                result.monthlySavings.toDouble(), l10n.localeName),
             style: const TextStyle(
               fontSize: 34,
               fontWeight: FontWeight.bold,
@@ -238,7 +238,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                '🎉 연간 ${_currencyFormat.format(result.yearlySavings)}원 아낄 수 있어요!',
+                '🎉 ${l10n.analysisYearly(LocalizationUtils.formatCurrency(result.yearlySavings.toDouble(), l10n.localeName))}',
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -268,6 +268,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
 
   /// 제품 카드 (무료) — 제품명 + 소스 태그 + 월 가격 + 성분 칩 + 중복 뼉지
   Widget _buildProductCard(AnalyzedProduct product) {
+    final l10n = AppLocalizations.of(context)!;
     final isEstimated = product.isEstimated;
 
     // 이 제품이 중복 성분에 포함되어 있는지 확인
@@ -313,7 +314,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  isEstimated ? '🤖 AI 추정' : '✅ DB 확인',
+                  isEstimated
+                      ? '🤖 ${l10n.badgeAiEstimated}'
+                      : '✅ ${l10n.badgeDbMatched}',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -337,9 +340,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                 border: Border.all(
                     color: const Color(0xFFEF5350).withValues(alpha: 0.3)),
               ),
-              child: const Text(
-                '중복',
-                style: TextStyle(
+              child: Text(
+                l10n.badgeDuplicate,
+                style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFFE53935),
@@ -352,7 +355,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
           if (product.estimatedMonthlyPrice > 0) ...[
             const SizedBox(height: 6),
             Text(
-              '💰 월 ${_currencyFormat.format(product.estimatedMonthlyPrice)}원',
+              '💰 월 ${LocalizationUtils.formatCurrency(product.estimatedMonthlyPrice.toDouble(), l10n.localeName)}',
               style: const TextStyle(
                 fontSize: 13,
                 color: Colors.black54,
@@ -404,6 +407,8 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
 
   /// AI 상세 분석 리포트 카드 (유료 잠금)
   Widget _buildPremiumReportCard() {
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -443,9 +448,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                         color: Colors.white, size: 18),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'AI 상세 분석 리포트',
+                      l10n.detailReportTitle,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

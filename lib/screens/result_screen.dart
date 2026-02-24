@@ -6,8 +6,9 @@ import 'package:myapp/services/gemini_analyzer_service.dart';
 
 class ResultScreen extends StatefulWidget {
   final XFile image;
+  final String locale;
 
-  const ResultScreen({super.key, required this.image});
+  const ResultScreen({super.key, required this.image, required this.locale});
 
   @override
   State<ResultScreen> createState() => _ResultScreenState();
@@ -41,7 +42,7 @@ class _ResultScreenState extends State<ResultScreen> {
   /// 통합 파이프라인: 이미지 → OCR → 로컬 DB 매칭 → 분석
   Future<SuppleCutAnalysisResult> _processImage() async {
     final imageBytes = await widget.image.readAsBytes();
-    return _analyzerService.analyzeWithImage(imageBytes);
+    return _analyzerService.analyzeWithImage(imageBytes, locale: widget.locale);
   }
 
   @override

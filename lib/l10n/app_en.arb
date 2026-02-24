@@ -56,5 +56,76 @@
   "tagDuplicateWarning": "Duplicate Warning",
   "tagImported": "Imported",
   "tagPopular": "Popular",
-  "viewDetails": "View Details"
+  "viewDetails": "View Details",
+  "homeHeadline": "Are you wasting money\non supplements? 💸",
+  "homeSubline": "The trend is 'less is more'.\nOptimize your stack in 3 seconds.",
+  "monthlySavings": "Save avg. $40/month",
+  "btnTakePhoto": "Scan supplement label",
+  "btnFromAlbum": "Choose from album",
+  "healthTipTitle": "Today's Supplement Question",
+  "healthTipCta": "Learn more →",
+  "tipModalCta": "Is my supplement combo safe?",
+  "tipModalBtn": "Analyze my supplements",
+  "tip001Q": "Vitamin D + Calcium: Safe together?",
+  "tip001A": "Taking them together boosts absorption! 👍\nBut magnesium may interfere...",
+  "tip002Q": "Multivitamin + Vitamin D: Overlap?",
+  "tip002A": "If your multi already contains Vitamin D, you might be overdoing it...",
+  "tip003Q": "Probiotics + Antibiotics: OK together?",
+  "tip003A": "Antibiotics can kill probiotics. Take them at least 2 hours apart...",
+  "recentAnalysisTitle": "Recent Analysis",
+  "recentAnalysisDate": "Analyzed on {date}",
+  "@recentAnalysisDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "btnReanalyze": "Reanalyze →",
+  "riskSafe": "No overlapping ingredients",
+  "riskWarning": "{ingredient} excess warning",
+  "@riskWarning": {
+    "placeholders": {
+      "ingredient": {
+        "type": "String"
+      }
+    }
+  },
+  "riskDanger": "{ingredient} exceeds limit!",
+  "@riskDanger": {
+    "placeholders": {
+      "ingredient": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentTitle": "Get Detailed Report",
+  "paymentIncludes": "Includes:",
+  "paymentItem1": "Detailed ingredient benefits",
+  "paymentItem2": "Necessity assessment",
+  "paymentItem3": "Alternative recommendations",
+  "paymentItem4": "PDF export",
+  "paymentBtn": "Pay $0.99",
+  "paymentLater": "Maybe later",
+  "analysisSavings": "Monthly savings",
+  "analysisYearly": "Save {amount}/year!",
+  "@analysisYearly": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "analyzedProducts": "Analyzed Products",
+  "badgeDbMatched": "Verified",
+  "badgeAiEstimated": "AI Estimated",
+  "badgeDuplicate": "Overlap",
+  "detailReportTitle": "AI Detailed Report",
+  "btnBackHome": "Back to Home",
+  "loading": "Analyzing...",
+  "errorGeneric": "Something went wrong",
+  "btnRetry": "Retry",
+  "btnClose": "Close",
+  "btnCancel": "Cancel",
+  "btnConfirm": "Confirm"
 }

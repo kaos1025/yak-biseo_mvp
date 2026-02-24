@@ -114,10 +114,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       if (!mounted) {
         return;
       }
+      final l10n = AppLocalizations.of(context)!;
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ResultScreen(image: pickedFile),
+          builder: (context) =>
+              ResultScreen(image: pickedFile, locale: l10n.localeName),
         ),
       );
       if (mounted) {
@@ -138,10 +140,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       if (!mounted) {
         return;
       }
+      final l10n = AppLocalizations.of(context)!;
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ResultScreen(image: pickedFile),
+          builder: (context) =>
+              ResultScreen(image: pickedFile, locale: l10n.localeName),
         ),
       );
       if (mounted) {

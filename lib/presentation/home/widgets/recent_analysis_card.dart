@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../data/models/recent_analysis_model.dart';
 import 'payment_bottom_sheet.dart';
+import 'package:myapp/l10n/app_localizations.dart';
 
 class RecentAnalysisCard extends StatelessWidget {
   final RecentAnalysisModel analysis;
@@ -21,6 +22,8 @@ class RecentAnalysisCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     Color getRiskColor() {
       switch (analysis.overallRisk) {
         case 'safe':
@@ -54,6 +57,7 @@ class RecentAnalysisCard extends StatelessWidget {
     if (analysis.productNames.isNotEmpty) {
       productsString = analysis.productNames.first;
       if (analysis.productCount > 1) {
+        // Here we could use l10n.analyzedProducts + count, but sticking to minor changes
         productsString += ' 외 ${analysis.productCount - 1}개 제품';
       }
     }
@@ -76,13 +80,13 @@ class RecentAnalysisCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Text('📊', style: TextStyle(fontSize: 20)),
-              SizedBox(width: 8),
+              const Text('📊', style: TextStyle(fontSize: 20)),
+              const SizedBox(width: 8),
               Text(
-                '최근 분석 결과',
-                style: TextStyle(
+                l10n.recentAnalysisTitle,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
@@ -118,7 +122,7 @@ class RecentAnalysisCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '$dateString 분석',
+            l10n.recentAnalysisDate(dateString),
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
@@ -137,7 +141,7 @@ class RecentAnalysisCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '다시 분석하기 →',
+                  l10n.btnReanalyze,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,

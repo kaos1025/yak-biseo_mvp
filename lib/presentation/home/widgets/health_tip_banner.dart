@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../data/models/health_tip_model.dart';
 import 'health_tip_modal.dart';
+import 'package:myapp/l10n/app_localizations.dart';
 
 class HealthTipBanner extends StatelessWidget {
   final HealthTipModel tip;
@@ -27,6 +28,8 @@ class HealthTipBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return GestureDetector(
       onTap: () => _showTipModal(context),
       child: Container(
@@ -52,7 +55,7 @@ class HealthTipBanner extends StatelessWidget {
                 const Text('💊', style: TextStyle(fontSize: 20)),
                 const SizedBox(width: 8),
                 Text(
-                  '오늘의 영양제 궁금증',
+                  l10n.healthTipTitle,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -82,7 +85,7 @@ class HealthTipBanner extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '알아보기 →',
+                  l10n.healthTipCta,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,

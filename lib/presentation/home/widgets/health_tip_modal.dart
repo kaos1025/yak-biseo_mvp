@@ -41,6 +41,8 @@ class HealthTipModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       backgroundColor: Colors.white,
@@ -111,14 +113,14 @@ class HealthTipModal extends StatelessWidget {
                 ),
                 elevation: 0,
               ),
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.camera_alt, size: 24),
-                  SizedBox(width: 8),
+                  const Icon(Icons.camera_alt, size: 24),
+                  const SizedBox(width: 8),
                   Text(
-                    '내 영양제 분석해보기',
-                    style: TextStyle(
+                    l10n.tipModalBtn,
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),

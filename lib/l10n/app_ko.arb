@@ -56,5 +56,76 @@
   "tagDuplicateWarning": "중복 경고",
   "tagImported": "해외 직구",
   "tagPopular": "인기",
-  "viewDetails": "상세보기"
+  "viewDetails": "상세보기",
+  "homeHeadline": "혹시 영양제에\n돈 낭비 하고 계신가요? 💸",
+  "homeSubline": "요즘 트렌드는 '더하기'가 아니라 '빼기'입니다.\n3초 만에 구조조정 해드려요.",
+  "monthlySavings": "평균 월 50,000원 절약 효과",
+  "btnTakePhoto": "약 봉투 찍고 진단받기",
+  "btnFromAlbum": "앨범에서 불러오기",
+  "healthTipTitle": "오늘의 영양제 궁금증",
+  "healthTipCta": "알아보기 →",
+  "tipModalCta": "내 영양제 조합은 괜찮을까?",
+  "tipModalBtn": "내 영양제 분석해보기",
+  "tip001Q": "비타민D + 칼슘, 같이 먹어도 될까?",
+  "tip001A": "함께 먹으면 흡수율 UP! 👍\n하지만 마그네슘이랑 같이 먹으면 흡수를 방해할 수 있어요...",
+  "tip002Q": "종합비타민 + 비타민D, 중복일까?",
+  "tip002A": "종합비타민에 이미 비타민D가 포함되어 있다면, 과다 섭취 위험이 있어요...",
+  "tip003Q": "유산균 + 항생제, 같이 먹어도 돼?",
+  "tip003A": "항생제는 유산균을 죽일 수 있어요. 최소 2시간 간격을 두고...",
+  "recentAnalysisTitle": "최근 분석 결과",
+  "recentAnalysisDate": "{date} 분석",
+  "@recentAnalysisDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "btnReanalyze": "다시 분석하기 →",
+  "riskSafe": "중복 성분 없음",
+  "riskWarning": "{ingredient} 과잉 주의",
+  "@riskWarning": {
+    "placeholders": {
+      "ingredient": {
+        "type": "String"
+      }
+    }
+  },
+  "riskDanger": "{ingredient} 상한 초과!",
+  "@riskDanger": {
+    "placeholders": {
+      "ingredient": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentTitle": "상세 리포트 받기",
+  "paymentIncludes": "포함 내용:",
+  "paymentItem1": "성분별 효능 상세 설명",
+  "paymentItem2": "섭취 필요성 평가",
+  "paymentItem3": "대체 제품 추천",
+  "paymentItem4": "PDF 저장",
+  "paymentBtn": "$0.99 결제하기",
+  "paymentLater": "다음에 할게요",
+  "analysisSavings": "월 절감 가능 금액",
+  "analysisYearly": "연간 {amount} 아낄 수 있어요!",
+  "@analysisYearly": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "analyzedProducts": "분석된 제품",
+  "badgeDbMatched": "DB 확인",
+  "badgeAiEstimated": "AI 추정",
+  "badgeDuplicate": "중복",
+  "detailReportTitle": "AI 상세 분석 리포트",
+  "btnBackHome": "홈으로 돌아가기",
+  "loading": "분석 중...",
+  "errorGeneric": "오류가 발생했습니다",
+  "btnRetry": "다시 시도",
+  "btnClose": "닫기",
+  "btnCancel": "취소",
+  "btnConfirm": "확인"
 }

@@ -161,4 +161,145 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewDetails => 'View Details';
+
+  @override
+  String get homeHeadline => 'Are you wasting money\non supplements? 💸';
+
+  @override
+  String get homeSubline =>
+      'The trend is \'less is more\'.\nOptimize your stack in 3 seconds.';
+
+  @override
+  String get monthlySavings => 'Save avg. \$40/month';
+
+  @override
+  String get btnTakePhoto => 'Scan supplement label';
+
+  @override
+  String get btnFromAlbum => 'Choose from album';
+
+  @override
+  String get healthTipTitle => 'Today\'s Supplement Question';
+
+  @override
+  String get healthTipCta => 'Learn more →';
+
+  @override
+  String get tipModalCta => 'Is my supplement combo safe?';
+
+  @override
+  String get tipModalBtn => 'Analyze my supplements';
+
+  @override
+  String get tip001Q => 'Vitamin D + Calcium: Safe together?';
+
+  @override
+  String get tip001A =>
+      'Taking them together boosts absorption! 👍\nBut magnesium may interfere...';
+
+  @override
+  String get tip002Q => 'Multivitamin + Vitamin D: Overlap?';
+
+  @override
+  String get tip002A =>
+      'If your multi already contains Vitamin D, you might be overdoing it...';
+
+  @override
+  String get tip003Q => 'Probiotics + Antibiotics: OK together?';
+
+  @override
+  String get tip003A =>
+      'Antibiotics can kill probiotics. Take them at least 2 hours apart...';
+
+  @override
+  String get recentAnalysisTitle => 'Recent Analysis';
+
+  @override
+  String recentAnalysisDate(String date) {
+    return 'Analyzed on $date';
+  }
+
+  @override
+  String get btnReanalyze => 'Reanalyze →';
+
+  @override
+  String get riskSafe => 'No overlapping ingredients';
+
+  @override
+  String riskWarning(String ingredient) {
+    return '$ingredient excess warning';
+  }
+
+  @override
+  String riskDanger(String ingredient) {
+    return '$ingredient exceeds limit!';
+  }
+
+  @override
+  String get paymentTitle => 'Get Detailed Report';
+
+  @override
+  String get paymentIncludes => 'Includes:';
+
+  @override
+  String get paymentItem1 => 'Detailed ingredient benefits';
+
+  @override
+  String get paymentItem2 => 'Necessity assessment';
+
+  @override
+  String get paymentItem3 => 'Alternative recommendations';
+
+  @override
+  String get paymentItem4 => 'PDF export';
+
+  @override
+  String get paymentBtn => 'Pay \$0.99';
+
+  @override
+  String get paymentLater => 'Maybe later';
+
+  @override
+  String get analysisSavings => 'Monthly savings';
+
+  @override
+  String analysisYearly(String amount) {
+    return 'Save $amount/year!';
+  }
+
+  @override
+  String get analyzedProducts => 'Analyzed Products';
+
+  @override
+  String get badgeDbMatched => 'Verified';
+
+  @override
+  String get badgeAiEstimated => 'AI Estimated';
+
+  @override
+  String get badgeDuplicate => 'Overlap';
+
+  @override
+  String get detailReportTitle => 'AI Detailed Report';
+
+  @override
+  String get btnBackHome => 'Back to Home';
+
+  @override
+  String get loading => 'Analyzing...';
+
+  @override
+  String get errorGeneric => 'Something went wrong';
+
+  @override
+  String get btnRetry => 'Retry';
+
+  @override
+  String get btnClose => 'Close';
+
+  @override
+  String get btnCancel => 'Cancel';
+
+  @override
+  String get btnConfirm => 'Confirm';
 }

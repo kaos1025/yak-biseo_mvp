@@ -397,6 +397,264 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'상세보기'**
   String get viewDetails;
+
+  /// No description provided for @homeHeadline.
+  ///
+  /// In ko, this message translates to:
+  /// **'혹시 영양제에\n돈 낭비 하고 계신가요? 💸'**
+  String get homeHeadline;
+
+  /// No description provided for @homeSubline.
+  ///
+  /// In ko, this message translates to:
+  /// **'요즘 트렌드는 \'더하기\'가 아니라 \'빼기\'입니다.\n3초 만에 구조조정 해드려요.'**
+  String get homeSubline;
+
+  /// No description provided for @monthlySavings.
+  ///
+  /// In ko, this message translates to:
+  /// **'평균 월 50,000원 절약 효과'**
+  String get monthlySavings;
+
+  /// No description provided for @btnTakePhoto.
+  ///
+  /// In ko, this message translates to:
+  /// **'약 봉투 찍고 진단받기'**
+  String get btnTakePhoto;
+
+  /// No description provided for @btnFromAlbum.
+  ///
+  /// In ko, this message translates to:
+  /// **'앨범에서 불러오기'**
+  String get btnFromAlbum;
+
+  /// No description provided for @healthTipTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'오늘의 영양제 궁금증'**
+  String get healthTipTitle;
+
+  /// No description provided for @healthTipCta.
+  ///
+  /// In ko, this message translates to:
+  /// **'알아보기 →'**
+  String get healthTipCta;
+
+  /// No description provided for @tipModalCta.
+  ///
+  /// In ko, this message translates to:
+  /// **'내 영양제 조합은 괜찮을까?'**
+  String get tipModalCta;
+
+  /// No description provided for @tipModalBtn.
+  ///
+  /// In ko, this message translates to:
+  /// **'내 영양제 분석해보기'**
+  String get tipModalBtn;
+
+  /// No description provided for @tip001Q.
+  ///
+  /// In ko, this message translates to:
+  /// **'비타민D + 칼슘, 같이 먹어도 될까?'**
+  String get tip001Q;
+
+  /// No description provided for @tip001A.
+  ///
+  /// In ko, this message translates to:
+  /// **'함께 먹으면 흡수율 UP! 👍\n하지만 마그네슘이랑 같이 먹으면 흡수를 방해할 수 있어요...'**
+  String get tip001A;
+
+  /// No description provided for @tip002Q.
+  ///
+  /// In ko, this message translates to:
+  /// **'종합비타민 + 비타민D, 중복일까?'**
+  String get tip002Q;
+
+  /// No description provided for @tip002A.
+  ///
+  /// In ko, this message translates to:
+  /// **'종합비타민에 이미 비타민D가 포함되어 있다면, 과다 섭취 위험이 있어요...'**
+  String get tip002A;
+
+  /// No description provided for @tip003Q.
+  ///
+  /// In ko, this message translates to:
+  /// **'유산균 + 항생제, 같이 먹어도 돼?'**
+  String get tip003Q;
+
+  /// No description provided for @tip003A.
+  ///
+  /// In ko, this message translates to:
+  /// **'항생제는 유산균을 죽일 수 있어요. 최소 2시간 간격을 두고...'**
+  String get tip003A;
+
+  /// No description provided for @recentAnalysisTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'최근 분석 결과'**
+  String get recentAnalysisTitle;
+
+  /// No description provided for @recentAnalysisDate.
+  ///
+  /// In ko, this message translates to:
+  /// **'{date} 분석'**
+  String recentAnalysisDate(String date);
+
+  /// No description provided for @btnReanalyze.
+  ///
+  /// In ko, this message translates to:
+  /// **'다시 분석하기 →'**
+  String get btnReanalyze;
+
+  /// No description provided for @riskSafe.
+  ///
+  /// In ko, this message translates to:
+  /// **'중복 성분 없음'**
+  String get riskSafe;
+
+  /// No description provided for @riskWarning.
+  ///
+  /// In ko, this message translates to:
+  /// **'{ingredient} 과잉 주의'**
+  String riskWarning(String ingredient);
+
+  /// No description provided for @riskDanger.
+  ///
+  /// In ko, this message translates to:
+  /// **'{ingredient} 상한 초과!'**
+  String riskDanger(String ingredient);
+
+  /// No description provided for @paymentTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'상세 리포트 받기'**
+  String get paymentTitle;
+
+  /// No description provided for @paymentIncludes.
+  ///
+  /// In ko, this message translates to:
+  /// **'포함 내용:'**
+  String get paymentIncludes;
+
+  /// No description provided for @paymentItem1.
+  ///
+  /// In ko, this message translates to:
+  /// **'성분별 효능 상세 설명'**
+  String get paymentItem1;
+
+  /// No description provided for @paymentItem2.
+  ///
+  /// In ko, this message translates to:
+  /// **'섭취 필요성 평가'**
+  String get paymentItem2;
+
+  /// No description provided for @paymentItem3.
+  ///
+  /// In ko, this message translates to:
+  /// **'대체 제품 추천'**
+  String get paymentItem3;
+
+  /// No description provided for @paymentItem4.
+  ///
+  /// In ko, this message translates to:
+  /// **'PDF 저장'**
+  String get paymentItem4;
+
+  /// No description provided for @paymentBtn.
+  ///
+  /// In ko, this message translates to:
+  /// **'\$0.99 결제하기'**
+  String get paymentBtn;
+
+  /// No description provided for @paymentLater.
+  ///
+  /// In ko, this message translates to:
+  /// **'다음에 할게요'**
+  String get paymentLater;
+
+  /// No description provided for @analysisSavings.
+  ///
+  /// In ko, this message translates to:
+  /// **'월 절감 가능 금액'**
+  String get analysisSavings;
+
+  /// No description provided for @analysisYearly.
+  ///
+  /// In ko, this message translates to:
+  /// **'연간 {amount} 아낄 수 있어요!'**
+  String analysisYearly(String amount);
+
+  /// No description provided for @analyzedProducts.
+  ///
+  /// In ko, this message translates to:
+  /// **'분석된 제품'**
+  String get analyzedProducts;
+
+  /// No description provided for @badgeDbMatched.
+  ///
+  /// In ko, this message translates to:
+  /// **'DB 확인'**
+  String get badgeDbMatched;
+
+  /// No description provided for @badgeAiEstimated.
+  ///
+  /// In ko, this message translates to:
+  /// **'AI 추정'**
+  String get badgeAiEstimated;
+
+  /// No description provided for @badgeDuplicate.
+  ///
+  /// In ko, this message translates to:
+  /// **'중복'**
+  String get badgeDuplicate;
+
+  /// No description provided for @detailReportTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'AI 상세 분석 리포트'**
+  String get detailReportTitle;
+
+  /// No description provided for @btnBackHome.
+  ///
+  /// In ko, this message translates to:
+  /// **'홈으로 돌아가기'**
+  String get btnBackHome;
+
+  /// No description provided for @loading.
+  ///
+  /// In ko, this message translates to:
+  /// **'분석 중...'**
+  String get loading;
+
+  /// No description provided for @errorGeneric.
+  ///
+  /// In ko, this message translates to:
+  /// **'오류가 발생했습니다'**
+  String get errorGeneric;
+
+  /// No description provided for @btnRetry.
+  ///
+  /// In ko, this message translates to:
+  /// **'다시 시도'**
+  String get btnRetry;
+
+  /// No description provided for @btnClose.
+  ///
+  /// In ko, this message translates to:
+  /// **'닫기'**
+  String get btnClose;
+
+  /// No description provided for @btnCancel.
+  ///
+  /// In ko, this message translates to:
+  /// **'취소'**
+  String get btnCancel;
+
+  /// No description provided for @btnConfirm.
+  ///
+  /// In ko, this message translates to:
+  /// **'확인'**
+  String get btnConfirm;
 }
 
 class _AppLocalizationsDelegate

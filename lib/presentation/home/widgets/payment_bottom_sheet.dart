@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:myapp/l10n/app_localizations.dart';
 
 class PaymentBottomSheet extends StatelessWidget {
   const PaymentBottomSheet({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -31,9 +34,9 @@ class PaymentBottomSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              '상세 리포트 받기',
-              style: TextStyle(
+            Text(
+              l10n.paymentTitle,
+              style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -56,7 +59,7 @@ class PaymentBottomSheet extends StatelessWidget {
                       const Text('💎', style: TextStyle(fontSize: 20)),
                       const SizedBox(width: 8),
                       Text(
-                        '포함 내용:',
+                        l10n.paymentIncludes,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -66,13 +69,13 @@ class PaymentBottomSheet extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _buildFeatureRow('성분별 효능 상세 설명'),
+                  _buildFeatureRow(l10n.paymentItem1),
                   const SizedBox(height: 8),
-                  _buildFeatureRow('섭취 필요성 평가'),
+                  _buildFeatureRow(l10n.paymentItem2),
                   const SizedBox(height: 8),
-                  _buildFeatureRow('대체 제품 추천'),
+                  _buildFeatureRow(l10n.paymentItem3),
                   const SizedBox(height: 8),
-                  _buildFeatureRow('PDF 저장'),
+                  _buildFeatureRow(l10n.paymentItem4),
                 ],
               ),
             ),
@@ -93,9 +96,9 @@ class PaymentBottomSheet extends StatelessWidget {
                 ),
                 elevation: 0,
               ),
-              child: const Text(
-                '\$0.99 결제하기',
-                style: TextStyle(
+              child: Text(
+                l10n.paymentBtn,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -104,8 +107,8 @@ class PaymentBottomSheet extends StatelessWidget {
             const SizedBox(height: 16),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text(
-                '다음에 할게요',
+              child: Text(
+                l10n.paymentLater,
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey,

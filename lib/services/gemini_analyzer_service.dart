@@ -908,7 +908,10 @@ $contextLines
       return promptSection;
     }).join('\n\n');
 
-    final lang = locale == 'ko' ? '한국어' : 'English';
+    final lang = locale == 'en' ? 'English' : '한국어';
+    final currencyRule = locale == 'en'
+        ? '- 모든 가격은 **미국 달러(USD)** 기준 (숫자로만 반환)\n- 가격 검색 시 구글에서 미국 소매가를 검색 (예: 1개월분 25.00)\n- estimatedMonthlyPrice는 숫자로만 반환 (예: 25.00)'
+        : '- 모든 가격은 **대한민국 원화(KRW)** 기준\n- 가격 검색이 지시된 제품(매칭 실패 제품)의 경우에만 Google Search로 한국 내 판매가를 검색하여 추정 (예: 1개월분 30,000원)\n- 가격 검색 시 최소 1,000원 이상. "4원", "15원" 등 비현실적 금액 금지\n- 100원 단위로 반올림 (예: 32450 → 32500)';
 
     // fallbackProducts 섹션: AI 추정이 필요한 제품인 경우에만 포함
     final fallbackProductsSection = hasFallback
@@ -939,7 +942,7 @@ ${hasFallback ? '''
    - fallbackProducts에 추정한 성분 정보를 포함하세요.
    - confidence를 "high"/"medium"/"low"로 표기하세요.
 3. 모든 제품의 성분을 종합하여 중복 성분 및 과잉 섭취 위험을 분석하세요.
-4. **DB 매칭 실패 제품**에 대해서만 Google Search를 사용하여 한국 내 판매 가격을 검색하고 월 환산 가격(estimatedMonthlyPrice)을 추정하세요. DB 매칭된 제품은 이미 제공된 '(앱 자체 계산) 추정 월 환산 가격'을 그대로 사용하세요.
+4. **DB 매칭 실패 제품**에 대해서만 Google Search를 사용하여 판매 가격을 검색하고 월 환산 가격(estimatedMonthlyPrice)을 추정하세요. DB 매칭된 제품은 이미 제공된 '(앱 자체 계산) 추정 월 환산 가격'을 그대로 사용하세요.
 ''' : '''
 제공된 성분 정보를 사용하여 중복 성분 및 과잉 섭취 위험을 분석하세요.
 (주의) 모든 영양제가 DB 매칭에 성공했습니다. 성분과 가격 정보가 이미 제공되었으므로 **Google Search 기능을 절대 켜지 마세요! (빠른 응답 속도가 생명입니다)**
@@ -951,7 +954,7 @@ ${hasFallback ? '''
   "estimatedPrices": [
     {
       "productName": "제품명 (위 입력과 동일)",
-      "estimatedMonthlyPrice": 월환산가격_KRW숫자 (제공된 경우 그대로 사용)
+      "estimatedMonthlyPrice": 월환산가격_숫자 (제공된 경우 그대로 사용)
     }
   ],
   "duplicates": [
@@ -968,16 +971,13 @@ ${hasFallback ? '''
   "summary": "전체 분석 요약 (2-3문장)",
   "recommendations": ["권장사항1", "권장사항2"],
   "excludedProduct": "제외 권장 제품명 또는 null",
-  "monthlySavings": 제외제품의_월환산가격_KRW숫자_또는_0,
+  "monthlySavings": 제외제품의_월환산가격_숫자_또는_0,
   "yearlySavings": monthlySavings_곱하기_12,
   "disclaimer": ${hasFallback ? '"일부 제품은 AI 추정치 기반입니다. 정확한 정보는 제품 라벨을 확인하세요."' : 'null'}
 }
 
 ## 가격 규칙
-- 모든 가격은 **대한민국 원화(KRW)** 기준
-- 가격 검색이 지시된 제품(매칭 실패 제품)의 경우에만 Google Search로 한국 내 판매가를 검색하여 추정 (예: 1개월분 30,000원)
-- 가격 검색 시 최소 1,000원 이상. "4원", "15원" 등 비현실적 금액 금지
-- 100원 단위로 반올림 (예: 32450 → 32500)
+$currencyRule
 - estimatedMonthlyPrice = 판매가 / 섭취기간(개월)
 
 ## 기타 규칙
@@ -1033,8 +1033,9 @@ ${hasFallback ? '''
 
   /// 이미지 기반 통합 분석 파이프라인
   Future<SuppleCutAnalysisResult> analyzeWithImage(
-    Uint8List imageBytes,
-  ) async {
+    Uint8List imageBytes, {
+    String locale = 'ko',
+  }) async {
     // Step 1: 이미지에서 제품명 추출
     final productNames = await extractProductNames(imageBytes);
 
@@ -1070,6 +1071,6 @@ ${hasFallback ? '''
     }
 
     // Step 4: 중복 분석 (Merge logic applied inside)
-    return analyzeWithFallback(inputs: inputs);
+    return analyzeWithFallback(inputs: inputs, locale: locale);
   }
 }
