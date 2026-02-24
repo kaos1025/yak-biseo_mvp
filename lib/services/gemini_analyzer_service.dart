@@ -198,6 +198,7 @@ report_markdown 내용:
     required String prompt,
     Uint8List? imageBytes, // Changed to nullable
     required String responseMimeType,
+    bool enableGrounding = false, // Grounding 옵션화 (디폴트: 강제 종료로 속도 최적화)
   }) async {
     int keysTriedCount = 0;
     final totalKeys = _apiKeys.length;
@@ -220,24 +221,29 @@ report_markdown 내용:
           });
         }
 
+        final Map<String, dynamic> requestBody = {
+          "contents": [
+            {"parts": parts}
+          ],
+          "generationConfig": {
+            "temperature": 0.1,
+            "maxOutputTokens": 8192,
+            // "responseMimeType": responseMimeType
+          }
+        };
+
+        if (enableGrounding) {
+          requestBody["tools"] = [
+            {
+              "google_search": {} // Google Search Grounding Enable
+            }
+          ];
+        }
+
         final response = await http.post(
           url,
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            "contents": [
-              {"parts": parts}
-            ],
-            "tools": [
-              {
-                "google_search": {} // Google Search Grounding Enable
-              }
-            ],
-            "generationConfig": {
-              "temperature": 0.1,
-              "maxOutputTokens": 8192,
-              // "responseMimeType": responseMimeType
-            }
-          }),
+          body: jsonEncode(requestBody),
         );
 
         if (response.statusCode == 200) {
@@ -733,6 +739,9 @@ $contextLines
       throw ArgumentError('분석할 제품이 없습니다.');
     }
 
+    final hasFallback =
+        inputs.any((i) => i.source == ProductSource.geminiFallback);
+
     final prompt = _buildFallbackPrompt(inputs, locale);
     String responseText = '';
 
@@ -740,6 +749,7 @@ $contextLines
       responseText = await _sendRestRequest(
         prompt: prompt,
         responseMimeType: 'text/plain',
+        enableGrounding: hasFallback, // Fallback이 있을 때만 구글 검색 활성화
       );
 
       final cleanedJson = _cleanJsonString(responseText);
@@ -881,20 +891,22 @@ $contextLines
     return monthlyPrice;
   }
 
-  /// Fallback 분석용 프롬프트 생성
-  ///
-  /// AI에게 분석 결과만 요청하고, 제품/성분 정보 에코를 제거하여
-  /// 출력 토큰을 최소화한다.
   String _buildFallbackPrompt(List<AnalysisInput> inputs, String locale) {
     final hasFallback =
         inputs.any((i) => i.source == ProductSource.geminiFallback);
 
-    // 제품 섹션 조립
-    final productSections = inputs
-        .asMap()
-        .entries
-        .map((e) => e.value.toPromptSection(e.key))
-        .join('\n');
+    // 제품 섹션 조립 (로컬 DB 제품명에는 미리 계산된 가격도 넘겨주어 AI가 검색하지 않게 함)
+    final productSections = inputs.asMap().entries.map((e) {
+      final promptSection = e.value.toPromptSection(e.key);
+      if (e.value.source == ProductSource.localDb &&
+          e.value.localData != null) {
+        final monthlyPrice = _calculateMonthlyPrice(e.value.localData!);
+        if (monthlyPrice > 0) {
+          return '$promptSection\n- (앱 자체 계산) 추정 월 환산 가격: $monthlyPrice원 (이 값을 그대로 사용하세요)';
+        }
+      }
+      return promptSection;
+    }).join('\n\n');
 
     final lang = locale == 'ko' ? '한국어' : 'English';
 
@@ -922,15 +934,16 @@ $productSections
 
 ## 분석 요청
 ${hasFallback ? '''
-1. **DB 매칭된 제품**: 성분 정보가 이미 제공되었으므로, 분석에 활용만 하고 출력에 성분을 반복하지 마세요.
-2. **DB 매칭 실패 제품**: Google Search를 사용하여 일반적인 성분 정보를 찾아 추정하세요.
+1. **DB 매칭된 제품**: 성분 정보가 이미 제공되었으므로, 분석에 활용만 하고 출력에 성분을 반복하지 마세요. (시간 단축이 최우선입니다)
+2. **DB 매칭 실패 제품**: 이 제품들에 한해서만 Google Search를 사용하여 일반적인 성분 정보를 찾아 추정하세요.
    - fallbackProducts에 추정한 성분 정보를 포함하세요.
    - confidence를 "high"/"medium"/"low"로 표기하세요.
 3. 모든 제품의 성분을 종합하여 중복 성분 및 과잉 섭취 위험을 분석하세요.
-4. 각 제품의 **한국 내 판매 가격**을 Google Search로 검색하여 월 환산 가격(estimatedMonthlyPrice)을 추정하세요.
+4. **DB 매칭 실패 제품**에 대해서만 Google Search를 사용하여 한국 내 판매 가격을 검색하고 월 환산 가격(estimatedMonthlyPrice)을 추정하세요. DB 매칭된 제품은 이미 제공된 '(앱 자체 계산) 추정 월 환산 가격'을 그대로 사용하세요.
 ''' : '''
 제공된 성분 정보를 사용하여 중복 성분 및 과잉 섭취 위험을 분석하세요.
-각 제품의 **한국 내 판매 가격**을 Google Search로 검색하여 월 환산 가격(estimatedMonthlyPrice)을 추정하세요.
+(주의) 모든 영양제가 DB 매칭에 성공했습니다. 성분과 가격 정보가 이미 제공되었으므로 **Google Search 기능을 절대 켜지 마세요! (빠른 응답 속도가 생명입니다)**
+각 제품의 월 환산 가격(estimatedMonthlyPrice)은 함께 제공된 '(앱 자체 계산) 추정 월 환산 가격' 숫자를 그대로 출력에 사용하세요.
 '''}
 
 ## 출력 형식 (반드시 이 JSON 구조를 따르세요)
@@ -938,7 +951,7 @@ ${hasFallback ? '''
   "estimatedPrices": [
     {
       "productName": "제품명 (위 입력과 동일)",
-      "estimatedMonthlyPrice": 월환산가격_KRW숫자
+      "estimatedMonthlyPrice": 월환산가격_KRW숫자 (제공된 경우 그대로 사용)
     }
   ],
   "duplicates": [
@@ -962,8 +975,8 @@ ${hasFallback ? '''
 
 ## 가격 규칙
 - 모든 가격은 **대한민국 원화(KRW)** 기준
-- 최소 1,000원 이상. "4원", "15원" 등 비현실적 금액 금지
-- 가격 정보를 모르면 Google Search로 한국 내 판매가를 검색하여 추정 (예: 1개월분 30,000원)
+- 가격 검색이 지시된 제품(매칭 실패 제품)의 경우에만 Google Search로 한국 내 판매가를 검색하여 추정 (예: 1개월분 30,000원)
+- 가격 검색 시 최소 1,000원 이상. "4원", "15원" 등 비현실적 금액 금지
 - 100원 단위로 반올림 (예: 32450 → 32500)
 - estimatedMonthlyPrice = 판매가 / 섭취기간(개월)
 
@@ -971,7 +984,10 @@ ${hasFallback ? '''
 - 순수 JSON만 반환. 첫 글자는 반드시 {
 - DB 매칭 제품의 성분을 출력에 포함하지 마세요 (토큰 절약)
 - 중복이 없으면 duplicates를 빈 배열 []로
-- 제외 권장 제품이 없으면 excludedProduct를 null, monthlySavings를 0으로
+- **가장 중요한 규칙**: 성분이 서로 전혀 겹치지 않는다면(예: 오메가3, 칼슘, 아르기닌, 쏘팔메토 등) 절대로 억지로 중복(duplicates)으로 엮지 마세요.
+- duplicates 배열에는 해당 성분이 [실제로 포함된 입력 제품명]만 정확히 나열해야 합니다.
+- 중복 성분이 하나라도 발견되면(duplicates 배열이 비어있지 않은 경우), 반드시 중복된 제품 중 하나를 '제외 권장 제품(excludedProduct)'으로 선택하고, 그 제품의 estimatedMonthlyPrice 값을 monthlySavings에 기입하세요.
+- 중복이 전혀 없을 때만 excludedProduct를 null, monthlySavings를 0으로 처리하세요.
 - 언어: $lang
 - 문자열 내의 큰따옴표(")는 반드시 역슬래시(\\)로 이스케이프 처리
 - 배열 마지막 항목 뒤에 쉼표(,) 금지

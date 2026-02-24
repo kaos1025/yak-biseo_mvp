@@ -67,35 +67,32 @@ class _AnalysisLoadingScreenState extends State<AnalysisLoadingScreen> {
 
   void _startStepTimer() {
     int totalElapsed = 0;
-    _stepTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _stepTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
       if (!mounted) return;
       totalElapsed++;
 
-      // 단계 업데이트
-      int accumulated = 0;
-      for (var stepInfo in _steps) {
-        accumulated += stepInfo.duration;
-        if (totalElapsed <= accumulated) {
-          setState(() {
-            _currentStep = stepInfo.step;
-            _progress = totalElapsed / 30.0; // 30초 기준
-          });
-          break;
-        }
-      }
+      // 총 진행률 시뮬레이션 (약 20초 = 40틱)
+      // 초반에 빠르게 차오르고 뒤로 갈수록 천천히 오르도록 설정
+      double expectedProgress = (totalElapsed / 40.0).clamp(0.0, 0.95);
 
-      // 30초 넘으면 마지막 단계 유지
-      if (totalElapsed >= 30) {
-        setState(() {
-          _progress = 0.95; // 95%에서 대기 (완료 시 100%)
+      setState(() {
+        _progress = expectedProgress;
+
+        if (_progress < 0.2) {
+          _currentStep = AnalysisStep.imageRecognition;
+        } else if (_progress < 0.5) {
+          _currentStep = AnalysisStep.ingredientSearch;
+        } else if (_progress < 0.8) {
+          _currentStep = AnalysisStep.duplicateAnalysis;
+        } else {
           _currentStep = AnalysisStep.reportGeneration;
-        });
-      }
+        }
+      });
     });
   }
 
   void _startTipTimer() {
-    _tipTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+    _tipTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (!mounted) return;
       setState(() {
         _currentTipIndex = (_currentTipIndex + 1) % _healthTips.length;
@@ -111,13 +108,14 @@ class _AnalysisLoadingScreenState extends State<AnalysisLoadingScreen> {
 
       if (!mounted) return;
 
+      // 분석이 성공적으로 끝나면 무조건 진행률 100%와 완료 단계로 강제 설정
       setState(() {
         _currentStep = AnalysisStep.complete;
         _progress = 1.0;
       });
 
-      // 결과 화면으로 이동
-      await Future.delayed(const Duration(milliseconds: 500));
+      // 완료 이펙트를 잠깐 보여주기 위한 대기시간
+      await Future.delayed(const Duration(milliseconds: 800));
       if (!mounted) return;
 
       Navigator.pushReplacement(
@@ -129,9 +127,6 @@ class _AnalysisLoadingScreenState extends State<AnalysisLoadingScreen> {
     } catch (e) {
       // 에러 처리
       if (!mounted) return;
-      // 에러는 상위 위젯(ResultScreen)에서 처리하거나 여기서 Dialog를 띄울 수 있음.
-      // 여기서는 ResultScreen의 에러 처리를 위해 예외를 다시 던지는 대신,
-      // Error Dialog를 직접 보여주고 화면을 닫는 방식을 선택.
       _showErrorDialog(e.toString());
     }
   }
