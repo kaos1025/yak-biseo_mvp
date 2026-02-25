@@ -1,1 +1,0 @@
-ERROR: Exception: 제품명 추출 실패: Exception: 모든 API 키가 비율 제한에 걸렸습니다. 잠시 후 다시 시도해주세요. (429)

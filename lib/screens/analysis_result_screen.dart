@@ -195,7 +195,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
           // 제외 제품명 (상단)
           if (result.excludedProduct != null) ...[
             Text(
-              '${result.excludedProduct} 제외 시',
+              l10n.analysisExcludingProduct(result.excludedProduct!),
               style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -300,7 +300,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
             children: [
               Expanded(
                 child: Text(
-                  product.name,
+                  l10n.localeName == 'en'
+                      ? product.name
+                      : (product.nameKo ?? product.name),
                   style: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.bold),
                 ),
@@ -355,7 +357,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
           if (product.estimatedMonthlyPrice > 0) ...[
             const SizedBox(height: 6),
             Text(
-              '💰 월 ${LocalizationUtils.formatCurrency(product.estimatedMonthlyPrice.toDouble(), l10n.localeName)}',
+              '💰 ${l10n.localeName == 'en' ? 'Monthly' : '월'} ${LocalizationUtils.formatCurrency(product.estimatedMonthlyPrice.toDouble(), l10n.localeName)}',
               style: const TextStyle(
                 fontSize: 13,
                 color: Colors.black54,
@@ -451,7 +453,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                   Expanded(
                     child: Text(
                       l10n.detailReportTitle,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
@@ -479,6 +481,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
 
   /// 프리미엄 컨텐츠 (잠금 해제 상태) — 마크다운 리포트 렌더링
   Widget _buildPremiumContent() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: Column(
@@ -487,21 +490,22 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
           const Divider(height: 1),
           const SizedBox(height: 16),
           if (_isReportLoading)
-            const Center(
+            Center(
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 40),
+                padding: const EdgeInsets.symmetric(vertical: 40),
                 child: Column(
                   children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('📝 상세 리포트 생성 중...',
-                        style: TextStyle(
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text(l10n.reportGenerating,
+                        style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
                             color: Colors.black54)),
-                    SizedBox(height: 4),
-                    Text('10~20초 정도 소요됩니다',
-                        style: TextStyle(fontSize: 13, color: Colors.black38)),
+                    const SizedBox(height: 4),
+                    Text(l10n.reportGeneratingWait,
+                        style: const TextStyle(
+                            fontSize: 13, color: Colors.black38)),
                   ],
                 ),
               ),
@@ -515,7 +519,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
               ),
               child: Column(
                 children: [
-                  Text('리포트 생성 중 오류가 발생했습니다.\n$_reportError',
+                  Text(l10n.reportError(_reportError.toString()),
                       style: const TextStyle(fontSize: 14, color: Colors.red)),
                   const SizedBox(height: 12),
                   ElevatedButton(
@@ -568,8 +572,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
     });
 
     try {
-      final report =
-          await GeminiAnalyzerService().generateSuppleCutReport(result);
+      final l10n = AppLocalizations.of(context)!;
+      final report = await GeminiAnalyzerService()
+          .generateSuppleCutReport(result, locale: l10n.localeName);
       if (!mounted) return;
       setState(() {
         _detailedReport = report;
@@ -587,6 +592,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
 
   /// 잠금 상태 컨텐츠 (미리보기 + 블러 + 잠금 배너)
   Widget _buildLockedContent() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         const Padding(
@@ -607,8 +613,8 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (result.summary.isNotEmpty) ...[
-                      const Text('📋 상세 분석',
-                          style: TextStyle(
+                      Text(l10n.analysisDetailSubtitle,
+                          style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: Colors.black87)),
@@ -678,18 +684,18 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                 const Icon(Icons.lock_outline,
                     color: Color(0xFF7B1FA2), size: 28),
                 const SizedBox(height: 8),
-                const Text(
-                  '프리미엄 리포트 잠금 해제',
-                  style: TextStyle(
+                Text(
+                  l10n.premiumUnlockTitle,
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF7B1FA2),
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  '중복 성분 상세 · 영양제 상세 정보 · AI 권장사항',
-                  style: TextStyle(
+                Text(
+                  l10n.premiumUnlockDesc,
+                  style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFF9C27B0),
                   ),
@@ -708,9 +714,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text(
-                      '잠금 해제하기',
-                      style: TextStyle(
+                    child: Text(
+                      l10n.premiumUnlockBtn,
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
@@ -727,6 +733,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
 
   /// 긍정 피드백 배너 (중복/과잉이 없을 때)
   Widget _buildPositiveBanner() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       decoration: BoxDecoration(
@@ -746,27 +753,27 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
         border:
             Border.all(color: const Color(0xFF81C784).withValues(alpha: 0.5)),
       ),
-      child: const Column(
+      child: Column(
         children: [
-          Icon(
+          const Icon(
             Icons.check_circle_outline_rounded,
             color: Color(0xFF2E7D32),
             size: 40,
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Text(
-            '🎉 완벽한 영양제 조합입니다!',
-            style: TextStyle(
+            l10n.positiveBannerTitle,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Color(0xFF1B5E20),
             ),
             textAlign: TextAlign.center,
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
-            '불필요하게 겹치거나 과잉 섭취되는 성분 없이\n안전하고 효율적으로 드시고 계십니다.',
-            style: TextStyle(
+            l10n.positiveBannerDesc,
+            style: const TextStyle(
               fontSize: 13,
               height: 1.5,
               fontWeight: FontWeight.w500,
@@ -781,6 +788,15 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
 
   /// Disclaimer 카드
   Widget _buildDisclaimerCard() {
+    final l10n = AppLocalizations.of(context)!;
+
+    // Check if the disclaimer matches the hardcoded AI estimate text and use l10n if so
+    final isAiEstimatedDisclaimer =
+        result.disclaimer == "일부 제품은 AI 추정치 기반입니다. 정확한 정보는 제품 라벨을 확인하세요.";
+    final displayDisclaimer = isAiEstimatedDisclaimer
+        ? l10n.disclaimerAiEstimate
+        : result.disclaimer!;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -795,7 +811,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              result.disclaimer!,
+              displayDisclaimer,
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.brown[700],

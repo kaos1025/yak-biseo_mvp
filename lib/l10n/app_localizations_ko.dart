@@ -297,4 +297,88 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get btnConfirm => '확인';
+
+  @override
+  String get loadingAnalyzing => '영양제 분석 중...';
+
+  @override
+  String get loadingStep1 => '이미지 인식';
+
+  @override
+  String get loadingStep2 => '성분 정보 검색';
+
+  @override
+  String get loadingStep3 => '중복 성분 분석';
+
+  @override
+  String get loadingStep4 => '리포트 생성';
+
+  @override
+  String get loadingTip1 => '💡 비타민D는 지용성이라 식후 섭취가 좋아요';
+
+  @override
+  String get loadingTip2 => '💡 칼슘과 철분은 함께 먹으면 흡수율이 떨어져요';
+
+  @override
+  String get loadingTip3 => '💡 마그네슘은 취침 전 섭취 시 수면에 도움돼요';
+
+  @override
+  String get loadingTip4 => '💡 오메가-3는 냉장 보관하면 산패를 막을 수 있어요';
+
+  @override
+  String get loadingTip5 => '💡 유산균은 위산이 적은 식후에 섭취하세요';
+
+  @override
+  String get loadingTip6 => '💡 비타민C는 철분 흡수를 도와줘요';
+
+  @override
+  String get loadingTip7 => '💡 아연과 구리는 함께 섭취하면 경쟁해요';
+
+  @override
+  String get loadingTip8 => '💡 비타민B군은 아침에 섭취하면 에너지에 도움돼요';
+
+  @override
+  String get loadingTip9 => '💡 루테인은 기름과 함께 먹으면 흡수율이 높아져요';
+
+  @override
+  String get loadingTip10 => '💡 코엔자임Q10은 식사와 함께 드세요';
+
+  @override
+  String analysisExcludingProduct(String product) {
+    return '$product 제외 시';
+  }
+
+  @override
+  String get analysisDetailSubtitle => '📋 상세 분석';
+
+  @override
+  String get premiumUnlockTitle => '프리미엄 리포트 잠금 해제';
+
+  @override
+  String get premiumUnlockDesc => '중복 성분 상세 · 영양제 상세 정보 · AI 권장사항';
+
+  @override
+  String get premiumUnlockBtn => '잠금 해제하기';
+
+  @override
+  String get disclaimerAiEstimate =>
+      '⚠️ 일부 제품은 AI 추정치 기반입니다. 정확한 정보는 제품 라벨을 확인하세요.';
+
+  @override
+  String get positiveBannerTitle => '🎉 완벽한 영양제 조합입니다!';
+
+  @override
+  String get positiveBannerDesc =>
+      '불필요하게 겹치거나 과잉 섭취되는 성분 없이\n안전하고 효율적으로 드시고 계십니다.';
+
+  @override
+  String get reportGenerating => '📝 상세 리포트 생성 중...';
+
+  @override
+  String get reportGeneratingWait => '10~20초 정도 소요됩니다';
+
+  @override
+  String reportError(Object error) {
+    return '리포트 생성 중 오류가 발생했습니다.\n$error';
+  }
 }

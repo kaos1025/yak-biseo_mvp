@@ -655,6 +655,162 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'확인'**
   String get btnConfirm;
+
+  /// No description provided for @loadingAnalyzing.
+  ///
+  /// In ko, this message translates to:
+  /// **'영양제 분석 중...'**
+  String get loadingAnalyzing;
+
+  /// No description provided for @loadingStep1.
+  ///
+  /// In ko, this message translates to:
+  /// **'이미지 인식'**
+  String get loadingStep1;
+
+  /// No description provided for @loadingStep2.
+  ///
+  /// In ko, this message translates to:
+  /// **'성분 정보 검색'**
+  String get loadingStep2;
+
+  /// No description provided for @loadingStep3.
+  ///
+  /// In ko, this message translates to:
+  /// **'중복 성분 분석'**
+  String get loadingStep3;
+
+  /// No description provided for @loadingStep4.
+  ///
+  /// In ko, this message translates to:
+  /// **'리포트 생성'**
+  String get loadingStep4;
+
+  /// No description provided for @loadingTip1.
+  ///
+  /// In ko, this message translates to:
+  /// **'💡 비타민D는 지용성이라 식후 섭취가 좋아요'**
+  String get loadingTip1;
+
+  /// No description provided for @loadingTip2.
+  ///
+  /// In ko, this message translates to:
+  /// **'💡 칼슘과 철분은 함께 먹으면 흡수율이 떨어져요'**
+  String get loadingTip2;
+
+  /// No description provided for @loadingTip3.
+  ///
+  /// In ko, this message translates to:
+  /// **'💡 마그네슘은 취침 전 섭취 시 수면에 도움돼요'**
+  String get loadingTip3;
+
+  /// No description provided for @loadingTip4.
+  ///
+  /// In ko, this message translates to:
+  /// **'💡 오메가-3는 냉장 보관하면 산패를 막을 수 있어요'**
+  String get loadingTip4;
+
+  /// No description provided for @loadingTip5.
+  ///
+  /// In ko, this message translates to:
+  /// **'💡 유산균은 위산이 적은 식후에 섭취하세요'**
+  String get loadingTip5;
+
+  /// No description provided for @loadingTip6.
+  ///
+  /// In ko, this message translates to:
+  /// **'💡 비타민C는 철분 흡수를 도와줘요'**
+  String get loadingTip6;
+
+  /// No description provided for @loadingTip7.
+  ///
+  /// In ko, this message translates to:
+  /// **'💡 아연과 구리는 함께 섭취하면 경쟁해요'**
+  String get loadingTip7;
+
+  /// No description provided for @loadingTip8.
+  ///
+  /// In ko, this message translates to:
+  /// **'💡 비타민B군은 아침에 섭취하면 에너지에 도움돼요'**
+  String get loadingTip8;
+
+  /// No description provided for @loadingTip9.
+  ///
+  /// In ko, this message translates to:
+  /// **'💡 루테인은 기름과 함께 먹으면 흡수율이 높아져요'**
+  String get loadingTip9;
+
+  /// No description provided for @loadingTip10.
+  ///
+  /// In ko, this message translates to:
+  /// **'💡 코엔자임Q10은 식사와 함께 드세요'**
+  String get loadingTip10;
+
+  /// No description provided for @analysisExcludingProduct.
+  ///
+  /// In ko, this message translates to:
+  /// **'{product} 제외 시'**
+  String analysisExcludingProduct(String product);
+
+  /// No description provided for @analysisDetailSubtitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'📋 상세 분석'**
+  String get analysisDetailSubtitle;
+
+  /// No description provided for @premiumUnlockTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'프리미엄 리포트 잠금 해제'**
+  String get premiumUnlockTitle;
+
+  /// No description provided for @premiumUnlockDesc.
+  ///
+  /// In ko, this message translates to:
+  /// **'중복 성분 상세 · 영양제 상세 정보 · AI 권장사항'**
+  String get premiumUnlockDesc;
+
+  /// No description provided for @premiumUnlockBtn.
+  ///
+  /// In ko, this message translates to:
+  /// **'잠금 해제하기'**
+  String get premiumUnlockBtn;
+
+  /// No description provided for @disclaimerAiEstimate.
+  ///
+  /// In ko, this message translates to:
+  /// **'⚠️ 일부 제품은 AI 추정치 기반입니다. 정확한 정보는 제품 라벨을 확인하세요.'**
+  String get disclaimerAiEstimate;
+
+  /// No description provided for @positiveBannerTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'🎉 완벽한 영양제 조합입니다!'**
+  String get positiveBannerTitle;
+
+  /// No description provided for @positiveBannerDesc.
+  ///
+  /// In ko, this message translates to:
+  /// **'불필요하게 겹치거나 과잉 섭취되는 성분 없이\n안전하고 효율적으로 드시고 계십니다.'**
+  String get positiveBannerDesc;
+
+  /// No description provided for @reportGenerating.
+  ///
+  /// In ko, this message translates to:
+  /// **'📝 상세 리포트 생성 중...'**
+  String get reportGenerating;
+
+  /// No description provided for @reportGeneratingWait.
+  ///
+  /// In ko, this message translates to:
+  /// **'10~20초 정도 소요됩니다'**
+  String get reportGeneratingWait;
+
+  /// No description provided for @reportError.
+  ///
+  /// In ko, this message translates to:
+  /// **'리포트 생성 중 오류가 발생했습니다.\n{error}'**
+  String reportError(Object error);
 }
 
 class _AppLocalizationsDelegate

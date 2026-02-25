@@ -302,4 +302,93 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get btnConfirm => 'Confirm';
+
+  @override
+  String get loadingAnalyzing => 'Analyzing supplements...';
+
+  @override
+  String get loadingStep1 => 'Image recognition';
+
+  @override
+  String get loadingStep2 => 'Searching ingredients';
+
+  @override
+  String get loadingStep3 => 'Analyzing overlaps';
+
+  @override
+  String get loadingStep4 => 'Generating report';
+
+  @override
+  String get loadingTip1 =>
+      '💡 Vitamin D is fat-soluble, best taken after meals';
+
+  @override
+  String get loadingTip2 => '💡 Calcium and iron can compete for absorption';
+
+  @override
+  String get loadingTip3 => '💡 Magnesium before bed can help with sleep';
+
+  @override
+  String get loadingTip4 =>
+      '💡 Store Omega-3 in the fridge to prevent oxidation';
+
+  @override
+  String get loadingTip5 =>
+      '💡 Take probiotics after meals when stomach acid is lower';
+
+  @override
+  String get loadingTip6 => '💡 Vitamin C helps with iron absorption';
+
+  @override
+  String get loadingTip7 => '💡 Zinc and copper compete for absorption';
+
+  @override
+  String get loadingTip8 =>
+      '💡 Taking Vitamin B complex in the morning boosts energy';
+
+  @override
+  String get loadingTip9 => '💡 Lutein absorbs better with fats';
+
+  @override
+  String get loadingTip10 => '💡 Take CoQ10 with meals';
+
+  @override
+  String analysisExcludingProduct(String product) {
+    return 'Excluding $product';
+  }
+
+  @override
+  String get analysisDetailSubtitle => '📋 Detailed Analysis';
+
+  @override
+  String get premiumUnlockTitle => 'Unlock Premium Report';
+
+  @override
+  String get premiumUnlockDesc =>
+      'Overlap details · Supplement info · AI recommendations';
+
+  @override
+  String get premiumUnlockBtn => 'Unlock Now';
+
+  @override
+  String get disclaimerAiEstimate =>
+      '⚠️ Some products are AI-estimated. Please verify with product labels.';
+
+  @override
+  String get positiveBannerTitle => '🎉 Perfect supplement combo!';
+
+  @override
+  String get positiveBannerDesc =>
+      'No overlapping or excessive ingredients.\nYou\'re taking them safely and efficiently.';
+
+  @override
+  String get reportGenerating => '📝 Generating detailed report...';
+
+  @override
+  String get reportGeneratingWait => 'This will take about 10~20 seconds';
+
+  @override
+  String reportError(Object error) {
+    return 'An error occurred while generating the report.\n$error';
+  }
 }

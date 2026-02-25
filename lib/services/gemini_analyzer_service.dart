@@ -536,7 +536,8 @@ report_markdown 내용:
   /// SuppleCut 프리미엄 상세 리포트 생성 (On-Demand)
   ///
   /// 1차 분석 결과를 기반으로 서술형 마크다운 리포트를 생성한다.
-  Future<String> generateSuppleCutReport(SuppleCutAnalysisResult result) async {
+  Future<String> generateSuppleCutReport(SuppleCutAnalysisResult result,
+      {String locale = 'ko'}) async {
     // 1차 분석 데이터를 JSON 요약으로 변환
     final summaryMap = {
       'products': result.products
@@ -568,7 +569,46 @@ report_markdown 내용:
 
     final jsonData = jsonEncode(summaryMap);
 
-    final prompt = '''
+    final String prompt = locale == 'en'
+        ? '''
+You are the top pharmacist and healthcare financial expert in South Korea.
+Based on the analysis data provided below, write an in-depth **Premium Consultant Report** for a premium user.
+
+## 📋 Initial Analysis Data (JSON)
+$jsonData
+
+## ✍️ Report Writing Guide
+Write a **Markdown** report consisting of the following 4 sections.
+
+### 1. Ingredient Analysis and Necessity Evaluation
+For each product:
+- **Key Ingredients & Efficacy** (Ingredient names, amounts, efficacy description)
+- **Necessity for General Adults** (Must/Recommended/Optional/Unnecessary + Reason)
+
+### 2. Overlapping Ingredients Check
+- Overlapping ingredient names, amounts per product, and total intake
+- Evaluation against the Tolerable Upper Intake Level (UL) (Safe/Caution/Danger)
+- Specific side effects if taken in excess
+
+### 3. Exclusion Recommendations and Cost Savings
+- Recommended products to exclude and the reason (Priority: Side effect risk > Simple overlap > Lack of proven efficacy)
+- Monthly/Yearly savings (Use `monthlySavings`/`yearlySavings` from the JSON data)
+
+### 4. Expert Advice
+- **Intake Timing**: Specific recommendations for before/after meals, morning/evening
+- **Ingredient Synergy/Conflict**: Explain synergistic or conflicting relationships
+- **Alternatives**: How to supplement the key ingredients of the excluded products through food or better alternatives
+
+## 🛑 Strict Rules
+- **Tone & Manner**: Professional and trustworthy, yet easy to understand.
+- **Format**: Output purely in Markdown text. NOT JSON.
+- **Language**: MUST be entirely in English.
+- Skip greetings and start directly with the report content.
+- Start the title with `## 📝 AI Detailed Analysis Report`.
+- Number each section like `### 1.`, `### 2.`, etc.
+- Actively use specific figures (mg, IU, UL, etc.).
+'''
+        : '''
 당신은 대한민국 최고의 약사(Pharmacist)이자 헬스케어 재무 전문가입니다.
 아래 분석 데이터를 바탕으로, 프리미엄 사용자를 위한 **심층 컨설턴트 리포트**를 작성하세요.
 
@@ -777,7 +817,8 @@ $contextLines
           }).toList();
 
           productJsonList.add({
-            "name": input.productName,
+            "name": input.localData?.name ?? input.productName, // 영문명 우선 보존
+            "name_ko": input.localData?.nameKo, // 한글명 추가
             "source": "local_db",
             "ingredients": localIngredients,
           });
@@ -864,11 +905,15 @@ $contextLines
   int _calculateMonthlyPrice(SupplementProduct product) {
     if (product.price == null || product.price! <= 0) return 0;
 
-    // 제품명에서 총 정수 추출 (예: "250 Tablets", "120 Capsules")
-    final totalCountMatch = RegExp(
-      r'(\d+)\s*(?:Tablets?|Capsules?|Softgels?|Veg\s+Capsules?|Veggie\s+Capsules?|Lozenges?)',
+    // 제품명에서 총 정수 추출 (예: "250 Tablets", "120 Capsules", "180정")
+    final countRegex = RegExp(
+      r'(\d+)\s*(?:Tablets?|Capsules?|Softgels?|Veg\s+Capsules?|Veggie\s+Capsules?|Lozenges?|Gummies|Chews|정|캡슐|구미|포|ml|g)',
       caseSensitive: false,
-    ).firstMatch(product.name);
+    );
+    final totalCountMatch = countRegex.firstMatch(product.name) ??
+        (product.nameKo != null
+            ? countRegex.firstMatch(product.nameKo!)
+            : null);
     if (totalCountMatch == null) return 0;
     final totalCount = int.tryParse(totalCountMatch.group(1)!) ?? 0;
     if (totalCount <= 0) return 0;
@@ -897,7 +942,7 @@ $contextLines
 
     // 제품 섹션 조립 (로컬 DB 제품명에는 미리 계산된 가격도 넘겨주어 AI가 검색하지 않게 함)
     final productSections = inputs.asMap().entries.map((e) {
-      final promptSection = e.value.toPromptSection(e.key);
+      final promptSection = e.value.toPromptSection(e.key, locale);
       if (e.value.source == ProductSource.localDb &&
           e.value.localData != null) {
         final monthlyPrice = _calculateMonthlyPrice(e.value.localData!);
@@ -909,9 +954,8 @@ $contextLines
     }).join('\n\n');
 
     final lang = locale == 'en' ? 'English' : '한국어';
-    final currencyRule = locale == 'en'
-        ? '- 모든 가격은 **미국 달러(USD)** 기준 (숫자로만 반환)\n- 가격 검색 시 구글에서 미국 소매가를 검색 (예: 1개월분 25.00)\n- estimatedMonthlyPrice는 숫자로만 반환 (예: 25.00)'
-        : '- 모든 가격은 **대한민국 원화(KRW)** 기준\n- 가격 검색이 지시된 제품(매칭 실패 제품)의 경우에만 Google Search로 한국 내 판매가를 검색하여 추정 (예: 1개월분 30,000원)\n- 가격 검색 시 최소 1,000원 이상. "4원", "15원" 등 비현실적 금액 금지\n- 100원 단위로 반올림 (예: 32450 → 32500)';
+    const currencyRule =
+        '- 모든 가격은 **대한민국 원화(KRW)** 기준\n- 가격 검색 시 한국 내 판매가를 검색하여 추정 (예: 1개월분 30,000원)\n- estimatedMonthlyPrice는 숫자로만 반환 (예: 30000)\n- 절대 달러(USD) 등 타 통화로 반환하지 마십시오.';
 
     // fallbackProducts 섹션: AI 추정이 필요한 제품인 경우에만 포함
     final fallbackProductsSection = hasFallback

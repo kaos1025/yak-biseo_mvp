@@ -109,7 +109,7 @@ class PaymentBottomSheet extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
               child: Text(
                 l10n.paymentLater,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
                   color: Colors.grey,
                   fontWeight: FontWeight.w500,

@@ -53,14 +53,21 @@ class AnalysisInput {
     );
   }
 
+  @override
+  String toString() {
+    return 'AnalysisInput($productName, source: $source)';
+  }
+}
+
+extension AnalysisInputPrompt on AnalysisInput {
   /// Gemini prompt용 문자열 변환
-  String toPromptSection(int index) {
+  String toPromptSection(int index, String locale) {
     final buffer = StringBuffer();
     buffer.writeln('### 제품 ${index + 1}');
 
     if (source == ProductSource.localDb && localData != null) {
       buffer.writeln('(DB 매칭 - 정확한 성분 정보)');
-      buffer.write(localData!.toGeminiContext());
+      buffer.write(localData!.toGeminiContext(locale: locale));
     } else {
       buffer.writeln('(DB 매칭 실패 - AI 분석 필요)');
       buffer.writeln('사용자 입력: "$productName"');
@@ -71,10 +78,5 @@ class AnalysisInput {
     }
 
     return buffer.toString();
-  }
-
-  @override
-  String toString() {
-    return 'AnalysisInput($productName, source: $source)';
   }
 }

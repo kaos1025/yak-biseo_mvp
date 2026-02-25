@@ -1,0 +1,6 @@
+Analyzing yak-biseo_mvp...
+
+   info - lib\presentation\home\widgets\payment_bottom_sheet.dart:112:24 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\screens\analysis_result_screen.dart:454:30 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+
+2 issues found.

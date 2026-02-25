@@ -6,6 +6,7 @@ import 'package:myapp/screens/analysis_result_screen.dart';
 import 'package:myapp/data/local/recent_analysis_storage.dart';
 import 'package:myapp/data/models/recent_analysis_model.dart';
 import 'package:uuid/uuid.dart';
+import 'package:myapp/l10n/app_localizations.dart';
 
 enum AnalysisStep {
   imageRecognition, // 이미지 인식 (0-5초)
@@ -39,26 +40,36 @@ class _AnalysisLoadingScreenState extends State<AnalysisLoadingScreen> {
   Timer? _stepTimer;
   Timer? _tipTimer;
 
-  final List<StepInfo> _steps = [
-    StepInfo(step: AnalysisStep.imageRecognition, label: '이미지 인식', duration: 5),
+  late final List<StepInfo> _steps = [
     StepInfo(
-        step: AnalysisStep.ingredientSearch, label: '성분 정보 검색', duration: 10),
+        step: AnalysisStep.imageRecognition,
+        label: AppLocalizations.of(context)!.loadingStep1,
+        duration: 5),
     StepInfo(
-        step: AnalysisStep.duplicateAnalysis, label: '중복 성분 분석', duration: 10),
-    StepInfo(step: AnalysisStep.reportGeneration, label: '리포트 생성', duration: 5),
+        step: AnalysisStep.ingredientSearch,
+        label: AppLocalizations.of(context)!.loadingStep2,
+        duration: 10),
+    StepInfo(
+        step: AnalysisStep.duplicateAnalysis,
+        label: AppLocalizations.of(context)!.loadingStep3,
+        duration: 10),
+    StepInfo(
+        step: AnalysisStep.reportGeneration,
+        label: AppLocalizations.of(context)!.loadingStep4,
+        duration: 5),
   ];
 
-  final List<String> _healthTips = [
-    '💡 비타민D는 지용성이라 식후 섭취가 좋아요',
-    '💡 칼슘과 철분은 함께 먹으면 흡수율이 떨어져요',
-    '💡 마그네슘은 취침 전 섭취 시 수면에 도움돼요',
-    '💡 오메가-3는 냉장 보관하면 산패를 막을 수 있어요',
-    '💡 유산균은 위산이 적은 식후에 섭취하세요',
-    '💡 비타민C는 철분 흡수를 도와줘요',
-    '💡 아연과 구리는 함께 섭취하면 경쟁해요',
-    '💡 비타민B군은 아침에 섭취하면 에너지에 도움돼요',
-    '💡 루테인은 기름과 함께 먹으면 흡수율이 높아져요',
-    '💡 코엔자임Q10은 식사와 함께 드세요',
+  late final List<String> _healthTips = [
+    AppLocalizations.of(context)!.loadingTip1,
+    AppLocalizations.of(context)!.loadingTip2,
+    AppLocalizations.of(context)!.loadingTip3,
+    AppLocalizations.of(context)!.loadingTip4,
+    AppLocalizations.of(context)!.loadingTip5,
+    AppLocalizations.of(context)!.loadingTip6,
+    AppLocalizations.of(context)!.loadingTip7,
+    AppLocalizations.of(context)!.loadingTip8,
+    AppLocalizations.of(context)!.loadingTip9,
+    AppLocalizations.of(context)!.loadingTip10,
   ];
 
   @override
@@ -200,9 +211,9 @@ class _AnalysisLoadingScreenState extends State<AnalysisLoadingScreen> {
               const SizedBox(height: 32),
 
               // 2. 제목
-              const Text(
-                '🔍 영양제 분석 중...',
-                style: TextStyle(
+              Text(
+                '🔍 ${AppLocalizations.of(context)!.loadingAnalyzing}',
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,

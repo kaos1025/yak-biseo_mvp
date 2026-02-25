@@ -108,6 +108,9 @@ class AnalyzedProduct {
   /// 데이터 소스: "local_db" | "ai_estimated"
   final String source;
 
+  /// 제품명 (한글)
+  final String? nameKo;
+
   /// 성분 목록
   final List<AnalyzedIngredient> ingredients;
 
@@ -123,6 +126,7 @@ class AnalyzedProduct {
   const AnalyzedProduct({
     required this.name,
     required this.source,
+    this.nameKo,
     required this.ingredients,
     this.confidence,
     this.note,
@@ -133,6 +137,7 @@ class AnalyzedProduct {
     return AnalyzedProduct(
       name: json['name'] as String? ?? '',
       source: json['source'] as String? ?? 'local_db',
+      nameKo: json['name_ko'] as String?,
       ingredients: (json['ingredients'] as List<dynamic>?)
               ?.map(
                   (e) => AnalyzedIngredient.fromJson(e as Map<String, dynamic>))
@@ -149,6 +154,7 @@ class AnalyzedProduct {
     return {
       'name': name,
       'source': source,
+      if (nameKo != null) 'name_ko': nameKo,
       'ingredients': ingredients.map((e) => e.toJson()).toList(),
       if (confidence != null) 'confidence': confidence,
       if (note != null) 'note': note,

@@ -29,6 +29,7 @@ class HealthTipBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).languageCode;
 
     return GestureDetector(
       onTap: () => _showTipModal(context),
@@ -66,7 +67,7 @@ class HealthTipBanner extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              '"${tip.question}"',
+              '"${tip.getQuestion(locale)}"',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,

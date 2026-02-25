@@ -127,5 +127,38 @@
   "btnRetry": "Retry",
   "btnClose": "Close",
   "btnCancel": "Cancel",
-  "btnConfirm": "Confirm"
+  "btnConfirm": "Confirm",
+  "loadingAnalyzing": "Analyzing supplements...",
+  "loadingStep1": "Image recognition",
+  "loadingStep2": "Searching ingredients",
+  "loadingStep3": "Analyzing overlaps",
+  "loadingStep4": "Generating report",
+  "loadingTip1": "💡 Vitamin D is fat-soluble, best taken after meals",
+  "loadingTip2": "💡 Calcium and iron can compete for absorption",
+  "loadingTip3": "💡 Magnesium before bed can help with sleep",
+  "loadingTip4": "💡 Store Omega-3 in the fridge to prevent oxidation",
+  "loadingTip5": "💡 Take probiotics after meals when stomach acid is lower",
+  "loadingTip6": "💡 Vitamin C helps with iron absorption",
+  "loadingTip7": "💡 Zinc and copper compete for absorption",
+  "loadingTip8": "💡 Taking Vitamin B complex in the morning boosts energy",
+  "loadingTip9": "💡 Lutein absorbs better with fats",
+  "loadingTip10": "💡 Take CoQ10 with meals",
+  "analysisExcludingProduct": "Excluding {product}",
+  "@analysisExcludingProduct": {
+    "placeholders": {
+      "product": {
+        "type": "String"
+      }
+    }
+  },
+  "analysisDetailSubtitle": "📋 Detailed Analysis",
+  "premiumUnlockTitle": "Unlock Premium Report",
+  "premiumUnlockDesc": "Overlap details · Supplement info · AI recommendations",
+  "premiumUnlockBtn": "Unlock Now",
+  "disclaimerAiEstimate": "⚠️ Some products are AI-estimated. Please verify with product labels.",
+  "positiveBannerTitle": "🎉 Perfect supplement combo!",
+  "positiveBannerDesc": "No overlapping or excessive ingredients.\nYou're taking them safely and efficiently.",
+  "reportGenerating": "📝 Generating detailed report...",
+  "reportGeneratingWait": "This will take about 10~20 seconds",
+  "reportError": "An error occurred while generating the report.\n{error}"
 }

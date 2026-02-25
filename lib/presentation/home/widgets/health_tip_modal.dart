@@ -42,6 +42,7 @@ class HealthTipModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).languageCode;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -62,7 +63,7 @@ class HealthTipModal extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              tip.question,
+              tip.getQuestion(locale),
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -80,7 +81,7 @@ class HealthTipModal extends StatelessWidget {
                 border: Border.all(color: Colors.grey[200]!),
               ),
               child: Text(
-                tip.teaser,
+                tip.getTeaser(locale),
                 style: const TextStyle(
                   fontSize: 16,
                   height: 1.6,
@@ -93,7 +94,7 @@ class HealthTipModal extends StatelessWidget {
             const Divider(color: Colors.black12, thickness: 1),
             const SizedBox(height: 24),
             Text(
-              '👀 ${tip.cta}',
+              '👀 ${tip.getCta(locale)}',
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,

@@ -92,7 +92,7 @@ void main() {
 
     test('toPromptSection - localDb 제품은 DB 매칭 표시를 포함한다', () {
       final input = AnalysisInput.fromLocalDb(thorneMulti);
-      final section = input.toPromptSection(0);
+      final section = input.toPromptSection(0, 'ko');
 
       expect(section, contains('제품 1'));
       expect(section, contains('DB 매칭'));
@@ -104,7 +104,7 @@ void main() {
       final input = AnalysisInput.fromFallback(
         productName: '센트룸 실버 50+',
       );
-      final section = input.toPromptSection(1);
+      final section = input.toPromptSection(1, 'ko');
 
       expect(section, contains('제품 2'));
       expect(section, contains('DB 매칭 실패'));
@@ -236,7 +236,7 @@ void main() {
 
       // 각 제품의 prompt section에 DB 매칭 표시
       for (var i = 0; i < inputs.length; i++) {
-        final section = inputs[i].toPromptSection(i);
+        final section = inputs[i].toPromptSection(i, 'ko');
         expect(section, contains('DB 매칭'));
         expect(section, isNot(contains('AI 분석 필요')));
       }
@@ -251,11 +251,11 @@ void main() {
       expect(inputs[0].source, ProductSource.localDb);
       expect(inputs[1].source, ProductSource.geminiFallback);
 
-      final section0 = inputs[0].toPromptSection(0);
+      final section0 = inputs[0].toPromptSection(0, 'ko');
       expect(section0, contains('DB 매칭'));
       expect(section0, contains('비타민D'));
 
-      final section1 = inputs[1].toPromptSection(1);
+      final section1 = inputs[1].toPromptSection(1, 'ko');
       expect(section1, contains('AI 분석 필요'));
       expect(section1, contains('센트룸 실버 50+'));
     });
@@ -270,7 +270,7 @@ void main() {
           inputs.every((i) => i.source == ProductSource.geminiFallback), true);
 
       for (var i = 0; i < inputs.length; i++) {
-        final section = inputs[i].toPromptSection(i);
+        final section = inputs[i].toPromptSection(i, 'ko');
         expect(section, contains('AI 분석 필요'));
         expect(section, isNot(contains('성분:')));
       }

@@ -127,5 +127,38 @@
   "btnRetry": "다시 시도",
   "btnClose": "닫기",
   "btnCancel": "취소",
-  "btnConfirm": "확인"
+  "btnConfirm": "확인",
+  "loadingAnalyzing": "영양제 분석 중...",
+  "loadingStep1": "이미지 인식",
+  "loadingStep2": "성분 정보 검색",
+  "loadingStep3": "중복 성분 분석",
+  "loadingStep4": "리포트 생성",
+  "loadingTip1": "💡 비타민D는 지용성이라 식후 섭취가 좋아요",
+  "loadingTip2": "💡 칼슘과 철분은 함께 먹으면 흡수율이 떨어져요",
+  "loadingTip3": "💡 마그네슘은 취침 전 섭취 시 수면에 도움돼요",
+  "loadingTip4": "💡 오메가-3는 냉장 보관하면 산패를 막을 수 있어요",
+  "loadingTip5": "💡 유산균은 위산이 적은 식후에 섭취하세요",
+  "loadingTip6": "💡 비타민C는 철분 흡수를 도와줘요",
+  "loadingTip7": "💡 아연과 구리는 함께 섭취하면 경쟁해요",
+  "loadingTip8": "💡 비타민B군은 아침에 섭취하면 에너지에 도움돼요",
+  "loadingTip9": "💡 루테인은 기름과 함께 먹으면 흡수율이 높아져요",
+  "loadingTip10": "💡 코엔자임Q10은 식사와 함께 드세요",
+  "analysisExcludingProduct": "{product} 제외 시",
+  "@analysisExcludingProduct": {
+    "placeholders": {
+      "product": {
+        "type": "String"
+      }
+    }
+  },
+  "analysisDetailSubtitle": "📋 상세 분석",
+  "premiumUnlockTitle": "프리미엄 리포트 잠금 해제",
+  "premiumUnlockDesc": "중복 성분 상세 · 영양제 상세 정보 · AI 권장사항",
+  "premiumUnlockBtn": "잠금 해제하기",
+  "disclaimerAiEstimate": "⚠️ 일부 제품은 AI 추정치 기반입니다. 정확한 정보는 제품 라벨을 확인하세요.",
+  "positiveBannerTitle": "🎉 완벽한 영양제 조합입니다!",
+  "positiveBannerDesc": "불필요하게 겹치거나 과잉 섭취되는 성분 없이\n안전하고 효율적으로 드시고 계십니다.",
+  "reportGenerating": "📝 상세 리포트 생성 중...",
+  "reportGeneratingWait": "10~20초 정도 소요됩니다",
+  "reportError": "리포트 생성 중 오류가 발생했습니다.\n{error}"
 }

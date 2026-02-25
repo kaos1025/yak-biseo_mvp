@@ -175,8 +175,8 @@ class SupplementProduct {
   /// [Thorne, Basic Nutrients 2/Day] (Thorne)
   /// 성분: 비타민C: 250 mg (278% DV), 비타민D: 50 mcg (250% DV), ...
   /// ```
-  String toGeminiContext() {
-    final displayName = nameKo ?? name;
+  String toGeminiContext({String locale = 'ko'}) {
+    final displayName = locale == 'en' ? name : (nameKo ?? name);
     final buffer = StringBuffer();
     buffer.writeln('[$displayName] ($brand)');
 
