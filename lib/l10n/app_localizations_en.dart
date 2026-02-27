@@ -391,4 +391,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String reportError(Object error) {
     return 'An error occurred while generating the report.\n$error';
   }
+
+  @override
+  String get promoTitle => 'Launch Special (This week only!)';
+
+  @override
+  String daysLeft(int n) {
+    return '$n days left';
+  }
+
+  @override
+  String payButton(String price) {
+    return 'Pay \$$price';
+  }
 }

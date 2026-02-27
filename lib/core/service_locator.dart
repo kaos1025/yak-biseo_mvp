@@ -4,6 +4,7 @@ import '../data/datasources/local/supplement_local_datasource.dart';
 import '../data/repositories/local_supplement_repository.dart';
 import '../data/repositories/supplement_repository.dart';
 import '../services/gemini_analyzer_service.dart';
+import '../services/iap_service.dart';
 
 /// 전역 서비스 로케이터 인스턴스
 final getIt = GetIt.instance;
@@ -31,6 +32,11 @@ Future<void> setupServiceLocator() async {
   getIt.registerLazySingleton<GeminiAnalyzerService>(
     () => GeminiAnalyzerService(),
   );
+
+  // IAPService 초기화 및 등록
+  final iapService = IAPService();
+  await iapService.init();
+  getIt.registerSingleton<IAPService>(iapService);
 
   // 4. 로컬 DB 데이터 로드
   await getIt<SupplementLocalDatasource>().loadData();

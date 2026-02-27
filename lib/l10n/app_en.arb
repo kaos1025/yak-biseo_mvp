@@ -160,5 +160,22 @@
   "positiveBannerDesc": "No overlapping or excessive ingredients.\nYou're taking them safely and efficiently.",
   "reportGenerating": "📝 Generating detailed report...",
   "reportGeneratingWait": "This will take about 10~20 seconds",
-  "reportError": "An error occurred while generating the report.\n{error}"
+  "reportError": "An error occurred while generating the report.\n{error}",
+  "promoTitle": "Launch Special (This week only!)",
+  "daysLeft": "{n} days left",
+  "@daysLeft": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "payButton": "Pay ${price}",
+  "@payButton": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  }
 }

@@ -160,5 +160,22 @@
   "positiveBannerDesc": "불필요하게 겹치거나 과잉 섭취되는 성분 없이\n안전하고 효율적으로 드시고 계십니다.",
   "reportGenerating": "📝 상세 리포트 생성 중...",
   "reportGeneratingWait": "10~20초 정도 소요됩니다",
-  "reportError": "리포트 생성 중 오류가 발생했습니다.\n{error}"
+  "reportError": "리포트 생성 중 오류가 발생했습니다.\n{error}",
+  "promoTitle": "런칭 특가 (첫 주 한정!)",
+  "daysLeft": "{n}일 남음",
+  "@daysLeft": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "payButton": "{price} 결제하기",
+  "@payButton": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  }
 }

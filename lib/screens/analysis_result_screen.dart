@@ -4,6 +4,11 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:myapp/models/supplecut_analysis_result.dart';
 import 'package:myapp/l10n/app_localizations.dart';
 import 'package:myapp/services/gemini_analyzer_service.dart';
+import 'dart:async';
+import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:myapp/core/service_locator.dart';
+import 'package:myapp/services/iap_service.dart';
+import 'package:myapp/config/pricing_config.dart';
 import 'package:myapp/utils/localization_utils.dart';
 
 /// SuppleCut 분석 결과 화면
@@ -31,7 +36,41 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
   String? _detailedReport;
   String? _reportError;
 
+  late IAPService _iapService;
+  StreamSubscription<PurchaseStatus>? _purchaseSubscription;
+
   SuppleCutAnalysisResult get result => widget.result;
+
+  @override
+  void initState() {
+    super.initState();
+    _iapService = getIt<IAPService>();
+    _purchaseSubscription = _iapService.purchaseStatusStream.listen((status) {
+      if (!mounted) return;
+      if (status == PurchaseStatus.purchased ||
+          status == PurchaseStatus.restored) {
+        _generateReport();
+      } else if (status == PurchaseStatus.error) {
+        setState(() {
+          _isReportLoading = false;
+          final l10n = AppLocalizations.of(context);
+          _reportError = l10n?.errorGeneric ?? "결제에 실패했습니다.";
+        });
+      } else if (status == PurchaseStatus.pending) {
+        setState(() {
+          _isReportLoading = true;
+          _reportError = null;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _purchaseSubscription?.cancel();
+    super.dispose();
+  }
+
   bool get isPremium => widget.isPremiumUser || _isReportUnlocked;
 
   @override
@@ -705,7 +744,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _generateReport,
+                    onPressed: _showPaymentBottomSheet,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF7B1FA2),
                       foregroundColor: Colors.white,
@@ -822,5 +861,125 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
         ],
       ),
     );
+  }
+
+  void _showPaymentBottomSheet() {
+    final l10n = AppLocalizations.of(context)!;
+    final isPromo = PricingConfig.isPromoActive;
+    final price =
+        isPromo ? PricingConfig.promoPrice : PricingConfig.normalPrice;
+    final daysLeft = PricingConfig.remainingPromoDays;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (isPromo) ...[
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFEBEE),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '🔥 ${l10n.promoTitle} - ${l10n.daysLeft(daysLeft)}',
+                      style: const TextStyle(
+                        color: Color(0xFFD32F2F),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                Text(
+                  l10n.paymentTitle,
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                // 상세 리포트 포함 내용
+                Text(l10n.paymentIncludes,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                _buildPaymentFeatureItem('✨', l10n.paymentItem1),
+                _buildPaymentFeatureItem('⚖️', l10n.paymentItem2),
+                _buildPaymentFeatureItem('🔄', l10n.paymentItem3),
+                _buildPaymentFeatureItem('📄', l10n.paymentItem4),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close bottom sheet
+                    _initiatePurchase(); // Start IAP
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7B1FA2),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    l10n.payButton('\$${price.toStringAsFixed(2)}'),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    l10n.paymentLater,
+                    style: const TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPaymentFeatureItem(String emoji, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 16)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _initiatePurchase() async {
+    setState(() {
+      _isReportLoading = true;
+      _reportError = null;
+    });
+
+    final success = await _iapService.buyDetailedReport();
+    if (!success) {
+      if (!mounted) return;
+      setState(() {
+        _isReportLoading = false;
+      });
+    }
   }
 }

@@ -811,6 +811,24 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'리포트 생성 중 오류가 발생했습니다.\n{error}'**
   String reportError(Object error);
+
+  /// No description provided for @promoTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'런칭 특가 (첫 주 한정!)'**
+  String get promoTitle;
+
+  /// No description provided for @daysLeft.
+  ///
+  /// In ko, this message translates to:
+  /// **'{n}일 남음'**
+  String daysLeft(int n);
+
+  /// No description provided for @payButton.
+  ///
+  /// In ko, this message translates to:
+  /// **'{price} 결제하기'**
+  String payButton(String price);
 }
 
 class _AppLocalizationsDelegate
