@@ -16,6 +16,9 @@ final getIt = GetIt.instance;
 /// await setupServiceLocator();
 /// ```
 Future<void> setupServiceLocator() async {
+  // Hot restart 지원을 위해 기존 등록된 서비스 초기화
+  await getIt.reset();
+
   // 1. Datasource 등록 (싱글턴)
   getIt.registerLazySingleton<SupplementLocalDatasource>(
     () => SupplementLocalDatasource.instance,

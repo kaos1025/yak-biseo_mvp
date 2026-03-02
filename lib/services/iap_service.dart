@@ -19,24 +19,34 @@ class IAPService {
   bool get isAvailable => _isAvailable;
 
   Future<void> init() async {
-    _isAvailable = await _iap.isAvailable();
-    if (!_isAvailable) {
-      debugPrint('IAP not available');
-      return;
+    try {
+      if (kIsWeb) {
+        debugPrint('IAP not available on Web');
+        return;
+      }
+
+      _isAvailable = await _iap.isAvailable();
+      if (!_isAvailable) {
+        debugPrint('IAP not available');
+        return;
+      }
+
+      _subscription = _iap.purchaseStream.listen(
+        _onPurchaseUpdate,
+        onDone: () {
+          _subscription?.cancel();
+        },
+        onError: (error) {
+          debugPrint('IAP error: $error');
+          _purchaseStatusController.add(PurchaseStatus.error);
+        },
+      );
+
+      await _loadProducts();
+    } catch (e) {
+      debugPrint('IAP init error: $e');
+      _isAvailable = false;
     }
-
-    _subscription = _iap.purchaseStream.listen(
-      _onPurchaseUpdate,
-      onDone: () {
-        _subscription?.cancel();
-      },
-      onError: (error) {
-        debugPrint('IAP error: $error');
-        _purchaseStatusController.add(PurchaseStatus.error);
-      },
-    );
-
-    await _loadProducts();
   }
 
   Future<void> _loadProducts() async {

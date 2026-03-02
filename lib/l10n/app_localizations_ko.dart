@@ -394,4 +394,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String payButton(String price) {
     return '$price 결제하기';
   }
+
+  @override
+  String andOtherProducts(int count) {
+    return ' 외 $count개 제품';
+  }
 }

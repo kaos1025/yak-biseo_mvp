@@ -177,5 +177,13 @@
         "type": "String"
       }
     }
+  },
+  "andOtherProducts": " 외 {count}개 제품",
+  "@andOtherProducts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

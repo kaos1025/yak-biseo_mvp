@@ -404,4 +404,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String payButton(String price) {
     return 'Pay \$$price';
   }
+
+  @override
+  String andOtherProducts(int count) {
+    return ' and $count other products';
+  }
 }

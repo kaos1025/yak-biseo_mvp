@@ -829,6 +829,12 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'{price} 결제하기'**
   String payButton(String price);
+
+  /// No description provided for @andOtherProducts.
+  ///
+  /// In ko, this message translates to:
+  /// **' 외 {count}개 제품'**
+  String andOtherProducts(int count);
 }
 
 class _AppLocalizationsDelegate

@@ -58,7 +58,7 @@ class RecentAnalysisCard extends StatelessWidget {
       productsString = analysis.productNames.first;
       if (analysis.productCount > 1) {
         // Here we could use l10n.analyzedProducts + count, but sticking to minor changes
-        productsString += ' 외 ${analysis.productCount - 1}개 제품';
+        productsString += l10n.andOtherProducts(analysis.productCount - 1);
       }
     }
 

@@ -177,5 +177,13 @@
         "type": "String"
       }
     }
+  },
+  "andOtherProducts": " and {count} other products",
+  "@andOtherProducts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }
