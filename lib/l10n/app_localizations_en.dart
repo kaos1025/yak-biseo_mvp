@@ -19,7 +19,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeSubQuestion =>
-      'Today\'s trend is \'Subtracting\', not \'Adding\'.\nWe optimize your supplements in 3 seconds.';
+      'Today\'s trend is \'Subtracting\', not \'Adding\'.\nWe optimize your supplements quickly and easily.';
 
   @override
   String get homeSavingEstimate => 'Save \$40/month on average';
@@ -167,7 +167,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeSubline =>
-      'The trend is \'less is more\'.\nOptimize your stack in 3 seconds.';
+      'The trend is \'less is more\'.\nOptimize your stack quickly and easily.';
 
   @override
   String get monthlySavings => 'Save avg. \$40/month';

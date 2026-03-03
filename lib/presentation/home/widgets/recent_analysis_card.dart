@@ -167,7 +167,7 @@ class RecentAnalysisCard extends StatelessWidget {
             child: Text(
               l10n.reanalyzeHint,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 color: Colors.grey[500],
               ),
             ),

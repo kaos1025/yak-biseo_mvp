@@ -19,7 +19,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get homeSubQuestion =>
-      '요즘 트렌드는 \'더하기\'가 아니라 \'빼기\'입니다.\n3초 만에 구조조정 해드려요.';
+      '요즘 트렌드는 \'더하기\'가 아니라 \'빼기\'입니다.\n쉽고 빠르게 구조조정 해드려요.';
 
   @override
   String get homeSavingEstimate => '평균 월 50,000원 절약 효과';
@@ -165,7 +165,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeHeadline => '혹시 영양제에\n돈 낭비 하고 계신가요? 💸';
 
   @override
-  String get homeSubline => '요즘 트렌드는 \'더하기\'가 아니라 \'빼기\'입니다.\n3초 만에 구조조정 해드려요.';
+  String get homeSubline =>
+      '요즘 트렌드는 \'더하기\'가 아니라 \'빼기\'입니다.\n쉽고 빠르게 구조조정 해드려요.';
 
   @override
   String get monthlySavings => '평균 월 50,000원 절약 효과';

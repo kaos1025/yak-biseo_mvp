@@ -119,7 +119,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeSubQuestion.
   ///
   /// In ko, this message translates to:
-  /// **'요즘 트렌드는 \'더하기\'가 아니라 \'빼기\'입니다.\n3초 만에 구조조정 해드려요.'**
+  /// **'요즘 트렌드는 \'더하기\'가 아니라 \'빼기\'입니다.\n쉽고 빠르게 구조조정 해드려요.'**
   String get homeSubQuestion;
 
   /// No description provided for @homeSavingEstimate.
@@ -407,7 +407,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeSubline.
   ///
   /// In ko, this message translates to:
-  /// **'요즘 트렌드는 \'더하기\'가 아니라 \'빼기\'입니다.\n3초 만에 구조조정 해드려요.'**
+  /// **'요즘 트렌드는 \'더하기\'가 아니라 \'빼기\'입니다.\n쉽고 빠르게 구조조정 해드려요.'**
   String get homeSubline;
 
   /// No description provided for @monthlySavings.
