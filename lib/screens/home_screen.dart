@@ -255,6 +255,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                   children: [
                                     RecentAnalysisCard(
                                       analysis: _viewModel.recentAnalysis!,
+                                      onReanalyzeTap: _pickImageFromCamera,
                                     ),
                                     const SizedBox(height: 24),
                                   ],

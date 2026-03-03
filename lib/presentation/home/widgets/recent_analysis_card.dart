@@ -1,24 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../../../data/models/recent_analysis_model.dart';
-import 'payment_bottom_sheet.dart';
 import 'package:myapp/l10n/app_localizations.dart';
 
 class RecentAnalysisCard extends StatelessWidget {
   final RecentAnalysisModel analysis;
+  final VoidCallback? onReanalyzeTap;
 
   const RecentAnalysisCard({
     super.key,
     required this.analysis,
+    this.onReanalyzeTap,
   });
-
-  void _showPaymentBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => const PaymentBottomSheet(),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +124,7 @@ class RecentAnalysisCard extends StatelessWidget {
           Align(
             alignment: Alignment.centerRight,
             child: GestureDetector(
-              onTap: () => _showPaymentBottomSheet(context),
+              onTap: onReanalyzeTap,
               child: Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 10),

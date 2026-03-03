@@ -8,17 +8,17 @@ class PricingConfig {
   /// 정상 가격
   static const double normalPrice = 1.99;
 
-  /// 특가 기간 활성화 여부 (런칭 후 7일간)
+  /// 특가 기간 활성화 여부 (런칭 후 30일간 - 앱 론칭 1달 기념 이벤트)
   static bool get isPromoActive {
     final now = DateTime.now();
-    final promoEndDate = launchDate.add(const Duration(days: 7));
+    final promoEndDate = launchDate.add(const Duration(days: 30));
     return now.isBefore(promoEndDate);
   }
 
   /// 특가 남은 일수
   static int get remainingPromoDays {
     final now = DateTime.now();
-    final promoEndDate = launchDate.add(const Duration(days: 7));
+    final promoEndDate = launchDate.add(const Duration(days: 30));
     if (now.isAfter(promoEndDate)) return 0;
 
     final difference = promoEndDate.difference(now);
