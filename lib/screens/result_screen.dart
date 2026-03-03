@@ -8,8 +8,14 @@ import 'package:myapp/services/analysis_cache_service.dart';
 class ResultScreen extends StatefulWidget {
   final XFile image;
   final String locale;
+  final bool forceRefresh;
 
-  const ResultScreen({super.key, required this.image, required this.locale});
+  const ResultScreen({
+    super.key,
+    required this.image,
+    required this.locale,
+    this.forceRefresh = false,
+  });
 
   @override
   State<ResultScreen> createState() => _ResultScreenState();
@@ -47,8 +53,8 @@ class _ResultScreenState extends State<ResultScreen> {
     // Step 1: OCR로 제품명 추출
     final productNames = await _analyzerService.extractProductNames(imageBytes);
 
-    // Step 2: 캐시 조회 (7일 TTL)
-    if (productNames.isNotEmpty) {
+    // Step 2: 캐시 조회 (7일 TTL) — forceRefresh 시 스킵
+    if (!widget.forceRefresh && productNames.isNotEmpty) {
       final cached =
           await AnalysisCacheService.get(productNames, locale: widget.locale);
       if (cached != null) {

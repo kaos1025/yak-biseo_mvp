@@ -408,4 +408,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get cardRiskDanger => '심각한 성분 중복이 확인되었습니다 🚨';
+
+  @override
+  String get reanalyzeHint => '결과가 다르다면 다시 촬영해 보세요';
 }

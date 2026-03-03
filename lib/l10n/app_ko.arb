@@ -188,5 +188,6 @@
   },
   "cardRiskSafe": "중복 성분이 없습니다 ✅",
   "cardRiskWarning": "일부 성분 중복이 확인되었습니다 ⚠️",
-  "cardRiskDanger": "심각한 성분 중복이 확인되었습니다 🚨"
+  "cardRiskDanger": "심각한 성분 중복이 확인되었습니다 🚨",
+  "reanalyzeHint": "결과가 다르다면 다시 촬영해 보세요"
 }

@@ -188,5 +188,6 @@
   },
   "cardRiskSafe": "No duplicate ingredients found ✅",
   "cardRiskWarning": "Some ingredient overlap detected ⚠️",
-  "cardRiskDanger": "Serious ingredient overlap detected 🚨"
+  "cardRiskDanger": "Serious ingredient overlap detected 🚨",
+  "reanalyzeHint": "Results wrong? Retake photo for fresh analysis"
 }

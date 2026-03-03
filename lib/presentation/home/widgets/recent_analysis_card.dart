@@ -108,6 +108,20 @@ class RecentAnalysisCard extends StatelessWidget {
               ),
             ],
           ),
+          if (analysis.riskSummary != null &&
+              analysis.riskSummary!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              '💊 ${analysis.riskSummary!}',
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.4,
+                color: Colors.grey[700],
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
           const SizedBox(height: 8),
           Text(
             productsString,
@@ -144,6 +158,17 @@ class RecentAnalysisCard extends StatelessWidget {
                     color: Colors.blue[800],
                   ),
                 ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              l10n.reanalyzeHint,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey[500],
               ),
             ),
           ),

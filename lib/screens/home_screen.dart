@@ -103,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
-  Future<void> _pickImageFromCamera() async {
+  Future<void> _pickImageFromCamera({bool forceRefresh = false}) async {
     _analyticsService.logCameraClick();
     final XFile? pickedFile = await _picker.pickImage(
       source: ImageSource.camera,
@@ -118,8 +118,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) =>
-              ResultScreen(image: pickedFile, locale: l10n.localeName),
+          builder: (context) => ResultScreen(
+            image: pickedFile,
+            locale: l10n.localeName,
+            forceRefresh: forceRefresh,
+          ),
         ),
       );
       if (mounted) {
@@ -255,7 +258,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                   children: [
                                     RecentAnalysisCard(
                                       analysis: _viewModel.recentAnalysis!,
-                                      onReanalyzeTap: _pickImageFromCamera,
+                                      onReanalyzeTap: () =>
+                                          _pickImageFromCamera(
+                                              forceRefresh: true),
                                     ),
                                     const SizedBox(height: 24),
                                   ],

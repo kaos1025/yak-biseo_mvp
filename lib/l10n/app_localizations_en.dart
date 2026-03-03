@@ -418,4 +418,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cardRiskDanger => 'Serious ingredient overlap detected 🚨';
+
+  @override
+  String get reanalyzeHint => 'Results wrong? Retake photo for fresh analysis';
 }

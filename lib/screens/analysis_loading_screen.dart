@@ -152,12 +152,16 @@ class _AnalysisLoadingScreenState extends State<AnalysisLoadingScreen> {
 
   Future<void> _saveRecentAnalysis(SuppleCutAnalysisResult result) async {
     try {
+      // 분석결과 화면과 동일 기준: hasSavings=false → "Perfect!" 배너
+      // → 홈 카드에서도 'safe'로 표시하여 일관성 유지
+      final effectiveRisk = result.hasSavings ? result.overallRisk : 'safe';
+
       final analysisModel = RecentAnalysisModel(
         id: const Uuid().v4(),
         analyzedAt: DateTime.now(),
         productNames: result.products.map((p) => p.name).toList(),
-        overallRisk: result.overallRisk,
-        riskSummary: result.summary,
+        overallRisk: effectiveRisk,
+        riskSummary: result.hasSavings ? result.summary : null,
         productCount: result.products.length,
         analysisJson: jsonEncode(result.toJson()),
       );

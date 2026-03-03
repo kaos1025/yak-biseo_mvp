@@ -853,6 +853,12 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'심각한 성분 중복이 확인되었습니다 🚨'**
   String get cardRiskDanger;
+
+  /// No description provided for @reanalyzeHint.
+  ///
+  /// In ko, this message translates to:
+  /// **'결과가 다르다면 다시 촬영해 보세요'**
+  String get reanalyzeHint;
 }
 
 class _AppLocalizationsDelegate
