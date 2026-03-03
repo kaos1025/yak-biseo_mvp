@@ -835,6 +835,24 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **' 외 {count}개 제품'**
   String andOtherProducts(int count);
+
+  /// No description provided for @cardRiskSafe.
+  ///
+  /// In ko, this message translates to:
+  /// **'중복 성분이 없습니다 ✅'**
+  String get cardRiskSafe;
+
+  /// No description provided for @cardRiskWarning.
+  ///
+  /// In ko, this message translates to:
+  /// **'일부 성분 중복이 확인되었습니다 ⚠️'**
+  String get cardRiskWarning;
+
+  /// No description provided for @cardRiskDanger.
+  ///
+  /// In ko, this message translates to:
+  /// **'심각한 성분 중복이 확인되었습니다 🚨'**
+  String get cardRiskDanger;
 }
 
 class _AppLocalizationsDelegate

@@ -49,7 +49,8 @@ class _ResultScreenState extends State<ResultScreen> {
 
     // Step 2: 캐시 조회 (7일 TTL)
     if (productNames.isNotEmpty) {
-      final cached = await AnalysisCacheService.get(productNames);
+      final cached =
+          await AnalysisCacheService.get(productNames, locale: widget.locale);
       if (cached != null) {
         return cached; // 캐시 히트 → API 재호출 없음
       }
@@ -61,7 +62,8 @@ class _ResultScreenState extends State<ResultScreen> {
 
     // Step 4: 결과 캐시 저장
     if (productNames.isNotEmpty) {
-      await AnalysisCacheService.put(productNames, result);
+      await AnalysisCacheService.put(productNames, result,
+          locale: widget.locale);
     }
 
     return result;

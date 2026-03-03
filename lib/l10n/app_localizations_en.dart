@@ -409,4 +409,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String andOtherProducts(int count) {
     return ' and $count other products';
   }
+
+  @override
+  String get cardRiskSafe => 'No duplicate ingredients found ✅';
+
+  @override
+  String get cardRiskWarning => 'Some ingredient overlap detected ⚠️';
+
+  @override
+  String get cardRiskDanger => 'Serious ingredient overlap detected 🚨';
 }

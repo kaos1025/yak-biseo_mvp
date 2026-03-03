@@ -8,8 +8,9 @@ class AnalysisCacheService {
   static const String _prefix = 'analysis_cache_v1_';
 
   /// 캐시 조회. 유효한 캐시가 없으면 null 반환.
-  static Future<SuppleCutAnalysisResult?> get(List<String> productNames) async {
-    final key = _prefix + _cacheKey(productNames);
+  static Future<SuppleCutAnalysisResult?> get(List<String> productNames,
+      {String locale = 'ko'}) async {
+    final key = _prefix + _cacheKey(productNames, locale);
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(key);
     if (raw == null) return null;
@@ -30,8 +31,9 @@ class AnalysisCacheService {
 
   /// 분석 결과 캐시 저장.
   static Future<void> put(
-      List<String> productNames, SuppleCutAnalysisResult result) async {
-    final key = _prefix + _cacheKey(productNames);
+      List<String> productNames, SuppleCutAnalysisResult result,
+      {String locale = 'ko'}) async {
+    final key = _prefix + _cacheKey(productNames, locale);
     final prefs = await SharedPreferences.getInstance();
     final payload = jsonEncode({
       'cachedAt': DateTime.now().toIso8601String(),
@@ -41,10 +43,10 @@ class AnalysisCacheService {
   }
 
   /// 제품명 목록 → 정렬 후 join → hashCode 문자열 (결정적 해시)
-  static String _cacheKey(List<String> names) {
+  static String _cacheKey(List<String> names, String locale) {
     final sorted = List<String>.from(names)
       ..sort()
       ..map((s) => s.toLowerCase().trim());
-    return sorted.join('|').hashCode.toString();
+    return '${locale}_${sorted.join('|').hashCode}';
   }
 }

@@ -954,6 +954,9 @@ $contextLines
     }).join('\n\n');
 
     final lang = locale == 'en' ? 'English' : '한국어';
+    final langInstruction = locale == 'en'
+        ? 'ALL text fields (summary, advice, recommendations, disclaimer, note) MUST be written in English. Do NOT use Korean.'
+        : '모든 텍스트 필드(summary, advice, recommendations, disclaimer, note)는 반드시 한국어로 작성하세요.';
     const currencyRule =
         '- 모든 가격은 **대한민국 원화(KRW)** 기준\n- 가격 검색 시 한국 내 판매가를 검색하여 추정 (예: 1개월분 30,000원)\n- estimatedMonthlyPrice는 숫자로만 반환 (예: 30000)\n- 절대 달러(USD) 등 타 통화로 반환하지 마십시오.';
 
@@ -1032,6 +1035,7 @@ $currencyRule
 - duplicates 배열에는 해당 성분이 [실제로 포함된 입력 제품명]만 정확히 나열해야 합니다.
 - 중복 성분이 하나라도 발견되면(duplicates 배열이 비어있지 않은 경우), 반드시 중복된 제품 중 하나를 '제외 권장 제품(excludedProduct)'으로 선택하고, 그 제품의 estimatedMonthlyPrice 값을 monthlySavings에 기입하세요.
 - 중복이 전혀 없을 때만 excludedProduct를 null, monthlySavings를 0으로 처리하세요.
+- **[CRITICAL] $langInstruction**
 - 언어: $lang
 - 문자열 내의 큰따옴표(")는 반드시 역슬래시(\\)로 이스케이프 처리
 - 배열 마지막 항목 뒤에 쉼표(,) 금지

@@ -136,11 +136,12 @@ class _AnalysisLoadingScreenState extends State<AnalysisLoadingScreen> {
       await Future.delayed(const Duration(milliseconds: 800));
       if (!mounted) return;
 
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
           builder: (_) => AnalysisResultScreen(result: result),
         ),
+        (route) => route.isFirst, // HomeScreen만 남기고 중간 라우트 제거
       );
     } catch (e) {
       // 에러 처리

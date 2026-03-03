@@ -91,17 +91,21 @@ class RecentAnalysisCard extends StatelessWidget {
             children: [
               Text(getRiskIcon(), style: const TextStyle(fontSize: 18)),
               const SizedBox(width: 8),
-              if (analysis.riskSummary != null)
-                Expanded(
-                  child: Text(
-                    analysis.riskSummary!,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: getRiskColor(),
-                    ),
+              Expanded(
+                child: Text(
+                  switch (analysis.overallRisk) {
+                    'safe' => l10n.cardRiskSafe,
+                    'warning' => l10n.cardRiskWarning,
+                    'danger' => l10n.cardRiskDanger,
+                    _ => analysis.riskSummary ?? '',
+                  },
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: getRiskColor(),
                   ),
                 ),
+              ),
             ],
           ),
           const SizedBox(height: 8),

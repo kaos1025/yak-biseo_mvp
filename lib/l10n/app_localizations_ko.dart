@@ -399,4 +399,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String andOtherProducts(int count) {
     return ' 외 $count개 제품';
   }
+
+  @override
+  String get cardRiskSafe => '중복 성분이 없습니다 ✅';
+
+  @override
+  String get cardRiskWarning => '일부 성분 중복이 확인되었습니다 ⚠️';
+
+  @override
+  String get cardRiskDanger => '심각한 성분 중복이 확인되었습니다 🚨';
 }
