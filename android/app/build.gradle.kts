@@ -1,5 +1,6 @@
 import java.util.Properties
 import java.nio.charset.StandardCharsets
+import java.io.FileInputStream
 
 plugins {
     id("com.android.application")
@@ -14,11 +15,17 @@ if (localPropertiesFile.exists()) {
     localProperties.load(localPropertiesFile.reader(StandardCharsets.UTF_8))
 }
 
+val keyProperties = Properties()
+val keyPropertiesFile = rootProject.file("key.properties")
+if (keyPropertiesFile.exists()) {
+    keyProperties.load(FileInputStream(keyPropertiesFile))
+}
+
 val flutterVersionCode = localProperties.getProperty("flutter.versionCode") ?: "1"
 val flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "1.0"
 
 android {
-    namespace = "com.example.myapp"
+    namespace = "com.supplecut.app"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
@@ -36,7 +43,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.myapp"
+        applicationId = "com.supplecut.app"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
         versionCode = flutterVersionCode.toInt()
@@ -44,9 +51,18 @@ android {
         multiDexEnabled = true
     }
 
+    signingConfigs {
+        create("release") {
+            keyAlias = keyProperties["keyAlias"] as String
+            keyPassword = keyProperties["keyPassword"] as String
+            storeFile = file(keyProperties["storeFile"] as String)
+            storePassword = keyProperties["storePassword"] as String
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

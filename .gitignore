@@ -29,3 +29,6 @@ build/
 
 # Secrets
 .env
+*.jks
+*.keystore
+android/key.properties

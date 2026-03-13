@@ -152,7 +152,7 @@ class SupplementLocalDatasource {
         // ignore: avoid_print
         print('Possible Match: "${product.name}" Score: $score');
       }
-      if (score > 0.1) {
+      if (score >= 4.0) {
         scored.add((product: product, score: score));
       }
     }
@@ -250,6 +250,11 @@ class SupplementLocalDatasource {
 
     // 이름 키워드가 있는데 하나도 안 맞으면 → 다른 제품
     if (nameMatches == 0 && nameKeywords.isNotEmpty) return 0.0;
+
+    // 키워드 매칭률이 너무 낮으면 → 다른 제품 (false positive 방지)
+    if (nameKeywords.length >= 2 && nameMatches / nameKeywords.length < 0.6) {
+      return 0.0;
+    }
 
     // ── Phase 3: Number Match (Tiebreaker) ──
     int numberMatches = 0;

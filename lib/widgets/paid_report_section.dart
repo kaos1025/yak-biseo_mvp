@@ -54,23 +54,29 @@ class _PaidReportSectionState extends State<PaidReportSection> {
   }
 
   Future<void> _checkPurchaseStatus() async {
-    final purchased =
-        await _purchaseService.isReportPurchased(widget.result.id);
+    // TODO: 스크린샷 후 원복 필요! 임시로 결제 우회
     if (mounted) {
       setState(() {
-        _isPurchased = purchased;
-        if (_isPurchased) {
-          // If already purchased, check if we have content
-          if (widget.result.premiumReport != null &&
-              widget.result.premiumReport!.isNotEmpty) {
-            _content = widget.result.premiumReport;
-          } else {
-            // Purchased but no content -> Generate
-            _generateReport();
-          }
-        }
+        _isPurchased = true;
       });
+      _generateReport();
     }
+    // --- 원본 코드 (스크린샷 후 아래로 교체) ---
+    // final purchased =
+    //     await _purchaseService.isReportPurchased(widget.result.id);
+    // if (mounted) {
+    //   setState(() {
+    //     _isPurchased = purchased;
+    //     if (_isPurchased) {
+    //       if (widget.result.premiumReport != null &&
+    //           widget.result.premiumReport!.isNotEmpty) {
+    //         _content = widget.result.premiumReport;
+    //       } else {
+    //         _generateReport();
+    //       }
+    //     }
+    //   });
+    // }
   }
 
   Future<void> _generateReport() async {

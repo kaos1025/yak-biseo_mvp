@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:952425570414:android:b50341ebfd8a6477bec67f",
+        "mobilesdk_app_id": "1:952425570414:android:a90a6ebbdd15ca07bec67f",
         "android_client_info": {
-          "package_name": "com.example.myapp"
+          "package_name": "com.supplecut.app"
         }
       },
       "oauth_client": [],

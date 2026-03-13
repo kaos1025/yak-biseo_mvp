@@ -1,8 +1,14 @@
-"""iHerb 스크래핑 데이터 → supplements_db.json 머지"""
+"""iHerb 스크래핑 데이터(bilingual) → supplements_db.json 머지
+
+변경 사항 (v2):
+- products_bilingual.json 지원 (영문 name + 한글 name_ko 분리)
+- 영문 name 보존 (OCR fuzzy 매칭 품질 향상)
+- servingSize_ko, categories_ko 필드 자동 매핑
+"""
 import json, re, os
 
 EXISTING = r"C:\juji\yak-biseo_mvp\assets\db\supplements_db.json"
-NEW_DATA = r"C:\juji\iherb-scrap\data\products.json"
+NEW_DATA = r"C:\juji\iherb-scrap\data\products_bilingual.json"
 OUTPUT   = EXISTING
 
 def norm_name(name):
@@ -16,19 +22,28 @@ def convert(p):
     ings = []
     for i in p.get("ingredients", []):
         ings.append({
-            "name": i.get("name",""), "name_ko": i.get("name_ko"),
-            "amount": i.get("amount"), "unit": i.get("unit",""),
+            "name": i.get("name",""),
+            "name_ko": i.get("name_ko"),
+            "amount": i.get("amount"),
+            "unit": i.get("unit",""),
             "dailyValue": i.get("dailyValue"),
             "name_normalized": norm_name(i.get("name",""))
         })
     return {
-        "id": f"iherb_{pid}", "productId": pid, "source": "iherb",
-        "name": p.get("name",""), "name_ko": p.get("name_ko"),
-        "brand": p.get("brand",""), "price": p.get("price"),
+        "id": f"iherb_{pid}",
+        "productId": pid,
+        "source": "iherb",
+        "name": p.get("name",""),          # 영문명 보존!
+        "name_ko": p.get("name_ko"),       # 한글명
+        "brand": p.get("brand",""),
+        "price": p.get("price"),
         "currency": p.get("currency","KRW"),
-        "servingSize": p.get("servingSize"), "servingSize_ko": None,
-        "categories": p.get("categories",[]), "categories_ko": [],
-        "rating": p.get("rating"), "reviewCount": p.get("reviewCount"),
+        "servingSize": p.get("servingSize"),
+        "servingSize_ko": p.get("servingSize_ko"),
+        "categories": p.get("categories",[]),
+        "categories_ko": p.get("categories_ko",[]),
+        "rating": p.get("rating"),
+        "reviewCount": p.get("reviewCount"),
         "ingredients": ings,
     }
 
@@ -42,6 +57,7 @@ with open(NEW_DATA, "r", encoding="utf-8") as f:
     new_data = json.load(f)
 print(f"  New: {len(new_data)}")
 
+# Build merged dict keyed by productId
 merged = {}
 for p in existing:
     pid = p.get("productId", p.get("id",""))
@@ -55,9 +71,6 @@ for p in new_data:
     if not pid: continue
     c = convert(p)
     if pid in merged:
-        old = merged[pid]
-        c["servingSize_ko"] = old.get("servingSize_ko")
-        c["categories_ko"] = old.get("categories_ko",[])
         updated += 1
     else:
         added += 1
