@@ -393,7 +393,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String payButton(String price) {
-    return '$price 결제하기';
+    return '\$$price 결제하기';
   }
 
   @override

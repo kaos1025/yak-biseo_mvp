@@ -11,14 +11,7 @@ import '../models/unified_analysis_result.dart';
 import '../data/repositories/local_supplement_repository.dart';
 
 class GeminiAnalyzerService {
-  final List<String> _apiKeys = [];
-  int _currentKeyIndex = 0;
-
-  String get _currentApiKey => _apiKeys[_currentKeyIndex];
-
-  void _rotateApiKey() {
-    _currentKeyIndex = (_currentKeyIndex + 1) % _apiKeys.length;
-  }
+  late final String _apiKey;
 
   static const _systemPrompt = """
 당신은 영양제/건강기능식품 라벨 분석 전문가입니다.
@@ -62,29 +55,11 @@ class GeminiAnalyzerService {
 """;
 
   GeminiAnalyzerService() {
-    // Load multiple API keys (GEMINI_API_KEY_1, GEMINI_API_KEY_2, etc.)
-    for (int i = 1; i <= 10; i++) {
-      final key = dotenv.env['GEMINI_API_KEY_$i'];
-      if (key != null && key.isNotEmpty) {
-        _apiKeys.add(key);
-      }
+    final key = dotenv.env['GEMINI_API_KEY'] ?? dotenv.env['API_KEY'] ?? '';
+    if (key.isEmpty) {
+      throw Exception('API Key not found in .env (GEMINI_API_KEY or API_KEY)');
     }
-
-    // Fallback: try GEMINI_API_KEY or API_KEY if no numbered keys found
-    if (_apiKeys.isEmpty) {
-      final fallbackKey =
-          dotenv.env['GEMINI_API_KEY'] ?? dotenv.env['API_KEY'] ?? '';
-      if (fallbackKey.isNotEmpty) {
-        _apiKeys.add(fallbackKey);
-      }
-    }
-
-    if (_apiKeys.isEmpty) {
-      throw Exception(
-          'API Key not found in .env (GEMINI_API_KEY_1, GEMINI_API_KEY, or API_KEY)');
-    }
-
-    // API keys loaded
+    _apiKey = key;
   }
 
   /// 표준 분석 (JSON) - REST API + Grounding 적용
@@ -193,108 +168,80 @@ report_markdown 내용:
     }
   }
 
-  /// 공통 REST API 요청 헬퍼 (Retry + Key Rotation + Grounding)
+  /// 공통 REST API 요청 헬퍼
   Future<String> _sendRestRequest({
     required String prompt,
-    Uint8List? imageBytes, // Changed to nullable
+    Uint8List? imageBytes,
     required String responseMimeType,
-    bool enableGrounding = false, // Grounding 옵션화 (디폴트: 강제 종료로 속도 최적화)
+    bool enableGrounding = false,
   }) async {
-    int keysTriedCount = 0;
-    final totalKeys = _apiKeys.length;
+    final url = Uri.parse(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=$_apiKey');
 
-    while (keysTriedCount < totalKeys) {
-      final url = Uri.parse(
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$_currentApiKey');
+    final List<Map<String, dynamic>> parts = [
+      {"text": prompt}
+    ];
 
-      try {
-        final List<Map<String, dynamic>> parts = [
-          {"text": prompt}
-        ];
-
-        if (imageBytes != null && imageBytes.isNotEmpty) {
-          parts.add({
-            "inline_data": {
-              "mime_type": "image/jpeg",
-              "data": base64Encode(imageBytes)
-            }
-          });
+    if (imageBytes != null && imageBytes.isNotEmpty) {
+      parts.add({
+        "inline_data": {
+          "mime_type": "image/jpeg",
+          "data": base64Encode(imageBytes)
         }
-
-        final Map<String, dynamic> requestBody = {
-          "contents": [
-            {"parts": parts}
-          ],
-          "generationConfig": {
-            "temperature": 0.1,
-            "maxOutputTokens": 8192,
-            // "responseMimeType": responseMimeType
-          }
-        };
-
-        if (enableGrounding) {
-          requestBody["tools"] = [
-            {
-              "google_search": {} // Google Search Grounding Enable
-            }
-          ];
-        }
-
-        final response = await http.post(
-          url,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(requestBody),
-        );
-
-        if (response.statusCode == 200) {
-          final json = jsonDecode(response.body);
-          final candidates = json['candidates'] as List?;
-
-          if (candidates == null || candidates.isEmpty) {
-            throw Exception('AI 분석 응답이 비어있습니다.');
-          }
-
-          final content = candidates[0]['content'];
-          if (content == null || content['parts'] == null) {
-            throw Exception('분석 결과를 생성할 수 없습니다.');
-          }
-
-          final parts = content['parts'] as List;
-          final textPart = parts.firstWhere((p) => p.containsKey('text'),
-              orElse: () => null);
-
-          if (textPart != null) {
-            return textPart['text'];
-          } else {
-            throw Exception('텍스트 응답이 없습니다.');
-          }
-        }
-
-        if (response.statusCode == 429) {
-          keysTriedCount++;
-          if (keysTriedCount < totalKeys) {
-            _rotateApiKey();
-            await Future.delayed(
-                const Duration(seconds: 1)); // Brief delay before retry
-            continue;
-          } else {
-            throw Exception('모든 API 키가 비율 제한에 걸렸습니다. 잠시 후 다시 시도해주세요. (429)');
-          }
-        }
-
-        throw Exception(
-            'Gemini REST API Failed: ${response.statusCode} - ${response.body}');
-      } catch (e) {
-        if (e.toString().contains('429') && keysTriedCount < totalKeys - 1) {
-          keysTriedCount++;
-          _rotateApiKey();
-          continue;
-        }
-        rethrow;
-      }
+      });
     }
 
-    throw Exception('API 요청 실패: 모든 키 시도 완료');
+    final Map<String, dynamic> requestBody = {
+      "contents": [
+        {"parts": parts}
+      ],
+      "generationConfig": {
+        "temperature": 0.1,
+        "maxOutputTokens": 16384,
+      }
+    };
+
+    if (enableGrounding) {
+      requestBody["tools"] = [
+        {"google_search": {}}
+      ];
+    }
+
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(requestBody),
+    );
+
+    if (response.statusCode == 429) {
+      throw Exception('API 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요. (429)');
+    }
+
+    if (response.statusCode != 200) {
+      throw Exception(
+          'Gemini REST API Failed: ${response.statusCode} - ${response.body}');
+    }
+
+    final json = jsonDecode(response.body);
+    final candidates = json['candidates'] as List?;
+
+    if (candidates == null || candidates.isEmpty) {
+      throw Exception('AI 분석 응답이 비어있습니다.');
+    }
+
+    final content = candidates[0]['content'];
+    if (content == null || content['parts'] == null) {
+      throw Exception('분석 결과를 생성할 수 없습니다.');
+    }
+
+    final responseParts = content['parts'] as List;
+    final textPart = responseParts.firstWhere((p) => p.containsKey('text'),
+        orElse: () => null);
+
+    if (textPart != null) {
+      return textPart['text'];
+    }
+    throw Exception('텍스트 응답이 없습니다.');
   }
 
   /// JSON 문자열 정리 (Markdown 코드 블록 제거 및 순수 JSON 추출)

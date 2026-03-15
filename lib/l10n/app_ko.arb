@@ -170,7 +170,7 @@
       }
     }
   },
-  "payButton": "{price} 결제하기",
+  "payButton": "${price} 결제하기",
   "@payButton": {
     "placeholders": {
       "price": {

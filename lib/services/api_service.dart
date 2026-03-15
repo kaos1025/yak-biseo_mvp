@@ -97,7 +97,7 @@ class ApiService {
   /// Phase 1: AI extracts product info (name, brand, ingredients, price)
   /// Phase 2: RedundancyEngine determines status deterministically
   static Future<String> analyzeDrugImage(XFile image, String locale) async {
-    final apiKey = dotenv.env['API_KEY'] ?? '';
+    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? dotenv.env['API_KEY'] ?? '';
     if (apiKey.isEmpty) {
       return _buildErrorJson("API Key가 설정되지 않았습니다. .env 파일을 확인해주세요.");
     }
@@ -200,7 +200,7 @@ class ApiService {
   static Future<List<ExtractedProduct>> _extractProductsFromImage(
       String apiKey, XFile image, String locale) async {
     final model = GenerativeModel(
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.1-flash-lite-preview',
       apiKey: apiKey,
       generationConfig: GenerationConfig(
         responseMimeType: 'application/json',
@@ -284,7 +284,7 @@ RULES:
       RedundancyAnalysisResult redundancyResult,
       String locale) async {
     final model = GenerativeModel(
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.1-flash-lite-preview',
       apiKey: apiKey,
       generationConfig: GenerationConfig(
         temperature: 0.3, // Slightly higher for natural language
@@ -360,7 +360,7 @@ If no redundancy, briefly confirm the combination is safe.
     String locale, {
     bool useOfficialApi = true,
   }) async {
-    final apiKey = dotenv.env['API_KEY'] ?? '';
+    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? dotenv.env['API_KEY'] ?? '';
     if (apiKey.isEmpty) {
       return _buildErrorJson("API Key가 설정되지 않았습니다. .env 파일을 확인해주세요.");
     }
@@ -615,7 +615,7 @@ If no redundancy, briefly confirm the combination is safe.
     String locale,
   ) async {
     final model = GenerativeModel(
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.1-flash-lite-preview',
       apiKey: apiKey,
       generationConfig: GenerationConfig(
         temperature: 0.3,

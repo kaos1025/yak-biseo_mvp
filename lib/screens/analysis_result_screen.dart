@@ -4,6 +4,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:myapp/models/supplecut_analysis_result.dart';
 import 'package:myapp/l10n/app_localizations.dart';
 import 'package:myapp/services/gemini_analyzer_service.dart';
+import 'package:myapp/services/pdf_report_service.dart';
 import 'dart:async';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:myapp/core/service_locator.dart';
@@ -33,6 +34,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
   bool _isReportExpanded = true;
   bool _isReportUnlocked = false;
   bool _isReportLoading = false;
+  bool _isPdfGenerating = false;
   String? _detailedReport;
   String? _reportError;
 
@@ -49,7 +51,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
       if (!mounted) return;
       if (status == PurchaseStatus.purchased ||
           status == PurchaseStatus.restored) {
-        _generateReport();
+        _generateReport(showPdfPrompt: true);
       } else if (status == PurchaseStatus.error) {
         setState(() {
           _isReportLoading = false;
@@ -104,6 +106,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                 // 1. 절감 금액 배너 (또는 긍정 배너)
                 if (result.hasSavings) ...[
                   _buildSavingsBanner(),
+                  const SizedBox(height: 16),
+                ] else if (result.hasDuplicates) ...[
+                  _buildDuplicateWarningBanner(),
                   const SizedBox(height: 16),
                 ] else ...[
                   _buildPositiveBanner(),
@@ -568,7 +573,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                 ],
               ),
             )
-          else if (_detailedReport != null)
+          else if (_detailedReport != null) ...[
             MarkdownBody(
               data: _detailedReport!,
               styleSheet: MarkdownStyleSheet(
@@ -597,13 +602,18 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 20),
+            _buildPdfActionBar(),
+          ],
         ],
       ),
     );
   }
 
   /// 상세 리포트 API 호출
-  Future<void> _generateReport() async {
+  ///
+  /// [showPdfPrompt] true이면 리포트 생성 후 PDF 저장 바텀시트를 자동으로 표시한다.
+  Future<void> _generateReport({bool showPdfPrompt = false}) async {
     setState(() {
       _isReportUnlocked = true;
       _isReportLoading = true;
@@ -620,12 +630,153 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
         _isReportLoading = false;
         _isReportUnlocked = true;
       });
+      if (showPdfPrompt) {
+        _showPdfPromptBottomSheet();
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _reportError = e.toString();
         _isReportLoading = false;
       });
+    }
+  }
+
+  /// PDF 저장/공유 액션 바
+  Widget _buildPdfActionBar() {
+    final l10n = AppLocalizations.of(context)!;
+    final isKo = l10n.localeName == 'ko';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3E5F5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: _isPdfGenerating
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          : Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _handlePdfSave,
+                    icon: const Icon(Icons.download_rounded, size: 18),
+                    label: Text(
+                      isKo ? 'PDF 저장' : 'Save PDF',
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF7B1FA2),
+                      side: const BorderSide(color: Color(0xFF7B1FA2)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _handlePdfShare,
+                    icon: const Icon(Icons.share_rounded, size: 18),
+                    label: Text(
+                      isKo ? '공유하기' : 'Share',
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF7B1FA2),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  /// PDF 저장 처리
+  Future<void> _handlePdfSave() async {
+    if (_detailedReport == null) return;
+    final l10n = AppLocalizations.of(context)!;
+    final isKo = l10n.localeName == 'ko';
+
+    setState(() => _isPdfGenerating = true);
+    try {
+      final pdfService = PdfReportService();
+      final pdfBytes = await pdfService.generatePdf(
+        result: result,
+        detailedReport: _detailedReport!,
+        locale: l10n.localeName,
+      );
+      await pdfService.savePdf(pdfBytes: pdfBytes);
+      if (!mounted) return;
+      setState(() => _isPdfGenerating = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isKo ? 'PDF가 저장되었습니다.' : 'PDF saved successfully.'),
+          backgroundColor: const Color(0xFF4CAF50),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isPdfGenerating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isKo ? 'PDF 저장에 실패했습니다: $e' : 'Failed to save PDF: $e',
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  /// PDF 공유 처리
+  Future<void> _handlePdfShare() async {
+    if (_detailedReport == null) return;
+    final l10n = AppLocalizations.of(context)!;
+    final isKo = l10n.localeName == 'ko';
+
+    setState(() => _isPdfGenerating = true);
+    try {
+      final pdfService = PdfReportService();
+      final pdfBytes = await pdfService.generatePdf(
+        result: result,
+        detailedReport: _detailedReport!,
+        locale: l10n.localeName,
+      );
+      await pdfService.sharePdf(pdfBytes: pdfBytes);
+      if (!mounted) return;
+      setState(() => _isPdfGenerating = false);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isPdfGenerating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isKo ? 'PDF 공유에 실패했습니다: $e' : 'Failed to share PDF: $e',
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -770,6 +921,71 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
     );
   }
 
+  /// 중복 경고 배너 (중복은 있지만 절감액 정보가 없을 때)
+  Widget _buildDuplicateWarningBanner() {
+    final duplicateNames =
+        result.duplicates.map((d) => d.ingredient).join(', ');
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFF8E1), Color(0xFFFFECB3)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFF9800).withValues(alpha: 0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border:
+            Border.all(color: const Color(0xFFFFB74D).withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: Color(0xFFE65100),
+            size: 40,
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            '⚠️ 중복 성분이 발견되었습니다',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFE65100),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '중복 성분: $duplicateNames',
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.5,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFFF57C00),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            '아래 상세 분석을 확인해보세요.',
+            style: TextStyle(
+              fontSize: 13,
+              color: Color(0xFFFF8F00),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
   /// 긍정 피드백 배너 (중복/과잉이 없을 때)
   Widget _buildPositiveBanner() {
     final l10n = AppLocalizations.of(context)!;
@@ -863,6 +1079,102 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
     );
   }
 
+  /// 결제 완료 후 PDF 저장/공유 바텀시트
+  void _showPdfPromptBottomSheet() {
+    final l10n = AppLocalizations.of(context)!;
+    final isKo = l10n.localeName == 'ko';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Color(0xFF4CAF50),
+                  size: 48,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  isKo ? '리포트가 준비되었습니다!' : 'Report is ready!',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  isKo
+                      ? 'PDF로 저장하거나 공유할 수 있습니다.'
+                      : 'You can save or share it as a PDF.',
+                  style: const TextStyle(fontSize: 14, color: Colors.black54),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _handlePdfSave();
+                        },
+                        icon: const Icon(Icons.download_rounded, size: 18),
+                        label: Text(isKo ? 'PDF 저장' : 'Save PDF'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF7B1FA2),
+                          side: const BorderSide(color: Color(0xFF7B1FA2)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _handlePdfShare();
+                        },
+                        icon: const Icon(Icons.share_rounded, size: 18),
+                        label: Text(isKo ? '공유하기' : 'Share'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7B1FA2),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    isKo ? '나중에' : 'Later',
+                    style: const TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _showPaymentBottomSheet() {
     final l10n = AppLocalizations.of(context)!;
     final isPromo = PricingConfig.isPromoActive;
@@ -934,7 +1246,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                     ),
                   ),
                   child: Text(
-                    l10n.payButton('\$${price.toStringAsFixed(2)}'),
+                    l10n.payButton(price.toStringAsFixed(2)),
                     style: const TextStyle(
                         fontSize: 16, fontWeight: FontWeight.bold),
                   ),

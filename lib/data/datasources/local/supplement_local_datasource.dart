@@ -165,7 +165,15 @@ class SupplementLocalDatasource {
 
   /// 텍스트를 검색 토큰으로 분리
   List<String> _tokenize(String text) {
-    return text
+    // 숫자+단위 패턴 제거 (예: 10,000mcg, 500mg, 1000IU, 50ml)
+    var cleaned = text.replaceAll(
+        RegExp(r'\d[\d,]*\s*(?:mcg|mg|g|kg|iu|ml|l|oz)\b',
+            caseSensitive: false),
+        '');
+    // 하이픈 연결 패턴 보존 (예: 오메가-3 → 오메가3, B-12 → B12, Vitamin-D3 → VitaminD3)
+    // \w는 한글 미지원이므로 유니코드 포함 패턴 사용
+    cleaned = cleaned.replaceAll(RegExp(r'(?<=\S)-(?=\S)'), '');
+    return cleaned
         .toLowerCase()
         .split(RegExp(r'[\s,;:/\-\n\r\(\)]+'))
         .where((t) => t.length >= 2) // 너무 짧은 토큰 제외
