@@ -35,6 +35,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
   bool _isReportUnlocked = false;
   bool _isReportLoading = false;
   bool _isPdfGenerating = false;
+  bool _isSummaryExpanded = false;
   String? _detailedReport;
   String? _reportError;
 
@@ -292,17 +293,56 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
             ),
           ],
 
-          // 하단 설명
+          // 하단 설명 (접이식)
           if (result.summary.isNotEmpty) ...[
             const SizedBox(height: 14),
-            Text(
-              '💊 ${result.summary}',
-              style: const TextStyle(
-                fontSize: 13,
-                height: 1.5,
-                color: Color(0xFF5D4037),
+            GestureDetector(
+              onTap: () =>
+                  setState(() => _isSummaryExpanded = !_isSummaryExpanded),
+              child: Column(
+                children: [
+                  Text(
+                    '💊 ${result.summary}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.5,
+                      color: Color(0xFF5D4037),
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: _isSummaryExpanded ? null : 1,
+                    overflow: _isSummaryExpanded
+                        ? TextOverflow.visible
+                        : TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _isSummaryExpanded
+                            ? (AppLocalizations.of(context)!.localeName == 'ko'
+                                ? '접기'
+                                : 'Show less')
+                            : (AppLocalizations.of(context)!.localeName == 'ko'
+                                ? '자세히 보기'
+                                : 'See details'),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF795548),
+                        ),
+                      ),
+                      Icon(
+                        _isSummaryExpanded
+                            ? Icons.keyboard_arrow_up
+                            : Icons.keyboard_arrow_down,
+                        size: 16,
+                        color: const Color(0xFF795548),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              textAlign: TextAlign.center,
             ),
           ],
         ],
@@ -310,18 +350,48 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
     );
   }
 
+  /// 제품의 신호등 색상 결정
+  ///
+  /// - 중복 없음 → 초록
+  /// - 중복 있음 + 절감 추천 대상(excludedProduct) → 빨강
+  /// - 중복 있음 + 절감 추천 아님 → 노랑
+  Color _getProductSignalColor(AnalyzedProduct product) {
+    final nameLower = product.name.toLowerCase();
+    final nameKoLower = product.nameKo?.toLowerCase() ?? '';
+
+    // 이 제품과 관련된 중복 성분 확인
+    final relatedDups = result.duplicates.where((dup) {
+      return dup.products.any((dupName) {
+        final dn = dupName.toLowerCase();
+        return dn == nameLower || dn == nameKoLower;
+      });
+    }).toList();
+
+    if (relatedDups.isEmpty) return const Color(0xFF43A047); // 초록: safe
+
+    // 이 제품이 절감 추천 대상인지 확인 (excludedProduct 이름과 비교)
+    final excluded = result.excludedProduct?.toLowerCase() ?? '';
+    final isExcluded = excluded.isNotEmpty &&
+        (excluded == nameLower || excluded == nameKoLower);
+
+    if (isExcluded) return const Color(0xFFE53935); // 빨강: 절감 추천 대상
+
+    return const Color(0xFFFDD835); // 노랑: 중복은 있지만 절감 추천 아님
+  }
+
   /// 제품 카드 (무료) — 제품명 + 소스 태그 + 월 가격 + 성분 칩 + 중복 뼉지
   Widget _buildProductCard(AnalyzedProduct product) {
     final l10n = AppLocalizations.of(context)!;
     final isEstimated = product.isEstimated;
 
-    // 이 제품이 중복 성분에 포함되어 있는지 확인
-    final isDuplicate =
-        result.duplicates.any((dup) => dup.products.contains(product.name));
+    final signalColor = _getProductSignalColor(product);
+
+    // 이 제품이 중복 성분에 포함되어 있는지 확인 (컬러바와 동일 기준)
+    final isDuplicate = signalColor != const Color(0xFF43A047);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -330,123 +400,132 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
             : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 제품명 + 소스 태그
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.localeName == 'en'
-                      ? product.name
-                      : (product.nameKo ?? product.name),
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(color: signalColor, width: 4),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 제품명 + 소스 태그
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.localeName == 'en'
+                        ? product.name
+                        : (product.nameKo ?? product.name),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isEstimated
+                        ? const Color(0xFFFFF8E1)
+                        : const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    isEstimated
+                        ? '🤖 ${l10n.badgeAiEstimated}'
+                        : '✅ ${l10n.badgeDbMatched}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isEstimated
+                          ? const Color(0xFFFF8F00)
+                          : const Color(0xFF2E7D32),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // 중복 뼉지
+            if (isDuplicate) ...[
+              const SizedBox(height: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: isEstimated
-                      ? const Color(0xFFFFF8E1)
-                      : const Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(8),
+                  color: const Color(0xFFFFEBEE),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                      color: const Color(0xFFEF5350).withValues(alpha: 0.3)),
                 ),
                 child: Text(
-                  isEstimated
-                      ? '🤖 ${l10n.badgeAiEstimated}'
-                      : '✅ ${l10n.badgeDbMatched}',
-                  style: TextStyle(
+                  l10n.badgeDuplicate,
+                  style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: isEstimated
-                        ? const Color(0xFFFF8F00)
-                        : const Color(0xFF2E7D32),
+                    color: Color(0xFFE53935),
                   ),
                 ),
               ),
             ],
-          ),
 
-          // 중복 뼉지
-          if (isDuplicate) ...[
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFEBEE),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                    color: const Color(0xFFEF5350).withValues(alpha: 0.3)),
-              ),
-              child: Text(
-                l10n.badgeDuplicate,
+            // 월 환산 가격
+            if (product.estimatedMonthlyPrice > 0) ...[
+              const SizedBox(height: 6),
+              Text(
+                '💰 ${l10n.localeName == 'en' ? 'Monthly' : '월'} ${LocalizationUtils.formatCurrency(product.estimatedMonthlyPrice.toDouble(), l10n.localeName)}',
                 style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFE53935),
+                  fontSize: 13,
+                  color: Colors.black54,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-            ),
-          ],
+            ],
 
-          // 월 환산 가격
-          if (product.estimatedMonthlyPrice > 0) ...[
-            const SizedBox(height: 6),
-            Text(
-              '💰 ${l10n.localeName == 'en' ? 'Monthly' : '월'} ${LocalizationUtils.formatCurrency(product.estimatedMonthlyPrice.toDouble(), l10n.localeName)}',
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.black54,
-                fontWeight: FontWeight.w500,
+            // AI 추정 노트
+            if (isEstimated && product.note != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                '📝 ${product.note}',
+                style: const TextStyle(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.black54),
               ),
-            ),
-          ],
+            ],
 
-          // AI 추정 노트
-          if (isEstimated && product.note != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              '📝 ${product.note}',
-              style: const TextStyle(
-                  fontSize: 12,
-                  fontStyle: FontStyle.italic,
-                  color: Colors.black54),
-            ),
+            // 성분 리스트
+            if (product.ingredients.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: product.ingredients.map((ing) {
+                  final label = ing.amount > 0
+                      ? '${ing.name} ${ing.amount}${ing.unit}'
+                      : ing.name;
+                  return Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(label,
+                        style: const TextStyle(
+                            fontSize: 12, color: Colors.black87)),
+                  );
+                }).toList(),
+              ),
+            ],
           ],
-
-          // 성분 리스트
-          if (product.ingredients.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: product.ingredients.map((ing) {
-                final label = ing.amount > 0
-                    ? '${ing.name} ${ing.amount}${ing.unit}'
-                    : ing.name;
-                return Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(label,
-                      style:
-                          const TextStyle(fontSize: 12, color: Colors.black87)),
-                );
-              }).toList(),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -953,7 +1032,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
           ),
           const SizedBox(height: 12),
           const Text(
-            '⚠️ 중복 성분이 발견되었습니다',
+            '⚠️ Ingredient overlap detected',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -963,7 +1042,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            '중복 성분: $duplicateNames',
+            'Overlapping ingredients: $duplicateNames',
             style: const TextStyle(
               fontSize: 14,
               height: 1.5,
@@ -974,7 +1053,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
           ),
           const SizedBox(height: 4),
           const Text(
-            '아래 상세 분석을 확인해보세요.',
+            'Check the detailed analysis below.',
             style: TextStyle(
               fontSize: 13,
               color: Color(0xFFFF8F00),
