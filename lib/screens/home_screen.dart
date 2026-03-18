@@ -288,10 +288,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 8),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: const Color(0xFFE8F5E9),
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                  color: const Color(0xFF2E7D32), width: 1.5),
                               boxShadow: [
                                 BoxShadow(
                                   color: const Color(0xFF8BC34A)
@@ -319,6 +317,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                             ),
                           ),
                           const SizedBox(height: 24),
+
+                          // "How it works" 가이드 (분석 이력 없는 사용자만)
+                          AnimatedBuilder(
+                            animation: _viewModel,
+                            builder: (context, child) {
+                              if (_viewModel.recentAnalysis != null ||
+                                  _viewModel.isLoading) {
+                                return const SizedBox.shrink();
+                              }
+                              return _buildHowItWorksGuide(l10n);
+                            },
+                          ),
                         ],
                       ),
                     ),
@@ -327,6 +337,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               ],
             ),
           ),
+          // "How it works" 3-step guide
           Positioned(
             left: 0,
             right: 0,
@@ -339,6 +350,85 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               disclaimerText: l10n.homeDisclaimer,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHowItWorksGuide(AppLocalizations l10n) {
+    final isKo = l10n.localeName == 'ko';
+
+    final steps = [
+      (
+        icon: '📸',
+        text: isKo ? '영양제 라벨을 스캔하세요' : 'Scan your supplement labels'
+      ),
+      (
+        icon: '🔍',
+        text: isKo ? 'AI가 모든 성분을 분석합니다' : 'AI analyzes all ingredients'
+      ),
+      (icon: '✂️', text: isKo ? '최적화된 조합을 받으세요' : 'Get your optimized stack'),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            isKo ? '이용 방법' : 'How it works',
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...steps.asMap().entries.map((entry) {
+            final index = entry.key;
+            final step = entry.value;
+            return Padding(
+              padding: EdgeInsets.only(bottom: index < 2 ? 10 : 0),
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child:
+                          Text(step.icon, style: const TextStyle(fontSize: 16)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      step.text,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black87,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );

@@ -348,7 +348,7 @@ class _AnalysisLoadingScreenState extends State<AnalysisLoadingScreen> {
 
         // 프로그레스 바
         ClipRRect(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           child: LinearProgressIndicator(
             value: _progress,
             minHeight: 16, // 높이 키움
@@ -368,7 +368,7 @@ class _AnalysisLoadingScreenState extends State<AnalysisLoadingScreen> {
         key: ValueKey<int>(_currentTipIndex),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF8E1), // Light Amber
+          color: const Color(0xFFFFECB3),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: const Color(0xFFFFE082), width: 1.5),
         ),
