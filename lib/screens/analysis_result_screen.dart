@@ -165,7 +165,8 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
             right: 0,
             bottom: 0,
             child: Container(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.fromLTRB(
+                  20, 20, 20, 20 + MediaQuery.of(context).padding.bottom),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.9),
                 border: Border(top: BorderSide(color: Colors.grey.shade200)),
@@ -1171,9 +1172,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
   void _showPaymentBottomSheet() {
     final l10n = AppLocalizations.of(context)!;
     final isPromo = PricingConfig.isPromoActive;
-    final price =
-        isPromo ? PricingConfig.promoPrice : PricingConfig.normalPrice;
     final daysLeft = PricingConfig.remainingPromoDays;
+    // Play Store에서 조회한 실제 가격 사용
+    final formattedPrice = _iapService.formattedPrice;
 
     showModalBottomSheet(
       context: context,
@@ -1239,7 +1240,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                     ),
                   ),
                   child: Text(
-                    l10n.payButton(price.toStringAsFixed(2)),
+                    formattedPrice != null
+                        ? l10n.payButton(formattedPrice)
+                        : l10n.paymentTitle,
                     style: const TextStyle(
                         fontSize: 16, fontWeight: FontWeight.bold),
                   ),

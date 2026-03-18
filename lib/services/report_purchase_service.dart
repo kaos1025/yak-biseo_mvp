@@ -20,6 +20,10 @@ class ReportPurchaseService {
   // Track the currently processing analysis ID
   String? _pendingAnalysisId;
 
+  /// Play Store에서 조회한 실제 가격 (캐시)
+  String? _formattedPrice;
+  String? get formattedPrice => _formattedPrice;
+
   ReportPurchaseService() {
     _initialize();
   }
@@ -70,6 +74,19 @@ class ReportPurchaseService {
     }
   }
 
+  /// Play Store에서 상품 가격을 조회하여 캐시
+  Future<void> loadPrice() async {
+    if (!_isAvailable || _iap == null) return;
+    try {
+      final response = await _iap!.queryProductDetails({_kReportSingleId});
+      if (response.productDetails.isNotEmpty) {
+        _formattedPrice = response.productDetails.first.price;
+      }
+    } catch (e) {
+      if (kDebugMode) print('ReportPurchaseService loadPrice error: $e');
+    }
+  }
+
   /// Initiate purchase flow
   Future<void> buyReport(String analysisId) async {
     _pendingAnalysisId = analysisId;
@@ -108,6 +125,10 @@ class ReportPurchaseService {
       }
 
       final List<ProductDetails> products = response.productDetails;
+      // 가격 캐시 업데이트
+      if (products.isNotEmpty) {
+        _formattedPrice = products.first.price;
+      }
       if (products.isEmpty) {
         // If no product configured in store, show error
         if (kDebugMode) {

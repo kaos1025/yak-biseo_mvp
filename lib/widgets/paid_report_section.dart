@@ -20,10 +20,12 @@ class _PaidReportSectionState extends State<PaidReportSection> {
   bool _isLoading = false;
   String? _content;
   String? _errorMessage;
+  String? _formattedPrice;
 
   @override
   void initState() {
     super.initState();
+    _loadPrice();
     _checkPurchaseStatus();
 
     // Listen to purchase events
@@ -51,6 +53,15 @@ class _PaidReportSectionState extends State<PaidReportSection> {
     _purchaseService.onPurchaseSuccess = null;
     _purchaseService.onPurchaseError = null;
     super.dispose();
+  }
+
+  Future<void> _loadPrice() async {
+    await _purchaseService.loadPrice();
+    if (mounted) {
+      setState(() {
+        _formattedPrice = _purchaseService.formattedPrice;
+      });
+    }
   }
 
   Future<void> _checkPurchaseStatus() async {
@@ -274,9 +285,9 @@ class _PaidReportSectionState extends State<PaidReportSection> {
                     color: const Color(0xFFFFE0B2), // Orange 100
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    "₩1,300",
-                    style: TextStyle(
+                  child: Text(
+                    _formattedPrice ?? '...',
+                    style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFFEF6C00)), // Orange 800
@@ -303,8 +314,8 @@ class _PaidReportSectionState extends State<PaidReportSection> {
                 const SizedBox(height: 24),
 
                 // Price & Desc
-                const Text("₩1,300",
-                    style: TextStyle(
+                Text(_formattedPrice ?? '...',
+                    style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF7B1FA2))), // Purple 700

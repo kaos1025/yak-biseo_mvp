@@ -105,7 +105,7 @@
   "paymentItem2": "섭취 필요성 평가",
   "paymentItem3": "대체 제품 추천",
   "paymentItem4": "PDF 저장",
-  "paymentBtn": "$0.99 결제하기",
+  "paymentBtn": "결제하기",
   "paymentLater": "다음에 할게요",
   "analysisSavings": "월 절감 가능 금액",
   "analysisYearly": "연간 {amount} 아낄 수 있어요!",

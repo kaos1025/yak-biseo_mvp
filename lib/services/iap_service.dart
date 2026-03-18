@@ -18,6 +18,20 @@ class IAPService {
 
   bool get isAvailable => _isAvailable;
 
+  /// Play Store에서 조회한 실제 가격 (formattedPrice)
+  /// 상품 로드 전이면 null 반환
+  String? get formattedPrice {
+    if (_products.isEmpty) return null;
+    try {
+      final product = _products.firstWhere(
+        (p) => p.id == detailedReportProductId,
+      );
+      return product.price;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> init() async {
     try {
       if (kIsWeb) {

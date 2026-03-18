@@ -2,12 +2,6 @@ class PricingConfig {
   /// 런칭일 (예: 2026년 2월 26일)
   static final DateTime launchDate = DateTime(2026, 2, 26);
 
-  /// 특가 가격
-  static const double promoPrice = 0.99;
-
-  /// 정상 가격
-  static const double normalPrice = 1.99;
-
   /// 특가 기간 활성화 여부 (런칭 후 30일간 - 앱 론칭 1달 기념 이벤트)
   static bool get isPromoActive {
     final now = DateTime.now();

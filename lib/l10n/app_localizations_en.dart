@@ -254,7 +254,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paymentItem4 => 'PDF export';
 
   @override
-  String get paymentBtn => 'Pay \$0.99';
+  String get paymentBtn => 'Purchase';
 
   @override
   String get paymentLater => 'Maybe later';
@@ -402,7 +402,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String payButton(String price) {
-    return 'Pay \$$price';
+    return 'Pay $price';
   }
 
   @override

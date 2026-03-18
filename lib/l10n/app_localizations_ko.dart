@@ -250,7 +250,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get paymentItem4 => 'PDF 저장';
 
   @override
-  String get paymentBtn => '\$0.99 결제하기';
+  String get paymentBtn => '결제하기';
 
   @override
   String get paymentLater => '다음에 할게요';
@@ -393,7 +393,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String payButton(String price) {
-    return '\$$price 결제하기';
+    return '$price 결제하기';
   }
 
   @override
