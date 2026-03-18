@@ -721,7 +721,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
     }
   }
 
-  /// PDF 저장/공유 액션 바
+  /// PDF 내보내기 액션 바
   Widget _buildPdfActionBar() {
     final l10n = AppLocalizations.of(context)!;
     final isKo = l10n.localeName == 'ko';
@@ -743,92 +743,30 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                 ),
               ),
             )
-          : Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _handlePdfSave,
-                    icon: const Icon(Icons.download_rounded, size: 18),
-                    label: Text(
-                      isKo ? 'PDF 저장' : 'Save PDF',
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF7B1FA2),
-                      side: const BorderSide(color: Color(0xFF7B1FA2)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
+          : SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _handlePdfExport,
+                icon: const Icon(Icons.ios_share_rounded, size: 18),
+                label: Text(
+                  isKo ? 'PDF 내보내기' : 'Export PDF',
+                  style: const TextStyle(fontSize: 13),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _handlePdfShare,
-                    icon: const Icon(Icons.share_rounded, size: 18),
-                    label: Text(
-                      isKo ? '공유하기' : 'Share',
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7B1FA2),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7B1FA2),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
-              ],
+              ),
             ),
     );
   }
 
-  /// PDF 저장 처리
-  Future<void> _handlePdfSave() async {
-    if (_detailedReport == null) return;
-    final l10n = AppLocalizations.of(context)!;
-    final isKo = l10n.localeName == 'ko';
-
-    setState(() => _isPdfGenerating = true);
-    try {
-      final pdfService = PdfReportService();
-      final pdfBytes = await pdfService.generatePdf(
-        result: result,
-        detailedReport: _detailedReport!,
-        locale: l10n.localeName,
-      );
-      await pdfService.savePdf(pdfBytes: pdfBytes);
-      if (!mounted) return;
-      setState(() => _isPdfGenerating = false);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(isKo ? 'PDF가 저장되었습니다.' : 'PDF saved successfully.'),
-          backgroundColor: const Color(0xFF4CAF50),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isPdfGenerating = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            isKo ? 'PDF 저장에 실패했습니다: $e' : 'Failed to save PDF: $e',
-          ),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  /// PDF 공유 처리
-  Future<void> _handlePdfShare() async {
+  /// PDF 내보내기 처리 (Share sheet)
+  Future<void> _handlePdfExport() async {
     if (_detailedReport == null) return;
     final l10n = AppLocalizations.of(context)!;
     final isKo = l10n.localeName == 'ko';
@@ -844,13 +782,13 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
       await pdfService.sharePdf(pdfBytes: pdfBytes);
       if (!mounted) return;
       setState(() => _isPdfGenerating = false);
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() => _isPdfGenerating = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            isKo ? 'PDF 공유에 실패했습니다: $e' : 'Failed to share PDF: $e',
+            isKo ? 'PDF 내보내기에 실패했습니다.' : 'Failed to export PDF.',
           ),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
@@ -1158,7 +1096,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
     );
   }
 
-  /// 결제 완료 후 PDF 저장/공유 바텀시트
+  /// 결제 완료 후 PDF 내보내기 바텀시트
   void _showPdfPromptBottomSheet() {
     final l10n = AppLocalizations.of(context)!;
     final isKo = l10n.localeName == 'ko';
@@ -1191,52 +1129,28 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  isKo
-                      ? 'PDF로 저장하거나 공유할 수 있습니다.'
-                      : 'You can save or share it as a PDF.',
+                  isKo ? 'PDF로 내보낼 수 있습니다.' : 'You can export it as a PDF.',
                   style: const TextStyle(fontSize: 14, color: Colors.black54),
                 ),
                 const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _handlePdfSave();
-                        },
-                        icon: const Icon(Icons.download_rounded, size: 18),
-                        label: Text(isKo ? 'PDF 저장' : 'Save PDF'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF7B1FA2),
-                          side: const BorderSide(color: Color(0xFF7B1FA2)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _handlePdfExport();
+                    },
+                    icon: const Icon(Icons.ios_share_rounded, size: 18),
+                    label: Text(isKo ? 'PDF 내보내기' : 'Export PDF'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF7B1FA2),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
                       ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _handlePdfShare();
-                        },
-                        icon: const Icon(Icons.share_rounded, size: 18),
-                        label: Text(isKo ? '공유하기' : 'Share'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7B1FA2),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextButton(

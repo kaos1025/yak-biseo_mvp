@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -12,7 +13,7 @@ import '../models/supplecut_analysis_result.dart';
 /// PDF 리포트 생성 서비스
 ///
 /// [SuppleCutAnalysisResult] + 상세 마크다운 리포트를 A4 PDF로 변환한다.
-/// 저장/공유 기능을 제공한다.
+/// Share sheet를 통한 내보내기 기능을 제공한다.
 class PdfReportService {
   /// PDF 생성 후 바이트 반환
   ///
@@ -25,7 +26,18 @@ class PdfReportService {
     String locale = 'ko',
   }) async {
     final isKo = locale == 'ko';
-    final pdf = pw.Document();
+
+    // 한글 지원 폰트 로드
+    final fontData =
+        await rootBundle.load('assets/fonts/NotoSansKR-Regular.ttf');
+    final koreanFont = pw.Font.ttf(fontData);
+
+    final pdf = pw.Document(
+      theme: pw.ThemeData.withFont(
+        base: koreanFont,
+        bold: koreanFont,
+      ),
+    );
     final now = DateTime.now();
     final dateStr = DateFormat('yyyy.MM.dd HH:mm').format(now);
 
@@ -127,27 +139,18 @@ class PdfReportService {
     return pdf.save();
   }
 
-  /// PDF 파일로 저장하고 파일 경로 반환
-  Future<String> savePdf({
-    required Uint8List pdfBytes,
-    String? fileName,
-  }) async {
-    final dir = await getApplicationDocumentsDirectory();
-    final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-    final name = fileName ?? 'SuppleCut_Report_$timestamp.pdf';
-    final file = File('${dir.path}/$name');
-    await file.writeAsBytes(pdfBytes);
-    return file.path;
-  }
-
-  /// PDF 공유 (시스템 공유 시트)
+  /// PDF 내보내기 (시스템 공유 시트)
   Future<void> sharePdf({
     required Uint8List pdfBytes,
     String? fileName,
   }) async {
-    final path = await savePdf(pdfBytes: pdfBytes, fileName: fileName);
+    final dir = await getTemporaryDirectory();
+    final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+    final name = fileName ?? 'SuppleCut_Report_$timestamp.pdf';
+    final file = File('${dir.path}/$name');
+    await file.writeAsBytes(pdfBytes);
     await Share.shareXFiles(
-      [XFile(path, mimeType: 'application/pdf')],
+      [XFile(file.path, mimeType: 'application/pdf')],
       subject: 'SuppleCut Analysis Report',
     );
   }
@@ -537,11 +540,11 @@ class PdfReportService {
   String _stripMarkdownFormatting(String text) {
     var result = text;
     // **bold** → bold
-    result = result.replaceAll(RegExp(r'\*\*(.+?)\*\*'), r'$1');
+    result = result.replaceAllMapped(RegExp(r'\*\*(.+?)\*\*'), (m) => m[1]!);
     // *italic* → italic
-    result = result.replaceAll(RegExp(r'\*(.+?)\*'), r'$1');
+    result = result.replaceAllMapped(RegExp(r'\*(.+?)\*'), (m) => m[1]!);
     // `code` → code
-    result = result.replaceAll(RegExp(r'`(.+?)`'), r'$1');
+    result = result.replaceAllMapped(RegExp(r'`(.+?)`'), (m) => m[1]!);
     return result;
   }
 }
