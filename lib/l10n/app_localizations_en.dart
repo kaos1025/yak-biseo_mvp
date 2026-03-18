@@ -393,7 +393,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get promoTitle => 'Launch Special (This week only!)';
+  String get promoTitle => 'Launch Special';
 
   @override
   String daysLeft(int n) {

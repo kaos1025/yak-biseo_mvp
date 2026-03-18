@@ -563,7 +563,7 @@ abstract class AppLocalizations {
   /// No description provided for @paymentBtn.
   ///
   /// In ko, this message translates to:
-  /// **'\$0.99 결제하기'**
+  /// **'결제하기'**
   String get paymentBtn;
 
   /// No description provided for @paymentLater.
@@ -827,7 +827,7 @@ abstract class AppLocalizations {
   /// No description provided for @payButton.
   ///
   /// In ko, this message translates to:
-  /// **'\${price} 결제하기'**
+  /// **'{price} 결제하기'**
   String payButton(String price);
 
   /// No description provided for @andOtherProducts.

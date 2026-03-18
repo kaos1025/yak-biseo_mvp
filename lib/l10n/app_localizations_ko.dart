@@ -384,7 +384,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get promoTitle => '런칭 특가 (첫 주 한정!)';
+  String get promoTitle => '런칭 특가';
 
   @override
   String daysLeft(int n) {

@@ -161,7 +161,7 @@
   "reportGenerating": "📝 Generating detailed report...",
   "reportGeneratingWait": "This will take about 10~20 seconds",
   "reportError": "An error occurred while generating the report.\n{error}",
-  "promoTitle": "Launch Special (This week only!)",
+  "promoTitle": "Launch Special",
   "daysLeft": "{n} days left",
   "@daysLeft": {
     "placeholders": {
@@ -170,7 +170,7 @@
       }
     }
   },
-  "payButton": "Pay ${price}",
+  "payButton": "Pay {price}",
   "@payButton": {
     "placeholders": {
       "price": {
