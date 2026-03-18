@@ -226,9 +226,9 @@ class PdfReportService {
       ),
       child: pw.Text(
         isKo
-            ? '⚠️ 본 분석은 AI 기반 참고 자료이며, 전문 의료 상담을 대체하지 않습니다. '
+            ? '[!] 본 분석은 AI 기반 참고 자료이며, 전문 의료 상담을 대체하지 않습니다. '
                 '정확한 복용 지침은 의사 또는 약사와 상담하세요.'
-            : '⚠️ This analysis is AI-generated reference material and does not '
+            : '[!] This analysis is AI-generated reference material and does not '
                 'replace professional medical advice. Consult a doctor or pharmacist '
                 'for accurate dosage guidance.',
         style: const pw.TextStyle(
@@ -264,7 +264,17 @@ class PdfReportService {
 
   pw.Widget _buildProductTable(
       SuppleCutAnalysisResult result, bool isKo, PdfColor borderColor) {
+    // A4 기준 가용폭 = 595 - 40*2 = 515pt
+    // 제품명 20% | 소스 8% | 주요성분 60% | 월가격 12%
+    final columnWidths = {
+      0: const pw.FlexColumnWidth(20),
+      1: const pw.FlexColumnWidth(8),
+      2: const pw.FlexColumnWidth(60),
+      3: const pw.FlexColumnWidth(12),
+    };
+
     return pw.TableHelper.fromTextArray(
+      columnWidths: columnWidths,
       headerStyle: pw.TextStyle(
         fontSize: 9,
         fontWeight: pw.FontWeight.bold,
@@ -279,15 +289,15 @@ class PdfReportService {
       cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       headers: [
         isKo ? '제품명' : 'Product',
-        isKo ? '소스' : 'Source',
+        isKo ? '소스' : 'Src',
         isKo ? '주요 성분' : 'Key Ingredients',
-        isKo ? '월 가격' : 'Monthly',
+        isKo ? '월 가격' : 'Price',
       ],
       data: result.products.map((p) {
         final displayName = isKo ? (p.nameKo ?? p.name) : p.name;
         final source = p.isEstimated
             ? (isKo ? 'AI 추정' : 'AI Est.')
-            : (isKo ? 'DB 매칭' : 'DB Match');
+            : (isKo ? 'DB 매칭' : 'DB');
         final ingredients = p.ingredients
             .take(3)
             .map(
@@ -401,7 +411,7 @@ class PdfReportService {
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Text(
-            isKo ? '💰 예상 절감액' : '💰 Estimated Savings',
+            isKo ? '예상 절감액' : 'Estimated Savings',
             style: pw.TextStyle(
               fontSize: 12,
               fontWeight: pw.FontWeight.bold,
@@ -432,7 +442,9 @@ class PdfReportService {
   // ── Private: 마크다운 → 텍스트 변환 ──
 
   pw.Widget _buildMarkdownContent(String markdown) {
-    final lines = markdown.split('\n');
+    // AI 응답에 포함된 이모지 일괄 제거
+    final cleanedMarkdown = _removeEmojis(markdown);
+    final lines = cleanedMarkdown.split('\n');
     final widgets = <pw.Widget>[];
 
     for (final line in lines) {
@@ -546,5 +558,22 @@ class PdfReportService {
     // `code` → code
     result = result.replaceAllMapped(RegExp(r'`(.+?)`'), (m) => m[1]!);
     return result;
+  }
+
+  /// 이모지 제거 (PDF 폰트에 글리프 없어 깨짐 방지)
+  static String _removeEmojis(String text) {
+    return text
+        .replaceAll(
+          RegExp(
+            r'[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|'
+            r'[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|'
+            r'[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|'
+            r'[\u{FE00}-\u{FE0F}]|[\u{1F900}-\u{1F9FF}]|'
+            r'[\u{200D}]|[\u{20E3}]|[\u{E0020}-\u{E007F}]',
+            unicode: true,
+          ),
+          '',
+        )
+        .trim();
   }
 }
