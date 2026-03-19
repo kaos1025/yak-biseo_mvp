@@ -210,6 +210,10 @@ class SupplementLocalDatasource {
     'softgels', 'tablets', 'capsules', 'gummies', 'chewable',
     'veggie', 'vegan', 'vegetarian',
     'mg', 'mcg', 'g', 'kg', 'iu', 'ml', 'l', 'oz', // 측정 단위 추가
+    // 제형/코팅 (packaging form descriptors)
+    'enteric', 'coated', 'delayed', 'release', 'sustained', 'extended',
+    // 캡슐 재질 (capsule material)
+    'gelatin', 'vegetable',
     // 한글 노이즈
     '건강기능식품', '건강', '기능', '식품', '보충제',
   };
