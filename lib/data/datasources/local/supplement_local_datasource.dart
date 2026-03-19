@@ -147,10 +147,17 @@ class SupplementLocalDatasource {
     final scored = <({SupplementProduct product, double score})>[];
 
     for (final product in _products) {
-      final score = _calculateMatchScore(tokens, product);
+      final baseScore = _calculateMatchScore(tokens, product);
+      if (baseScore <= 0.0) continue;
+
+      final penalty = _ingredientMismatchPenalty(ocrText, product.name);
+      final bonus = _dosageMatchBonus(ocrText, product.name);
+      final score = baseScore - penalty + bonus;
+
       if (score > 3.0) {
         // ignore: avoid_print
-        print('Possible Match: "${product.name}" Score: $score');
+        print('[MATCH] "${product.name}" base=$baseScore '
+            'penalty=$penalty bonus=$bonus final=$score');
       }
       if (score >= 4.0) {
         scored.add((product: product, score: score));
@@ -273,6 +280,58 @@ class SupplementLocalDatasource {
     }
 
     return nameMatches * 5.0 + numberMatches * 2.0;
+  }
+
+  /// 성분 키워드 — 제품명에 있지만 OCR에 없으면 감점 대상
+  static const _ingredientKeywords = <String>{
+    'calcium', 'magnesium', 'iron', 'zinc', 'selenium', 'chromium',
+    'potassium', 'copper', 'manganese', 'iodine',
+    'omega', 'fish oil', 'collagen', 'probiotic', 'prebiotic',
+    'melatonin', 'ashwagandha', 'turmeric', 'curcumin', 'ginseng',
+    'glucosamine', 'chondroitin', 'coq10', 'lutein', 'lycopene',
+    'elderberry', 'echinacea', 'valerian', 'saffron', 'rhodiola', 'maca',
+    'cranberry', 'bilberry', 'resveratrol',
+    'multivitamin', 'prenatal', 'citrate', 'glycinate',
+    // 한글
+    '칼슘', '마그네슘', '철분', '아연', '오메가', '유산균', '콜라겐',
+    '비타민', '엽산', '루테인', '밀크씨슬', '프로바이오틱스',
+  };
+
+  /// 제품명에 있지만 OCR에 없는 성분 키워드당 페널티
+  double _ingredientMismatchPenalty(String ocrText, String productName) {
+    final ocrLower = ocrText.toLowerCase();
+    final nameLower = productName.toLowerCase();
+    int mismatchCount = 0;
+    for (final keyword in _ingredientKeywords) {
+      if (nameLower.contains(keyword) && !ocrLower.contains(keyword)) {
+        mismatchCount++;
+      }
+    }
+    // keyword당 3.0 (name match 1개 = 5.0의 60%)
+    return (mismatchCount * 3.0).clamp(0.0, 10.0);
+  }
+
+  /// 텍스트에서 용량 패턴 추출 (예: "1000iu", "500mg")
+  List<String> _extractDosagePatterns(String text) {
+    final regex =
+        RegExp(r'(\d[\d,]*)\s*(mg|mcg|iu|g|ml)', caseSensitive: false);
+    return regex
+        .allMatches(text.toLowerCase())
+        .map((m) => '${m.group(1)!.replaceAll(',', '')}${m.group(2)}')
+        .toList();
+  }
+
+  /// 용량 일치 시 보너스 (동점 시 구분용)
+  double _dosageMatchBonus(String ocrText, String productName) {
+    final ocrDosages = _extractDosagePatterns(ocrText);
+    final productDosages = _extractDosagePatterns(productName);
+    if (ocrDosages.isEmpty || productDosages.isEmpty) return 0.0;
+    int matches = 0;
+    for (final d in ocrDosages) {
+      if (productDosages.contains(d)) matches++;
+    }
+    // match당 1.5점 보너스 (tiebreaker용)
+    return matches * 1.5;
   }
 
   /// Levenshtein distance (편집 거리)
