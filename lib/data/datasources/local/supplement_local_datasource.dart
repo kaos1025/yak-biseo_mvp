@@ -160,6 +160,12 @@ class SupplementLocalDatasource {
             'penalty=$penalty bonus=$bonus final=$score');
       }
       if (score >= 4.0) {
+        // 용량 불일치 → fallback 대상
+        if (_hasDosageMismatch(ocrText, product.name)) {
+          // ignore: avoid_print
+          print('[DOSAGE MISMATCH] "${product.name}" → skipped');
+          continue;
+        }
         scored.add((product: product, score: score));
       }
     }
@@ -332,6 +338,19 @@ class SupplementLocalDatasource {
     }
     // match당 1.5점 보너스 (tiebreaker용)
     return matches * 1.5;
+  }
+
+  /// OCR과 제품 모두 용량 정보가 있는데 하나도 일치하지 않으면 true
+  bool _hasDosageMismatch(String ocrText, String productName) {
+    final ocrDosages = _extractDosagePatterns(ocrText);
+    final productDosages = _extractDosagePatterns(productName);
+    // 한쪽이라도 용량 정보가 없으면 판단 불가 → 불일치 아님
+    if (ocrDosages.isEmpty || productDosages.isEmpty) return false;
+    // 하나라도 일치하면 OK
+    for (final d in ocrDosages) {
+      if (productDosages.contains(d)) return false;
+    }
+    return true;
   }
 
   /// Levenshtein distance (편집 거리)
