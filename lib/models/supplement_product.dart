@@ -52,6 +52,12 @@ class SupplementProduct {
   /// 리뷰 수
   final int? reviewCount;
 
+  /// 총 섭취 횟수 (1통 기준)
+  final int? servingsPerContainer;
+
+  /// 기타 성분 (부형제, 첨가제 등)
+  final List<String> otherIngredients;
+
   /// 로컬 DB 성분 목록 (정규화된 이름 포함)
   final List<SupplementIngredient> localIngredients;
 
@@ -70,6 +76,8 @@ class SupplementProduct {
     this.servingSize,
     this.rating,
     this.reviewCount,
+    this.servingsPerContainer,
+    this.otherIngredients = const [],
     this.localIngredients = const [],
   });
 
@@ -164,6 +172,10 @@ class SupplementProduct {
           json['servingSize'] as String? ?? json['servingSize_ko'] as String?,
       rating: (json['rating'] as num?)?.toDouble(),
       reviewCount: (json['reviewCount'] as num?)?.toInt(),
+      servingsPerContainer: (json['servingsPerContainer'] as num?)?.toInt(),
+      otherIngredients: (json['otherIngredients'] as List<dynamic>? ?? [])
+          .map((e) => e as String)
+          .toList(),
       localIngredients: ingredientsList,
     );
   }
@@ -212,6 +224,8 @@ class SupplementProduct {
     String? servingSize,
     double? rating,
     int? reviewCount,
+    int? servingsPerContainer,
+    List<String>? otherIngredients,
     List<SupplementIngredient>? localIngredients,
   }) {
     return SupplementProduct(
@@ -229,6 +243,8 @@ class SupplementProduct {
       servingSize: servingSize ?? this.servingSize,
       rating: rating ?? this.rating,
       reviewCount: reviewCount ?? this.reviewCount,
+      servingsPerContainer: servingsPerContainer ?? this.servingsPerContainer,
+      otherIngredients: otherIngredients ?? this.otherIngredients,
       localIngredients: localIngredients ?? this.localIngredients,
     );
   }
