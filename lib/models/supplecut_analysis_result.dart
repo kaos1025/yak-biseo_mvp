@@ -1,6 +1,6 @@
-/// SuppleCut Gemini 분석 응답 모델
-///
-/// 로컬 DB 제품 + Fallback 제품 혼합 분석 결과를 담는다.
+import 'package:myapp/models/onestop_analysis_result.dart';
+
+/// SuppleCut 분석 응답 모델
 class SuppleCutAnalysisResult {
   /// 분석된 제품 목록
   final List<AnalyzedProduct> products;
@@ -29,6 +29,15 @@ class SuppleCutAnalysisResult {
   /// 제외 권장 제품명
   final String? excludedProduct;
 
+  /// 기전 중복 목록 (원스톱 분석에서 제공)
+  final List<FunctionalOverlap> functionalOverlaps;
+
+  /// 안전성 경고 목록 (원스톱 분석에서 제공)
+  final List<SafetyAlert> safetyAlerts;
+
+  /// 단일 제품 UL 초과 목록 (원스톱 분석에서 제공)
+  final List<SingleProductUlExcess> singleProductUlExcess;
+
   const SuppleCutAnalysisResult({
     required this.products,
     required this.duplicates,
@@ -39,6 +48,9 @@ class SuppleCutAnalysisResult {
     this.monthlySavings = 0,
     this.yearlySavings = 0,
     this.excludedProduct,
+    this.functionalOverlaps = const [],
+    this.safetyAlerts = const [],
+    this.singleProductUlExcess = const [],
   });
 
   /// Gemini JSON 응답에서 생성
@@ -63,6 +75,16 @@ class SuppleCutAnalysisResult {
       monthlySavings: (json['monthlySavings'] as num?)?.round() ?? 0,
       yearlySavings: (json['yearlySavings'] as num?)?.round() ?? 0,
       excludedProduct: json['excludedProduct'] as String?,
+      functionalOverlaps: (json['functionalOverlaps'] as List<dynamic>? ?? [])
+          .map((e) => FunctionalOverlap.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      safetyAlerts: (json['safetyAlerts'] as List<dynamic>? ?? [])
+          .map((e) => SafetyAlert.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      singleProductUlExcess: (json['singleProductUlExcess'] as List<dynamic>? ??
+              [])
+          .map((e) => SingleProductUlExcess.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 
@@ -77,6 +99,10 @@ class SuppleCutAnalysisResult {
       'monthlySavings': monthlySavings,
       'yearlySavings': yearlySavings,
       if (excludedProduct != null) 'excludedProduct': excludedProduct,
+      'functionalOverlaps': functionalOverlaps.map((e) => e.toJson()).toList(),
+      'safetyAlerts': safetyAlerts.map((e) => e.toJson()).toList(),
+      'singleProductUlExcess':
+          singleProductUlExcess.map((e) => e.toJson()).toList(),
     };
   }
 

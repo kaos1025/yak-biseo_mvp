@@ -8,7 +8,7 @@ import '../models/consultant_result.dart';
 import '../models/supplement_product.dart';
 import '../models/supplecut_analysis_result.dart';
 import '../models/unified_analysis_result.dart';
-import '../data/repositories/local_supplement_repository.dart';
+import 'exclusion_engine.dart';
 
 class GeminiAnalyzerService {
   late final String _apiKey;
@@ -831,6 +831,18 @@ $contextLines
       json.remove('fallbackProducts');
       json.remove('estimatedPrices');
 
+      // ── 제외 추천: 코드에서 결정적으로 계산 (Gemini 결과 무시) ──
+      final tempResult = SuppleCutAnalysisResult.fromJson(json);
+      final exclusion = ExclusionEngine.calculate(
+        duplicates: tempResult.duplicates,
+        products: tempResult.products,
+      );
+      if (exclusion.excludedProduct != null) {
+        json['excludedProduct'] = exclusion.excludedProduct;
+        json['monthlySavings'] = exclusion.monthlySavings;
+        json['yearlySavings'] = exclusion.yearlySavings;
+      }
+
       return SuppleCutAnalysisResult.fromJson(json);
     } catch (e) {
       if (e is FormatException) {
@@ -974,98 +986,98 @@ ${hasFallback ? '''
 $currencyRule
 - estimatedMonthlyPrice = 판매가 / 섭취기간(개월)
 
+## [CRITICAL] 교차 소스 중복 검출
+
+모든 제품을 소스(DB/AI) 구분 없이 **하나의 통합 풀**로 중복 분석하세요.
+- DB 매칭 제품 vs AI 추정 제품
+- AI 추정 제품 vs AI 추정 제품
+- DB 매칭 제품 vs DB 매칭 제품
+
+2개 이상 제품에 동일 성분이 있으면 반드시:
+1. 전체 합산량 계산
+2. UL(일일 상한) 비교
+3. riskLevel 판정: safe(<80% UL), warning(80-100%), danger(>100%)
+
+흔한 중복 주의 성분 (UL 기준):
+- Zinc: UL 40mg (멀티비타민 + 단독 아연)
+- Vitamin D3: UL 100mcg (D3 보충제 + 멀티비타민)
+- Vitamin B6: UL 100mg (B-Complex + 멀티비타민)
+- Folate: UL 1000mcg DFE (B-Complex + 멀티비타민)
+- Iodine: UL 1100mcg (Sea-Iodine 제품 + 멀티비타민)
+- Niacin (B3): UL 35mg (B-Complex + 멀티비타민)
+- Calcium: UL 2500mg
+- Iron: UL 45mg
+- Vitamin A: UL 3000mcg
+- Vitamin C: UL 2000mg
+- Selenium: UL 400mcg
+- Magnesium (supplement form): UL 350mg
+
+## [CRITICAL] 다성분 제품 분해 비교
+
+B-Complex, Multivitamin, 종합비타민 등 다성분 제품은 반드시 개별 성분으로 분해하여 비교하세요.
+
+예시 — "NOW B-50" (AI Estimated):
+이 제품은 B-Complex로, 각 B 비타민이 50mg/50mcg씩 포함됩니다:
+- Thiamin (B1) 50mg
+- Riboflavin (B2) 50mg
+- Niacin (B3) 50mg
+- Pantothenic Acid (B5) 50mg
+- Vitamin B6 50mg ← 반드시 다른 제품의 B6과 합산 비교
+- Folic Acid 400mcg (= 667mcg DFE) ← 반드시 다른 제품의 Folate와 합산 비교
+- Vitamin B12 50mcg
+- Biotin 50mcg
+
+이 각각의 성분을 다른 모든 제품의 동일 성분과 1:1로 교차 비교해야 합니다.
+"B-50"을 하나의 덩어리로 취급하지 마세요.
+
+같은 원칙이 Multivitamin에도 적용됩니다:
+- Multivitamin의 모든 개별 성분(비타민 A, C, D, E, K, B군, 미네랄)을
+  다른 단일 성분 보충제(Zinc, Vitamin C, D3+K2, B-Complex 등)와 각각 비교하세요.
+
+## AI 성분 추정 — 정밀 추정 규칙
+
+1. B-Complex 제품 (B-50, B-100 등):
+   - 제품명의 숫자가 각 B 비타민의 용량을 의미합니다
+   - B-50 = 각 B 비타민 50mg 또는 50mcg
+   - 반드시 B1, B2, B3, B5, B6, Folate, B12, Biotin을 개별 성분으로 나열하세요
+
+2. Multivitamin 제품:
+   - 브랜드와 제품 라인을 고려하여 최대한 정확한 성분 프로필을 추정하세요
+   - 추정 시 각 성분을 빠짐없이 개별 나열하세요
+   - "비타민 B군"처럼 묶지 말고 B1, B2, B3, B5, B6, B7, B9, B12 각각 나열
+
+3. 모든 AI Estimated 제품:
+   - 추정된 개별 성분 하나하나가 중복 비교 대상입니다
+   - DB Verified 제품과 동일한 수준으로 교차 비교에 포함하세요
+   - "AI Estimated라서 정확하지 않을 수 있다"는 이유로 비교에서 제외하지 마세요
+
 ## 기타 규칙
 - 순수 JSON만 반환. 첫 글자는 반드시 {
 - DB 매칭 제품의 성분을 출력에 포함하지 마세요 (토큰 절약)
 - 중복이 없으면 duplicates를 빈 배열 []로
 - **가장 중요한 규칙**: 성분이 서로 전혀 겹치지 않는다면(예: 오메가3, 칼슘, 아르기닌, 쏘팔메토 등) 절대로 억지로 중복(duplicates)으로 엮지 마세요.
-- duplicates 배열에는 해당 성분이 [실제로 포함된 입력 제품명]만 정확히 나열해야 합니다.
-- 중복 성분이 하나라도 발견되면(duplicates 배열이 비어있지 않은 경우), 반드시 중복된 제품 중 하나를 '제외 권장 제품(excludedProduct)'으로 선택하고, 그 제품의 estimatedMonthlyPrice 값을 monthlySavings에 기입하세요.
-- 중복이 전혀 없을 때만 excludedProduct를 null, monthlySavings를 0으로 처리하세요.
+- duplicates 배열의 products에는 해당 성분이 [실제로 포함된 입력 제품명]만 정확히 나열하되, 반드시 위 '분석할 영양제' 섹션에 기재된 제품명을 그대로 복사하세요. 축약하거나 변형하지 마세요.
+
+## 제외 제품
+excludedProduct와 monthlySavings는 앱에서 자동 계산합니다.
+Gemini는 다음 값을 임의로 채워 주세요 (앱에서 덮어씁니다):
+- excludedProduct: null
+- monthlySavings: 0
+- yearlySavings: 0
+
+## duplicates 데이터 정확성 (매우 중요)
+
+각 중복 성분에 대해 다음을 정확히 계산하세요:
+- totalAmount: 모든 제품의 해당 성분 합산량 (숫자+단위, 예: "150mcg")
+- dailyLimit: 해당 성분의 UL 일일 상한 (숫자+단위, 예: "100mcg") — 없으면 null
+- riskLevel: totalAmount > dailyLimit이면 "danger", 근접하면 "warning", 안전하면 "safe"
+- products: 해당 성분을 포함하는 모든 제품명 (입력 제품명과 정확히 일치)
+
+이 데이터를 기반으로 앱이 제외 제품을 자동 계산합니다.
 - **[CRITICAL] $langInstruction**
 - 언어: $lang
 - 문자열 내의 큰따옴표(")는 반드시 역슬래시(\\)로 이스케이프 처리
 - 배열 마지막 항목 뒤에 쉼표(,) 금지
 ''';
-  }
-
-  // ── 통합 파이프라인 메서드 ──
-
-  /// 이미지에서 제품명만 추출 (OCR 전용, 분석 없음)
-  Future<List<String>> extractProductNames(Uint8List imageBytes) async {
-    const prompt = '''
-이미지에서 영양제/건강기능식품 제품들의 정확한 제품명을 추출하세요.
-
-## 규칙
-1. 라벨에 보이는 브랜드명과 제품명을 최대한 정확히 읽으세요.
-2. 한 제품당 하나의 문자열로 출력하세요.
-3. "브랜드명, 제품명, 용량" 형식이 이상적입니다. (예: "NOW Foods, Calcium & Magnesium, 250 Tablets")
-4. 라벨이 부분적으로 보여도 읽을 수 있는 만큼 추출하세요.
-5. 순수 JSON 배열만 반환. 첫 글자는 반드시 [
-
-## 출력 형식
-["제품명1", "제품명2", "제품명3"]
-''';
-
-    try {
-      final responseText = await _sendRestRequest(
-        prompt: prompt,
-        imageBytes: imageBytes,
-        responseMimeType: 'application/json',
-      );
-
-      final cleaned = _cleanJsonString(responseText);
-      final decoded = jsonDecode(cleaned);
-
-      if (decoded is List) {
-        return decoded.map((e) => e.toString()).toList();
-      }
-      return [];
-    } catch (e) {
-      throw Exception('제품명 추출 실패: $e');
-    }
-  }
-
-  /// 이미지 기반 통합 분석 파이프라인
-  Future<SuppleCutAnalysisResult> analyzeWithImage(
-    Uint8List imageBytes, {
-    String locale = 'ko',
-  }) async {
-    // Step 1: 이미지에서 제품명 추출
-    final productNames = await extractProductNames(imageBytes);
-
-    // ignore: avoid_print
-    print('🔍 OCR Extracted Names: $productNames');
-
-    if (productNames.isEmpty) {
-      throw Exception('이미지에서 영양제를 찾을 수 없습니다.');
-    }
-
-    // Step 2 & 3: 각 제품명 → 로컬 DB 매칭 → AnalysisInput 생성
-    final repo = LocalSupplementRepository.instance;
-    final inputs = <AnalysisInput>[];
-
-    for (final name in productNames) {
-      // fuzzyMatchFromOcr로 로컬 DB 검색
-      final matches = await repo.fuzzyMatchFromOcr(name, limit: 1);
-
-      if (matches.isNotEmpty) {
-        final match = matches.first;
-        // ignore: avoid_print
-        print('✅ Matched: "$name" -> "${match.name}" (Brand: ${match.brand})');
-
-        // 매칭 성공 → 로컬 DB 데이터 사용
-        inputs.add(AnalysisInput.fromLocalDb(match));
-      } else {
-        // ignore: avoid_print
-        print('❌ No Match for: "$name" -> Fallback to Gemini');
-
-        // 매칭 실패 → Gemini Fallback
-        inputs.add(AnalysisInput.fromFallback(productName: name));
-      }
-    }
-
-    // Step 4: 중복 분석 (Merge logic applied inside)
-    return analyzeWithFallback(inputs: inputs, locale: locale);
   }
 }

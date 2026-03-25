@@ -815,7 +815,7 @@ abstract class AppLocalizations {
   /// No description provided for @promoTitle.
   ///
   /// In ko, this message translates to:
-  /// **'런칭 특가 (첫 주 한정!)'**
+  /// **'런칭 특가'**
   String get promoTitle;
 
   /// No description provided for @daysLeft.

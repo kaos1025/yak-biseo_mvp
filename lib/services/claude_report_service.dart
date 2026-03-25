@@ -1,0 +1,212 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
+
+import '../models/supplecut_analysis_result.dart';
+
+/// API 에러 (4xx/5xx)
+class ClaudeApiException implements Exception {
+  final int statusCode;
+  final String message;
+  ClaudeApiException(this.statusCode, this.message);
+  @override
+  String toString() => 'ClaudeApiException($statusCode): $message';
+}
+
+/// 네트워크 연결 에러
+class ClaudeNetworkException implements Exception {
+  final String message;
+  ClaudeNetworkException(this.message);
+  @override
+  String toString() => 'ClaudeNetworkException: $message';
+}
+
+/// 타임아웃 에러
+class ClaudeTimeoutException implements Exception {
+  @override
+  String toString() => 'ClaudeTimeoutException: Request timed out';
+}
+
+/// Claude 유료 상세 리포트 서비스
+///
+/// Gemini 1차 분석 결과를 기반으로 Claude에게 심층 분석 리포트를 요청한다.
+/// IAP 결제 완료 후에만 호출.
+class ClaudeReportService {
+  late final String _apiKey;
+  final String _model = 'claude-sonnet-4-5';
+  static const String _apiUrl = 'https://api.anthropic.com/v1/messages';
+  static const int _maxImageBytes = 3700000; // base64 후 ~5MB
+
+  ClaudeReportService() {
+    final key = dotenv.env['CLAUDE_API_KEY'] ?? '';
+    if (key.isEmpty) {
+      throw Exception('CLAUDE_API_KEY not found in .env');
+    }
+    _apiKey = key;
+  }
+
+  /// 상세 리포트 스트리밍 생성
+  ///
+  /// SSE 청크 단위로 텍스트를 yield한다.
+  /// [result] Gemini 1차 분석 결과
+  /// [imageBytes] 원본 이미지 (선택 — 있으면 Claude에 전달)
+  /// [locale] "ko" 또는 "en"
+  Stream<String> generateReportStream(
+    SuppleCutAnalysisResult result, {
+    Uint8List? imageBytes,
+    String locale = 'ko',
+  }) async* {
+    final analysisJson = jsonEncode(result.toJson());
+    final prompt = _buildPrompt(analysisJson, locale);
+
+    final content = <Map<String, dynamic>>[];
+
+    if (imageBytes != null) {
+      final resized = _resizeIfNeeded(imageBytes);
+      final base64Data = base64Encode(resized);
+      content.add({
+        'type': 'image',
+        'source': {
+          'type': 'base64',
+          'media_type': 'image/jpeg',
+          'data': base64Data,
+        },
+      });
+    }
+
+    content.add({
+      'type': 'text',
+      'text': prompt,
+    });
+
+    final request = http.Request('POST', Uri.parse(_apiUrl));
+    request.headers.addAll({
+      'x-api-key': _apiKey,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    });
+    request.body = jsonEncode({
+      'model': _model,
+      'max_tokens': 3000,
+      'stream': true,
+      'messages': [
+        {'role': 'user', 'content': content},
+      ],
+    });
+
+    final client = http.Client();
+    try {
+      final streamedResponse = await client.send(request).timeout(
+          const Duration(seconds: 60),
+          onTimeout: () => throw ClaudeTimeoutException());
+
+      if (streamedResponse.statusCode != 200) {
+        final errorBody = await streamedResponse.stream.bytesToString();
+        throw ClaudeApiException(streamedResponse.statusCode,
+            errorBody.substring(0, 200.clamp(0, errorBody.length)));
+      }
+
+      String lineBuf = '';
+      final sseStream = streamedResponse.stream.transform(utf8.decoder).timeout(
+          const Duration(seconds: 60),
+          onTimeout: (sink) => throw ClaudeTimeoutException());
+
+      await for (final chunk in sseStream) {
+        lineBuf += chunk;
+        final lines = lineBuf.split('\n');
+        lineBuf = lines.removeLast();
+
+        for (final line in lines) {
+          if (!line.startsWith('data: ')) continue;
+          final data = line.substring(6).trim();
+          if (data == '[DONE]') continue;
+
+          try {
+            final event = jsonDecode(data) as Map<String, dynamic>;
+            final type = event['type'] as String? ?? '';
+
+            if (type == 'content_block_delta') {
+              final delta = event['delta'] as Map<String, dynamic>?;
+              final text = delta?['text'] as String? ?? '';
+              if (text.isNotEmpty) yield text;
+            } else if (type == 'message_stop') {
+              return;
+            }
+          } catch (_) {
+            // JSON 파싱 실패한 라인은 무시
+          }
+        }
+      }
+    } on ClaudeApiException {
+      rethrow;
+    } on ClaudeTimeoutException {
+      rethrow;
+    } on SocketException catch (e) {
+      throw ClaudeNetworkException(e.message);
+    } on http.ClientException catch (e) {
+      throw ClaudeNetworkException(e.message);
+    } finally {
+      client.close();
+    }
+  }
+
+  /// 이미지 리사이즈 (base64 후 5MB 제한 대응)
+  Uint8List _resizeIfNeeded(Uint8List imageBytes) {
+    if (imageBytes.length <= _maxImageBytes) return imageBytes;
+
+    // 간단한 JPEG quality 축소 — image 패키지 없이 원본 크기 기준으로 판단
+    // 실제로는 이미지 디코딩/인코딩이 필요하지만,
+    // Flutter에서는 무거운 작업이므로 원본이 큰 경우 경고만 하고 전송
+    // TODO: image 패키지 추가 시 실제 리사이즈 구현
+    return imageBytes;
+  }
+
+  String _buildPrompt(String analysisJson, String locale) {
+    return '''
+You are a licensed pharmacist and supplement cost analyst.
+Analyze the data below and produce a concise **Premium Report**.
+
+## Analysis Data (JSON)
+$analysisJson
+
+## Report Structure (5 sections only)
+
+### 1. Stack Overview
+One Markdown table, columns: Product | Key Ingredients | Monthly Cost
+
+### 2. Overlap & UL Check
+- For each overlapping ingredient: combined daily intake vs UL, verdict (SAFE / CAUTION / WARNING)
+- If no overlaps: "No concerning overlaps detected." — one line, move on
+
+### 3. Safety Alerts
+- Only include this section if there are real risks
+- Combine mechanism overlaps (blood clotting, serotonin, etc.) and drug interactions here
+- If nothing to flag, skip this section entirely
+
+### 4. What to Cut
+- Recommend 1 product to drop + 3-line reason
+- Monthly and yearly savings
+- Remaining stack summary after removal
+
+### 5. How to Take
+- Morning vs evening timing only, keep it brief
+
+## Rules
+- Language: English only
+- Format: pure Markdown text, NOT JSON
+- Start directly with `## AI Detailed Analysis Report` — no greetings
+- Number sections: `### 1.`, `### 2.`, etc.
+- Use specific figures (mg, IU, UL values)
+- Use bullet points, not paragraphs
+- Total response under 1500 words
+- Do NOT include dietary alternatives, recipes, or exercise advice
+- Do NOT repeat the same risk across multiple sections
+- Do NOT use academic tone like "Evidence shows..." or "Studies suggest..."
+- Be direct and concise
+''';
+  }
+}

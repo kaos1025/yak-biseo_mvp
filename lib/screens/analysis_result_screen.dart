@@ -2,8 +2,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:myapp/models/supplecut_analysis_result.dart';
+import 'package:myapp/models/onestop_analysis_result.dart';
 import 'package:myapp/l10n/app_localizations.dart';
-import 'package:myapp/services/gemini_analyzer_service.dart';
+import 'package:myapp/services/claude_report_service.dart';
 import 'package:myapp/services/pdf_report_service.dart';
 import 'dart:async';
 import 'package:in_app_purchase/in_app_purchase.dart';
@@ -30,10 +31,12 @@ class AnalysisResultScreen extends StatefulWidget {
   State<AnalysisResultScreen> createState() => _AnalysisResultScreenState();
 }
 
-class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
+class _AnalysisResultScreenState extends State<AnalysisResultScreen>
+    with SingleTickerProviderStateMixin {
   bool _isReportExpanded = true;
   bool _isReportUnlocked = false;
   bool _isReportLoading = false;
+  bool _isReportStreaming = false;
   bool _isPdfGenerating = false;
   bool _isSummaryExpanded = false;
   String? _detailedReport;
@@ -41,12 +44,24 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
 
   late IAPService _iapService;
   StreamSubscription<PurchaseStatus>? _purchaseSubscription;
+  StreamSubscription<String>? _reportStreamSubscription;
+
+  /// 커서 깜빡임 애니메이션
+  late AnimationController _cursorController;
+  late Animation<double> _cursorOpacity;
 
   SuppleCutAnalysisResult get result => widget.result;
 
   @override
   void initState() {
     super.initState();
+    _cursorController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 530),
+    )..repeat(reverse: true);
+    _cursorOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _cursorController, curve: Curves.easeInOut),
+    );
     _iapService = getIt<IAPService>();
     _purchaseSubscription = _iapService.purchaseStatusStream.listen((status) {
       if (!mounted) return;
@@ -70,7 +85,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
 
   @override
   void dispose() {
+    _reportStreamSubscription?.cancel();
     _purchaseSubscription?.cancel();
+    _cursorController.dispose();
     super.dispose();
   }
 
@@ -123,6 +140,28 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                         fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 ...result.products.map(_buildProductCard),
+
+                // ── 안전성 경고 섹션 ──
+                if (result.safetyAlerts.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  ...result.safetyAlerts.map(_buildSafetyAlertCard),
+                ],
+
+                // ── 기전 중복 섹션 ──
+                if (result.functionalOverlaps.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  const Text('🧬 Mechanism Overlap Warning',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  ...result.functionalOverlaps.map(_buildFunctionalOverlapCard),
+                ],
+
+                // ── 단일 제품 UL 초과 섹션 ──
+                if (result.singleProductUlExcess.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  ...result.singleProductUlExcess.map(_buildSingleUlExcessCard),
+                ],
 
                 // ── 유료 잠금 섹션: AI 상세 분석 리포트 ──
                 if (_hasPremiumContent()) ...[
@@ -351,33 +390,54 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
     );
   }
 
+  /// 제품명 퍼지 매칭 (Gemini가 이름을 축약/변형할 수 있으므로)
+  bool _productNameMatches(
+      String dupName, String productName, String? productNameKo) {
+    final dn = dupName.toLowerCase().trim();
+    final pn = productName.toLowerCase().trim();
+    final pnKo = productNameKo?.toLowerCase().trim() ?? '';
+
+    // 정확 매칭
+    if (dn == pn || (pnKo.isNotEmpty && dn == pnKo)) return true;
+    // 포함 매칭 (한쪽이 다른 쪽을 포함)
+    if (dn.length >= 3 && pn.length >= 3) {
+      if (dn.contains(pn) || pn.contains(dn)) return true;
+    }
+    if (pnKo.length >= 2 && dn.isNotEmpty) {
+      if (dn.contains(pnKo) || pnKo.contains(dn)) return true;
+    }
+    return false;
+  }
+
   /// 제품의 신호등 색상 결정
   ///
   /// - 중복 없음 → 초록
-  /// - 중복 있음 + 절감 추천 대상(excludedProduct) → 빨강
-  /// - 중복 있음 + 절감 추천 아님 → 노랑
+  /// - 중복 있음 + excludedProduct → 빨강
+  /// - 중복 있음 + danger riskLevel → 빨강
+  /// - 중복 있음 + warning riskLevel → 주황
+  /// - 중복 있음 + safe riskLevel → 노랑
   Color _getProductSignalColor(AnalyzedProduct product) {
-    final nameLower = product.name.toLowerCase();
-    final nameKoLower = product.nameKo?.toLowerCase() ?? '';
-
     // 이 제품과 관련된 중복 성분 확인
     final relatedDups = result.duplicates.where((dup) {
-      return dup.products.any((dupName) {
-        final dn = dupName.toLowerCase();
-        return dn == nameLower || dn == nameKoLower;
-      });
+      return dup.products.any((dupName) =>
+          _productNameMatches(dupName, product.name, product.nameKo));
     }).toList();
 
     if (relatedDups.isEmpty) return const Color(0xFF43A047); // 초록: safe
 
-    // 이 제품이 절감 추천 대상인지 확인 (excludedProduct 이름과 비교)
-    final excluded = result.excludedProduct?.toLowerCase() ?? '';
+    // 이 제품이 절감 추천 대상인지 확인 (퍼지 매칭)
+    final excluded = result.excludedProduct ?? '';
     final isExcluded = excluded.isNotEmpty &&
-        (excluded == nameLower || excluded == nameKoLower);
-
+        _productNameMatches(excluded, product.name, product.nameKo);
     if (isExcluded) return const Color(0xFFE53935); // 빨강: 절감 추천 대상
 
-    return const Color(0xFFFDD835); // 노랑: 중복은 있지만 절감 추천 아님
+    // 관련 중복 성분 중 최대 riskLevel 확인
+    final hasDanger = relatedDups.any((d) => d.riskLevel == 'danger');
+    final hasWarning = relatedDups.any((d) => d.riskLevel == 'warning');
+
+    if (hasDanger) return const Color(0xFFE53935); // 빨강: danger
+    if (hasWarning) return const Color(0xFFFFA726); // 주황: warning
+    return const Color(0xFFFDD835); // 노랑: safe 중복
   }
 
   /// 제품 카드 (무료) — 제품명 + 소스 태그 + 월 가격 + 성분 칩 + 중복 뼉지
@@ -605,7 +665,6 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
 
   /// 프리미엄 컨텐츠 (잠금 해제 상태) — 마크다운 리포트 렌더링
   Widget _buildPremiumContent() {
-    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: Column(
@@ -614,41 +673,50 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
           const Divider(height: 1),
           const SizedBox(height: 16),
           if (_isReportLoading)
-            Center(
+            const Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 40),
+                padding: EdgeInsets.symmetric(vertical: 40),
                 child: Column(
                   children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    Text(l10n.reportGenerating,
-                        style: const TextStyle(
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Analyzing your supplements...',
+                        style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
                             color: Colors.black54)),
-                    const SizedBox(height: 4),
-                    Text(l10n.reportGeneratingWait,
-                        style: const TextStyle(
-                            fontSize: 13, color: Colors.black38)),
                   ],
                 ),
               ),
             )
-          else if (_reportError != null)
+          else if (_reportError != null && _detailedReport == null)
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFEBEE),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
                 children: [
-                  Text(l10n.reportError(_reportError.toString()),
-                      style: const TextStyle(fontSize: 14, color: Colors.red)),
+                  const Icon(Icons.error_outline,
+                      color: Colors.redAccent, size: 36),
                   const SizedBox(height: 12),
-                  ElevatedButton(
+                  Text(_reportError!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontSize: 14, color: Colors.redAccent)),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
                     onPressed: _generateReport,
-                    child: const Text('다시 시도'),
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text('Retry'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -682,44 +750,136 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-            _buildPdfActionBar(),
+            if (_isReportStreaming)
+              AnimatedBuilder(
+                animation: _cursorOpacity,
+                builder: (context, child) => Opacity(
+                  opacity: _cursorOpacity.value,
+                  child: const Text('▌',
+                      style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.purple,
+                          fontWeight: FontWeight.bold)),
+                ),
+              ),
+            if (_reportError != null) ...[
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: _generateReport,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF3E0),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.wifi_off,
+                          size: 16, color: Colors.orange),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(_reportError!,
+                            style: const TextStyle(
+                                fontSize: 13, color: Colors.orange)),
+                      ),
+                      const Icon(Icons.refresh, size: 16, color: Colors.orange),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            if (!_isReportStreaming) ...[
+              const SizedBox(height: 20),
+              _buildPdfActionBar(),
+            ],
           ],
         ],
       ),
     );
   }
 
-  /// 상세 리포트 API 호출
+  /// 상세 리포트 스트리밍 API 호출
   ///
   /// [showPdfPrompt] true이면 리포트 생성 후 PDF 저장 바텀시트를 자동으로 표시한다.
   Future<void> _generateReport({bool showPdfPrompt = false}) async {
+    _reportStreamSubscription?.cancel();
+
     setState(() {
       _isReportUnlocked = true;
       _isReportLoading = true;
+      _isReportStreaming = false;
+      _detailedReport = null;
       _reportError = null;
     });
 
     try {
       final l10n = AppLocalizations.of(context)!;
-      final report = await GeminiAnalyzerService()
-          .generateSuppleCutReport(result, locale: l10n.localeName);
-      if (!mounted) return;
-      setState(() {
-        _detailedReport = report;
-        _isReportLoading = false;
-        _isReportUnlocked = true;
-      });
-      if (showPdfPrompt) {
-        _showPdfPromptBottomSheet();
-      }
+      final buffer = StringBuffer();
+      final stream = ClaudeReportService()
+          .generateReportStream(result, locale: l10n.localeName);
+
+      _reportStreamSubscription = stream.listen(
+        (chunk) {
+          if (!mounted) return;
+          buffer.write(chunk);
+          setState(() {
+            _isReportLoading = false;
+            _isReportStreaming = true;
+            _detailedReport = buffer.toString();
+          });
+        },
+        onDone: () {
+          if (!mounted) return;
+          setState(() {
+            _isReportStreaming = false;
+            _isReportUnlocked = true;
+          });
+          if (buffer.isEmpty) {
+            setState(() {
+              _reportError = 'An error occurred while generating the report.';
+            });
+          }
+          if (showPdfPrompt && _detailedReport != null) {
+            _showPdfPromptBottomSheet();
+          }
+        },
+        onError: (Object e) {
+          if (!mounted) return;
+          final hasPartial = buffer.isNotEmpty;
+          setState(() {
+            _isReportLoading = false;
+            _isReportStreaming = false;
+            if (hasPartial) {
+              _detailedReport = buffer.toString();
+            }
+            _reportError = _errorMessage(e, hasPartial);
+          });
+        },
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _reportError = e.toString();
         _isReportLoading = false;
+        _isReportStreaming = false;
+        _reportError = _errorMessage(e, false);
       });
     }
+  }
+
+  /// 에러 타입별 사용자 메시지
+  String _errorMessage(Object error, bool hasPartial) {
+    if (error is ClaudeTimeoutException) {
+      return 'Request timed out. Please try again.';
+    }
+    if (error is ClaudeApiException) {
+      return 'Something went wrong. Please try again.';
+    }
+    if (error is ClaudeNetworkException) {
+      return hasPartial
+          ? 'Connection lost. Tap to retry.'
+          : 'Connection lost. Tap to retry.';
+    }
+    return 'Something went wrong. Please try again.';
   }
 
   /// PDF 내보내기 액션 바
@@ -1273,6 +1433,209 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
           Text(emoji, style: const TextStyle(fontSize: 16)),
           const SizedBox(width: 8),
           Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
+        ],
+      ),
+    );
+  }
+
+  // ── 신규 UI 섹션: 안전성 경고, 기전 중복, 단일 UL 초과 ──
+
+  Widget _buildSafetyAlertCard(SafetyAlert alert) {
+    Color severityColor;
+    String severityIcon;
+    switch (alert.severity) {
+      case 'high':
+        severityColor = const Color(0xFFD32F2F);
+        severityIcon = '🔴';
+        break;
+      case 'medium':
+      case 'medium-high':
+        severityColor = const Color(0xFFF57C00);
+        severityIcon = '🟡';
+        break;
+      default:
+        severityColor = const Color(0xFF388E3C);
+        severityIcon = '🟢';
+    }
+
+    String typeLabel;
+    switch (alert.alertType) {
+      case 'research_chemical':
+        typeLabel = 'Research Chemical';
+        break;
+      case 'therapeutic_dose':
+        typeLabel = 'Therapeutic Dose';
+        break;
+      case 'otc_drug':
+        typeLabel = 'OTC Drug';
+        break;
+      default:
+        typeLabel = 'Safety Alert';
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: severityColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: severityColor.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(severityIcon, style: const TextStyle(fontSize: 16)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  alert.product,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: severityColor,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: severityColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(typeLabel,
+                    style: TextStyle(fontSize: 11, color: severityColor)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(alert.summary,
+              style:
+                  const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+          if (alert.details != null) ...[
+            const SizedBox(height: 4),
+            Text(alert.details!,
+                style: const TextStyle(fontSize: 13, color: Colors.grey)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFunctionalOverlapCard(FunctionalOverlap overlap) {
+    Color severityColor;
+    switch (overlap.severity) {
+      case 'high':
+        severityColor = const Color(0xFFD32F2F);
+        break;
+      case 'medium':
+        severityColor = const Color(0xFFF57C00);
+        break;
+      default:
+        severityColor = const Color(0xFF1976D2);
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: severityColor.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: severityColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  overlap.severity.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: severityColor,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  overlap.pathway,
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: overlap.products
+                .map((p) => Chip(
+                      label: Text(p, style: const TextStyle(fontSize: 12)),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    ))
+                .toList(),
+          ),
+          const SizedBox(height: 8),
+          Text(overlap.warning,
+              style: const TextStyle(fontSize: 13, color: Colors.black87)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSingleUlExcessCard(SingleProductUlExcess excess) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3E0),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFB74D)),
+      ),
+      child: Row(
+        children: [
+          const Text('⚡', style: TextStyle(fontSize: 20)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  excess.product,
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${excess.ingredient}: ${excess.amount} > UL ${excess.ul}',
+                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                ),
+                if (excess.warning != null) ...[
+                  const SizedBox(height: 2),
+                  Text(excess.warning!,
+                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ],
+            ),
+          ),
         ],
       ),
     );

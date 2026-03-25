@@ -151,7 +151,7 @@ class PdfReportService {
     await file.writeAsBytes(pdfBytes);
     await Share.shareXFiles(
       [XFile(file.path, mimeType: 'application/pdf')],
-      subject: 'SuppleCut Analysis Report',
+      subject: name.replaceAll('.pdf', ''),
     );
   }
 
