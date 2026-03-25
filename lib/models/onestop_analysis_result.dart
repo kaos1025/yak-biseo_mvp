@@ -50,7 +50,47 @@ class OnestopAnalysisResult {
           : null,
       overallStatus: json['overall_status'] as String? ?? 'caution',
       statusReason: json['status_reason'] as String? ?? '',
-    );
+    )._enforceOverallStatus();
+  }
+
+  /// AI 응답의 overall_status를 규칙 기반으로 강제 보정
+  OnestopAnalysisResult _enforceOverallStatus() {
+    // warning 조건: safety_alerts 존재, high severity functional overlap, research_chemical
+    final hasWarning = safetyAlerts.isNotEmpty ||
+        functionalOverlaps.any((fo) => fo.severity == 'high') ||
+        safetyAlerts.any((sa) => sa.alertType == 'research_chemical');
+
+    if (hasWarning && overallStatus != 'warning') {
+      return OnestopAnalysisResult(
+        products: products,
+        overlaps: overlaps,
+        functionalOverlaps: functionalOverlaps,
+        safetyAlerts: safetyAlerts,
+        singleProductUlExcess: singleProductUlExcess,
+        exclusionRecommendation: exclusionRecommendation,
+        overallStatus: 'warning',
+        statusReason: statusReason,
+      );
+    }
+
+    // caution 조건: single_product_ul_excess 존재, functional_overlaps 존재
+    final hasCaution =
+        singleProductUlExcess.isNotEmpty || functionalOverlaps.isNotEmpty;
+
+    if (hasCaution && overallStatus == 'perfect') {
+      return OnestopAnalysisResult(
+        products: products,
+        overlaps: overlaps,
+        functionalOverlaps: functionalOverlaps,
+        safetyAlerts: safetyAlerts,
+        singleProductUlExcess: singleProductUlExcess,
+        exclusionRecommendation: exclusionRecommendation,
+        overallStatus: 'caution',
+        statusReason: statusReason,
+      );
+    }
+
+    return this;
   }
 
   Map<String, dynamic> toJson() {

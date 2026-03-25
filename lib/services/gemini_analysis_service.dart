@@ -247,7 +247,10 @@ Return ONLY valid JSON (no markdown, no preamble):
 
 ## CRITICAL RULES
 
-1. NEVER say overall_status "perfect" if ANY of these exist: UL exceedance, functional overlaps with 3+ products, high-severity safety alerts, research chemicals, or therapeutic dose products.
+1. overall_status rules (strictly enforced):
+   - "warning" if: safety_alerts has 1+ items, OR functional_overlaps has severity "high", OR research_chemical alert exists
+   - "caution" if: single_product_ul_excess has 1+ items, OR functional_overlaps exist (any severity)
+   - "perfect" ONLY when none of the above conditions apply
 2. Include ALL ingredients for complex products (multivitamins have 20+ ingredients -- list them all).
 3. Excipient nutrients (dicalcium phosphate calcium, etc.) MUST be included in overlap calculations.
 4. When you cannot read a label clearly, say so in the source field ("estimated - label partially obscured") rather than guessing a wrong product.

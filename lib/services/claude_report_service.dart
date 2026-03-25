@@ -176,7 +176,8 @@ $analysisJson
 ## Report Structure (5 sections only)
 
 ### 1. Stack Overview
-One Markdown table, columns: Product | Key Ingredients | Monthly Cost
+One Markdown table with EXACTLY 3 columns: Product | Key Ingredients | Price
+- Do NOT add Src, Source, or any other columns
 
 ### 2. Overlap & UL Check
 - For each overlapping ingredient: combined daily intake vs UL, verdict (SAFE / CAUTION / WARNING)
@@ -207,6 +208,16 @@ One Markdown table, columns: Product | Key Ingredients | Monthly Cost
 - Do NOT repeat the same risk across multiple sections
 - Do NOT use academic tone like "Evidence shows..." or "Studies suggest..."
 - Be direct and concise
+
+## Tone Guidelines
+- Never use "overdose", "overdosing", or "mimics overdose" — instead say "creates dangerously excessive" or "exceeds reasonable safety standards"
+- Never use "opioid-like" for botanical/herbal ingredients — instead say "mild sedative activity via alkaloid pathways"
+- Never use "comparable to [prescription drug] overdose" — instead describe the actual risks directly (e.g. excessive sedation, fall risk, cognitive impairment)
+- Avoid clinical diagnosis language: no "serotonin syndrome", "respiratory failure", "organ failure" as definitive outcomes — use "risk of" or "potential for" instead
+- Keep warnings firm but factual, not fear-inducing
+- Frame risks as actionable: tell users what to DO, not just what to fear
+- OK to use: "dangerous", "unsafe", "high risk", "discontinue", "consult your doctor"
+- NOT OK: "fatal", "deadly", "life-threatening", "you could die" unless genuinely immediate danger (e.g. MAOI + serotonergic combo)
 ''';
   }
 }
