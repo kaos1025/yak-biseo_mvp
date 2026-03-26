@@ -280,6 +280,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get badgeDuplicate => 'Overlap';
 
   @override
+  String get badgeSimilarEffect => 'Similar Effect';
+
+  @override
+  String get badgeUlExcess => '⚡ UL Excess';
+
+  @override
   String get detailReportTitle => 'AI Detailed Report';
 
   @override

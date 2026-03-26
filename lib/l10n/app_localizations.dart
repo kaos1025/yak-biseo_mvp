@@ -608,6 +608,18 @@ abstract class AppLocalizations {
   /// **'중복'**
   String get badgeDuplicate;
 
+  /// No description provided for @badgeSimilarEffect.
+  ///
+  /// In ko, this message translates to:
+  /// **'유사 효과'**
+  String get badgeSimilarEffect;
+
+  /// No description provided for @badgeUlExcess.
+  ///
+  /// In ko, this message translates to:
+  /// **'⚡ UL 초과'**
+  String get badgeUlExcess;
+
   /// No description provided for @detailReportTitle.
   ///
   /// In ko, this message translates to:

@@ -120,6 +120,8 @@
   "badgeDbMatched": "Verified",
   "badgeAiEstimated": "AI Estimated",
   "badgeDuplicate": "Overlap",
+  "badgeSimilarEffect": "Similar Effect",
+  "badgeUlExcess": "⚡ UL Excess",
   "detailReportTitle": "AI Detailed Report",
   "btnBackHome": "Back to Home",
   "loading": "Analyzing...",

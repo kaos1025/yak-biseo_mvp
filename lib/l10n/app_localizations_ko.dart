@@ -276,6 +276,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get badgeDuplicate => '중복';
 
   @override
+  String get badgeSimilarEffect => '유사 효과';
+
+  @override
+  String get badgeUlExcess => '⚡ UL 초과';
+
+  @override
   String get detailReportTitle => 'AI 상세 분석 리포트';
 
   @override

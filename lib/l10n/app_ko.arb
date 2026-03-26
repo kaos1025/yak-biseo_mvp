@@ -120,6 +120,8 @@
   "badgeDbMatched": "DB 확인",
   "badgeAiEstimated": "AI 추정",
   "badgeDuplicate": "중복",
+  "badgeSimilarEffect": "유사 효과",
+  "badgeUlExcess": "⚡ UL 초과",
   "detailReportTitle": "AI 상세 분석 리포트",
   "btnBackHome": "홈으로 돌아가기",
   "loading": "분석 중...",

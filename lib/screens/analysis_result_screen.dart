@@ -135,15 +135,19 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
                   const SizedBox(height: 12),
                 ],
 
-                // 2. 절감 금액 배너 (또는 긍정 배너)
+                // 2. 상단 배너 (이슈 유형별 분기)
                 if (result.exclusionResult?.hasSavings ?? false) ...[
                   _buildSavingsBanner(),
                   const SizedBox(height: 16),
                 ] else if (result.hasSavings) ...[
                   _buildSavingsBanner(),
                   const SizedBox(height: 16),
-                ] else if (result.hasDuplicates) ...[
-                  _buildDuplicateWarningBanner(),
+                ] else if (result.hasDuplicates ||
+                    result.singleProductUlExcess.isNotEmpty) ...[
+                  _buildSafetyIssuesBanner(),
+                  const SizedBox(height: 16),
+                ] else if (result.functionalOverlaps.isNotEmpty) ...[
+                  _buildFunctionalOverlapBanner(),
                   const SizedBox(height: 16),
                 ] else ...[
                   _buildPositiveBanner(),
@@ -684,15 +688,43 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
     return green;
   }
 
-  /// 제품 카드 (무료) — 제품명 + 소스 태그 + 월 가격 + 성분 칩 + 중복 뼉지
+  /// 배지 헬퍼
+  Widget _buildBadge(
+      String label, Color bg, Color borderColor, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: borderColor.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: textColor,
+        ),
+      ),
+    );
+  }
+
+  /// 제품 카드 (무료) — 제품명 + 소스 태그 + 월 가격 + 성분 칩 + 배지
   Widget _buildProductCard(AnalyzedProduct product) {
     final l10n = AppLocalizations.of(context)!;
     final isEstimated = product.isEstimated;
 
     final signalColor = _getProductSignalColor(product);
 
-    // 이 제품이 중복 성분에 포함되어 있는지 확인 (컬러바와 동일 기준)
-    final isDuplicate = signalColor != const Color(0xFF43A047);
+    // 개별 배지 플래그
+    final hasOverlap = result.duplicates.any((dup) => dup.products.any(
+        (dupName) =>
+            _productNameMatches(dupName, product.name, product.nameKo)));
+    final hasFunctionalOverlap = result.functionalOverlaps.any((fo) =>
+        fo.products.any((foName) =>
+            _productNameMatches(foName, product.name, product.nameKo)));
+    final hasUlExcess = result.singleProductUlExcess.any(
+        (ex) => _productNameMatches(ex.product, product.name, product.nameKo));
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -758,25 +790,35 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
               ],
             ),
 
-            // 중복 뼉지
-            if (isDuplicate) ...[
+            // 배지 (Overlap / Similar Effect / UL Excess)
+            if (hasOverlap || hasFunctionalOverlap || hasUlExcess) ...[
               const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFEBEE),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                      color: const Color(0xFFEF5350).withValues(alpha: 0.3)),
-                ),
-                child: Text(
-                  l10n.badgeDuplicate,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFE53935),
-                  ),
-                ),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  if (hasOverlap)
+                    _buildBadge(
+                      l10n.badgeDuplicate,
+                      const Color(0xFFFFEBEE),
+                      const Color(0xFFEF5350),
+                      const Color(0xFFE53935),
+                    ),
+                  if (hasFunctionalOverlap)
+                    _buildBadge(
+                      l10n.badgeSimilarEffect,
+                      const Color(0xFFE3F2FD),
+                      const Color(0xFF42A5F5),
+                      const Color(0xFF1565C0),
+                    ),
+                  if (hasUlExcess)
+                    _buildBadge(
+                      l10n.badgeUlExcess,
+                      const Color(0xFFFFF3E0),
+                      const Color(0xFFFFA726),
+                      const Color(0xFFE65100),
+                    ),
+                ],
               ),
             ],
 
@@ -1346,10 +1388,62 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
     );
   }
 
-  /// 중복 경고 배너 (중복은 있지만 절감액 정보가 없을 때)
-  Widget _buildDuplicateWarningBanner() {
-    final duplicateNames =
-        result.duplicates.map((d) => d.ingredient).join(', ');
+  /// 안전성 이슈 배너 (overlaps 또는 UL 초과)
+  Widget _buildSafetyIssuesBanner() {
+    final issueCount =
+        result.duplicates.length + result.singleProductUlExcess.length;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFEBEE), Color(0xFFFFCDD2)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFE53935).withValues(alpha: 0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border:
+            Border.all(color: const Color(0xFFEF5350).withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: Color(0xFFC62828),
+            size: 40,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '⚠️ $issueCount safety issue${issueCount > 1 ? 's' : ''} found in your stack',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFC62828),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Check the detailed analysis below.',
+            style: TextStyle(
+              fontSize: 13,
+              color: Color(0xFFE53935),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 기전 중복 배너 (functional_overlaps만 있을 때)
+  Widget _buildFunctionalOverlapBanner() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       decoration: BoxDecoration(
@@ -1369,16 +1463,16 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
         border:
             Border.all(color: const Color(0xFFFFB74D).withValues(alpha: 0.5)),
       ),
-      child: Column(
+      child: const Column(
         children: [
-          const Icon(
-            Icons.warning_amber_rounded,
+          Icon(
+            Icons.compare_arrows_rounded,
             color: Color(0xFFE65100),
             size: 40,
           ),
-          const SizedBox(height: 12),
-          const Text(
-            '⚠️ Ingredient overlap detected',
+          SizedBox(height: 12),
+          Text(
+            'Similar effects detected',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -1386,23 +1480,14 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
-            'Overlapping ingredients: $duplicateNames',
-            style: const TextStyle(
-              fontSize: 14,
+            'Some supplements have overlapping mechanisms. Check details below.',
+            style: TextStyle(
+              fontSize: 13,
               height: 1.5,
               fontWeight: FontWeight.w500,
               color: Color(0xFFF57C00),
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Check the detailed analysis below.',
-            style: TextStyle(
-              fontSize: 13,
-              color: Color(0xFFFF8F00),
             ),
             textAlign: TextAlign.center,
           ),
