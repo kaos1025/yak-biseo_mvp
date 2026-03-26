@@ -4,6 +4,7 @@ import '../models/supplecut_analysis_result.dart';
 /// 제외 추천 티어
 class ExclusionTier {
   static const criticalStop = 'critical_stop';
+  static const medicalSupervision = 'medical_supervision';
   static const recommendRemove = 'recommend_remove';
   static const conditionalRemove = 'conditional_remove';
 }
@@ -68,6 +69,10 @@ class ExclusionResult {
   List<ExclusionItem> get recommendRemoveItems =>
       items.where((i) => i.tier == ExclusionTier.recommendRemove).toList();
 
+  /// medical_supervision 항목
+  List<ExclusionItem> get medicalSupervisionItems =>
+      items.where((i) => i.tier == ExclusionTier.medicalSupervision).toList();
+
   /// conditional_remove 항목
   List<ExclusionItem> get conditionalRemoveItems =>
       items.where((i) => i.tier == ExclusionTier.conditionalRemove).toList();
@@ -80,6 +85,7 @@ class ExclusionResult {
       .toList();
 
   bool get hasCriticalStop => criticalStopItems.isNotEmpty;
+  bool get hasMedicalSupervision => medicalSupervisionItems.isNotEmpty;
   bool get hasSavings => savingsItems.isNotEmpty;
 
   /// 배너 텍스트용 (절감 대상만)
@@ -116,14 +122,26 @@ class ExclusionEngine {
       }
     }
 
-    // ── 1. critical_stop: research_chemical, therapeutic_dose ──
+    // ── 1a. critical_stop: research_chemical ──
     for (final ra in resolvedAlerts) {
-      if (ra.alertType == 'research_chemical' ||
-          ra.alertType == 'therapeutic_dose') {
+      if (ra.alertType == 'research_chemical') {
         final product = _findProduct(products, ra.name);
         items[ra.name] = ExclusionItem(
           product: ra.name,
           tier: ExclusionTier.criticalStop,
+          reason: ra.summary,
+          monthlyCostUsd: product?.monthlyCostEstimate ?? 0.0,
+        );
+      }
+    }
+
+    // ── 1b. medical_supervision: therapeutic_dose ──
+    for (final ra in resolvedAlerts) {
+      if (ra.alertType == 'therapeutic_dose' && !items.containsKey(ra.name)) {
+        final product = _findProduct(products, ra.name);
+        items[ra.name] = ExclusionItem(
+          product: ra.name,
+          tier: ExclusionTier.medicalSupervision,
           reason: ra.summary,
           monthlyCostUsd: product?.monthlyCostEstimate ?? 0.0,
         );
@@ -271,10 +289,11 @@ class ExclusionEngine {
     final keptProducts =
         allProductNames.where((name) => !items.containsKey(name)).toList();
 
-    // 절감액: critical_stop 제외
+    // 절감액: critical_stop + medical_supervision 제외
     double savingsMonthlyCost = 0.0;
     for (final item in items.values) {
-      if (item.tier != ExclusionTier.criticalStop) {
+      if (item.tier != ExclusionTier.criticalStop &&
+          item.tier != ExclusionTier.medicalSupervision) {
         savingsMonthlyCost += item.monthlyCostUsd;
       }
     }

@@ -193,6 +193,18 @@ class ClaudeReportService {
         }
       }
 
+      // Medical Supervision — 치료제 (절감액 무관)
+      final medical = ex.medicalSupervisionItems;
+      if (medical.isNotEmpty) {
+        buffer.writeln('\n## Medical Supervision Required');
+        buffer.writeln(
+            'These therapeutic-dose products require physician oversight. Do NOT recommend discontinuation. They are NOT included in savings calculations.');
+        for (final item in medical) {
+          final shortName = item.product.split(',').take(2).join(',').trim();
+          buffer.writeln('- $shortName: ${item.reason}');
+        }
+      }
+
       // Recommended Removal — 절감 대상
       final savings = ex.savingsItems;
       if (savings.isNotEmpty) {
@@ -237,6 +249,7 @@ One Markdown table with EXACTLY 3 columns: Product | Key Ingredients | Price
 ### 3. Safety Alerts
 - Only include this section if there are real risks
 - Combine mechanism overlaps (blood clotting, serotonin, etc.) and drug interactions here
+- For potential prescription drug interactions (e.g., 5-HTP + SSRIs), use conditional language: "If you are NOT taking [drug class], [supplement] can be continued safely. If you are taking [drug class], discontinue immediately."
 - If nothing to flag, skip this section entirely
 
 ### 4. What to Cut
@@ -244,6 +257,7 @@ One Markdown table with EXACTLY 3 columns: Product | Key Ingredients | Price
 - Explain WHY those products should be excluded (3-line reason per product)
 - Show the exact monthly and yearly savings from the provided data
 - Remaining stack summary after removal
+- If a removed product is the ONLY source of a nutrient, add a one-line note: "Note: Removing [Product] also removes your only source of [Nutrient] ([dose]). Consider dietary sources or a standalone supplement if needed."
 - If no products are flagged for exclusion, state: "No products flagged for removal. Your current stack is well-optimized."
 
 ### 5. How to Take
@@ -266,6 +280,7 @@ One Markdown table with EXACTLY 3 columns: Product | Key Ingredients | Price
 ## Severity Rules
 - Respect the overall_status from the analysis data — if "warning", maintain HIGH RISK tone throughout
 - For any ingredient exceeding 200% of UL, use "WARNING" label (not "CAUTION") in Section 2
+- Always express UL comparisons as "X% of UL" (e.g., "126mg is 280% of the 45mg UL"), never as "exceeds UL by X%" which is ambiguous
 - If critical_stop items exist, mention them prominently as "Discontinue Immediately" — separate from cost savings
 
 ## Pricing Rules (CRITICAL)
