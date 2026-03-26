@@ -163,7 +163,9 @@ Beyond identical ingredients, check for FUNCTIONAL OVERLAP -- different ingredie
 
 Key pathways (flag when 2+ products act on the same pathway, flag as "high" when 3+):
 
-1. **GABAergic / CNS Depressant**: Valerian, Kava Kava, Passion Flower, Hops, Magnolia Bark, Skullcap (Baical & American), California Poppy, Lemon Balm, L-Theanine (mild), Chamomile, Lavender, GABA supplements
+IMPORTANT: Include ALL products with ANY level of activity in a pathway, even if mild. Do NOT omit products because their effect is weak — use the severity field ("low"/"medium"/"high") to indicate strength instead of excluding them.
+
+1. **GABAergic / CNS Depressant**: Valerian, Kava Kava, Passion Flower, Hops, Magnolia Bark, Skullcap (Baical & American), California Poppy, Lemon Balm, L-Theanine, Chamomile, Lavender, GABA supplements, Magnesium (especially Glycinate, Bisglycinate, Taurate, Threonate forms — GABAergic and CNS relaxant properties)
    -> Risk: Excessive sedation, cognitive impairment, fall risk, respiratory depression with alcohol/benzodiazepines
 
 2. **Serotonergic**: St. John's Wort, Saffron, 5-HTP, SAMe, Tryptophan
