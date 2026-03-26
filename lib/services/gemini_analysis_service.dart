@@ -154,8 +154,8 @@ For each overlap, calculate the total combined dosage and compare against UL.
 
 Flag when:
 - Combined intake from all products EXCEEDS UL -> severity "high"
-- A SINGLE product exceeds UL -> severity "medium"
-- A single product provides >=90% of UL -> severity "low" with note about additional intake risk
+- A SINGLE product exceeds UL (>100%) -> severity "medium" in single_product_ul_excess
+- A SINGLE product provides >=95% AND <=100% of UL -> add to ul_at_limit array (NOT single_product_ul_excess)
 
 ## FUNCTIONAL OVERLAP DETECTION (Mechanism of Action)
 
@@ -243,7 +243,7 @@ NEVER recommend excluding a therapeutic dose product for cost savings.
 
 Return ONLY valid JSON (no markdown, no preamble):
 
-{"products":[{"name":"Brand, Product Name, Dosage, Count","source":"label|known|estimated","monthly_cost_estimate":12.00,"ingredients":[{"name":"Vitamin D3 (as Cholecalciferol)","amount":25,"unit":"mcg","normalized_key":"vitamin_d"}]}],"overlaps":[{"ingredient":"Vitamin D3","normalized_key":"vitamin_d","total_amount":150,"unit":"mcg","ul":100,"ul_unit":"mcg","exceeds_ul":true,"sources":[{"product":"Product A","amount":125,"unit":"mcg"},{"product":"Product B","amount":25,"unit":"mcg"}],"severity":"high"}],"functional_overlaps":[{"pathway":"GABAergic / CNS Depressant","severity":"high","products":["Valerian Root 500mg","Kava Kava 250mg"],"warning":"Combined use increases sedation risk."}],"safety_alerts":[{"product":"Kava Kava 250mg","alert_type":"regulatory_warning","severity":"high","summary":"FDA hepatotoxicity warning.","details":"Avoid with alcohol or liver conditions."}],"single_product_ul_excess":[{"product":"Nature's Bounty Zinc 50mg","ingredient":"Zinc","amount":"50mg","ul":"40mg","severity":"medium","warning":"This single product exceeds the UL for Zinc."}],"exclusion_recommendation":{"exclude_product":"Product Name","reason":"Removing this product resolves UL exceedances.","monthly_savings":10.30,"annual_savings":123.56},"overall_status":"perfect|caution|warning","status_reason":"Brief explanation of overall status"}
+{"products":[{"name":"Brand, Product Name, Dosage, Count","source":"label|known|estimated","monthly_cost_estimate":12.00,"ingredients":[{"name":"Vitamin D3 (as Cholecalciferol)","amount":25,"unit":"mcg","normalized_key":"vitamin_d"}]}],"overlaps":[{"ingredient":"Vitamin D3","normalized_key":"vitamin_d","total_amount":150,"unit":"mcg","ul":100,"ul_unit":"mcg","exceeds_ul":true,"sources":[{"product":"Product A","amount":125,"unit":"mcg"},{"product":"Product B","amount":25,"unit":"mcg"}],"severity":"high"}],"functional_overlaps":[{"pathway":"GABAergic / CNS Depressant","severity":"high","products":["Valerian Root 500mg","Kava Kava 250mg"],"warning":"Combined use increases sedation risk."}],"safety_alerts":[{"product":"Kava Kava 250mg","alert_type":"regulatory_warning","severity":"high","summary":"FDA hepatotoxicity warning.","details":"Avoid with alcohol or liver conditions."}],"single_product_ul_excess":[{"product":"Nature's Bounty Zinc 50mg","ingredient":"Zinc","amount":"50mg","ul":"40mg","severity":"medium","warning":"This single product exceeds the UL for Zinc."}],"ul_at_limit":[{"product":"Product Name","ingredient":"Vitamin D3","amount":95.0,"unit":"mcg","ul":100.0,"percentage_of_ul":95,"message":"At UL. Any additional Vitamin D3 from food or other supplements would exceed safe limits."}],"exclusion_recommendation":{"exclude_product":"Product Name","reason":"Removing this product resolves UL exceedances.","monthly_savings":10.30,"annual_savings":123.56},"overall_status":"perfect|caution|warning","status_reason":"Brief explanation of overall status"}
 
 ## CRITICAL RULES
 
@@ -256,6 +256,7 @@ Return ONLY valid JSON (no markdown, no preamble):
      * any functional_overlap pathway with 3+ products
    - "caution" if ANY of these (and no warning conditions):
      * single_product_ul_excess has 1+ items
+     * ul_at_limit has 1+ items
      * functional_overlaps exist (any severity)
      * any overlap exceeds UL (but below 200%)
    - "perfect" ONLY when none of the above conditions apply

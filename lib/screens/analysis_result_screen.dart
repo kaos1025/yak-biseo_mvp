@@ -129,6 +129,12 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
                   const SizedBox(height: 12),
                 ],
 
+                // 1b. medical_supervision 배너 (있을 때만)
+                if (result.exclusionResult?.hasMedicalSupervision ?? false) ...[
+                  _buildMedicalSupervisionBanner(),
+                  const SizedBox(height: 12),
+                ],
+
                 // 2. 절감 금액 배너 (또는 긍정 배너)
                 if (result.exclusionResult?.hasSavings ?? false) ...[
                   _buildSavingsBanner(),
@@ -169,6 +175,12 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
                           TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   ...result.functionalOverlaps.map(_buildFunctionalOverlapCard),
+                ],
+
+                // ── 단일 제품 UL 근접 (95~100%) 섹션 ──
+                if (result.ulAtLimit.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  ...result.ulAtLimit.map(_buildUlAtLimitCard),
                 ],
 
                 // ── 단일 제품 UL 초과 섹션 ──
@@ -324,6 +336,78 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
           const SizedBox(height: 4),
           const Text(
             'Consult your doctor before making changes to prescribed products.',
+            style: TextStyle(fontSize: 11, color: Color(0xFF757575)),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Medical Supervision 배너 — Therapeutic Dose 제품
+  Widget _buildMedicalSupervisionBanner() {
+    final items = result.exclusionResult!.medicalSupervisionItems;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEDE7F6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF7E57C2), width: 1.5),
+      ),
+      child: Column(
+        children: [
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('⚕️', style: TextStyle(fontSize: 24)),
+              SizedBox(width: 8),
+              Text(
+                'Medical Supervision Required',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF4527A0),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...items.map((item) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _shortenProductName(item.product),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF4527A0),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item.reason,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF424242),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )),
+          const SizedBox(height: 4),
+          const Text(
+            'Do not adjust or discontinue without consulting your prescribing physician.',
             style: TextStyle(fontSize: 11, color: Color(0xFF757575)),
             textAlign: TextAlign.center,
           ),
@@ -1775,6 +1859,44 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
           const SizedBox(height: 8),
           Text(overlap.warning,
               style: const TextStyle(fontSize: 13, color: Colors.black87)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUlAtLimitCard(UlAtLimit item) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFDE7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFDD835)),
+      ),
+      child: Row(
+        children: [
+          const Text('⚠️', style: TextStyle(fontSize: 20)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.product,
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${item.ingredient}: ${item.amount}${item.unit} / UL ${item.ul}${item.unit} (${item.percentageOfUl}%)',
+                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                ),
+                const SizedBox(height: 2),
+                Text(item.message,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              ],
+            ),
+          ),
         ],
       ),
     );

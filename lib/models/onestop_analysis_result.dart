@@ -11,6 +11,7 @@ class OnestopAnalysisResult {
   final List<FunctionalOverlap> functionalOverlaps;
   final List<SafetyAlert> safetyAlerts;
   final List<SingleProductUlExcess> singleProductUlExcess;
+  final List<UlAtLimit> ulAtLimit;
   final ExclusionRecommendation? exclusionRecommendation;
   final String overallStatus; // "perfect" | "caution" | "warning"
   final String statusReason;
@@ -21,6 +22,7 @@ class OnestopAnalysisResult {
     required this.functionalOverlaps,
     required this.safetyAlerts,
     required this.singleProductUlExcess,
+    this.ulAtLimit = const [],
     this.exclusionRecommendation,
     required this.overallStatus,
     required this.statusReason,
@@ -45,6 +47,9 @@ class OnestopAnalysisResult {
               [])
           .map((e) => SingleProductUlExcess.fromJson(e as Map<String, dynamic>))
           .toList(),
+      ulAtLimit: (json['ul_at_limit'] as List<dynamic>? ?? [])
+          .map((e) => UlAtLimit.fromJson(e as Map<String, dynamic>))
+          .toList(),
       exclusionRecommendation: json['exclusion_recommendation'] != null
           ? ExclusionRecommendation.fromJson(
               json['exclusion_recommendation'] as Map<String, dynamic>)
@@ -54,10 +59,74 @@ class OnestopAnalysisResult {
     )._enforceOverallStatus();
   }
 
+  /// normalized_key → { ul, unit } 룩업 테이블
+  static const _ulTable = <String, ({double ul, String unit})>{
+    'vitamin_d': (ul: 100, unit: 'mcg'),
+    'zinc': (ul: 40, unit: 'mg'),
+    'vitamin_b6': (ul: 100, unit: 'mg'),
+    'folate': (ul: 1000, unit: 'mcg'),
+    'niacin': (ul: 35, unit: 'mg'),
+    'iodine': (ul: 1100, unit: 'mcg'),
+    'iron': (ul: 45, unit: 'mg'),
+    'vitamin_a': (ul: 3000, unit: 'mcg'),
+    'magnesium': (ul: 350, unit: 'mg'),
+    'vitamin_c': (ul: 2000, unit: 'mg'),
+    'vitamin_e': (ul: 1000, unit: 'mg'),
+    'calcium': (ul: 2500, unit: 'mg'),
+    'selenium': (ul: 400, unit: 'mcg'),
+  };
+
+  /// 제품 성분에서 UL의 95~100%에 해당하는 항목을 계산
+  List<UlAtLimit> _computeUlAtLimit() {
+    final result = <UlAtLimit>[];
+    // 이미 single_product_ul_excess에 있는 (product, ingredient) 쌍은 제외
+    final excessKeys = singleProductUlExcess
+        .map((e) => '${e.product}::${e.ingredient}')
+        .toSet();
+
+    for (final product in products) {
+      for (final ing in product.ingredients) {
+        final key = ing.normalizedKey;
+        if (key == null) continue;
+        final ref = _ulTable[key];
+        if (ref == null) continue;
+        // 단위가 다르면 스킵 (안전)
+        if (ing.unit.toLowerCase() != ref.unit.toLowerCase()) continue;
+        if (ref.ul <= 0) continue;
+
+        final pct = (ing.amount / ref.ul * 100).round();
+        if (pct >= 95 && pct <= 100) {
+          final pairKey = '${product.name}::${ing.name}';
+          if (excessKeys.contains(pairKey)) continue;
+          result.add(UlAtLimit(
+            product: product.name,
+            ingredient: ing.name,
+            amount: ing.amount,
+            unit: ing.unit,
+            ul: ref.ul,
+            percentageOfUl: pct,
+            message:
+                'At UL. Any additional ${ing.name} from food or other supplements would exceed safe limits.',
+          ));
+        }
+      }
+    }
+    return result;
+  }
+
   /// AI 응답의 overall_status를 규칙 기반으로 강제 보정
   ///
   /// 단방향 격상만 수행 — 절대 다운그레이드 없음.
   OnestopAnalysisResult _enforceOverallStatus() {
+    // ul_at_limit 결정적 계산 (Gemini 반환 + 앱 계산 병합)
+    final computed = _computeUlAtLimit();
+    final existingKeys =
+        ulAtLimit.map((e) => '${e.product}::${e.ingredient}').toSet();
+    final merged = [
+      ...ulAtLimit,
+      ...computed.where(
+          (c) => !existingKeys.contains('${c.product}::${c.ingredient}')),
+    ];
     // warning 조건
     final hasWarning = safetyAlerts.isNotEmpty ||
         functionalOverlaps.any((fo) => fo.severity == 'high') ||
@@ -75,6 +144,7 @@ class OnestopAnalysisResult {
         functionalOverlaps: functionalOverlaps,
         safetyAlerts: safetyAlerts,
         singleProductUlExcess: singleProductUlExcess,
+        ulAtLimit: merged,
         exclusionRecommendation: exclusionRecommendation,
         overallStatus: 'warning',
         statusReason: statusReason,
@@ -83,6 +153,7 @@ class OnestopAnalysisResult {
 
     // caution 조건 (warning 아닌 경우만)
     final hasCaution = singleProductUlExcess.isNotEmpty ||
+        merged.isNotEmpty ||
         functionalOverlaps.isNotEmpty ||
         overlaps.any((o) => o.exceedsUl);
 
@@ -93,8 +164,24 @@ class OnestopAnalysisResult {
         functionalOverlaps: functionalOverlaps,
         safetyAlerts: safetyAlerts,
         singleProductUlExcess: singleProductUlExcess,
+        ulAtLimit: merged,
         exclusionRecommendation: exclusionRecommendation,
         overallStatus: 'caution',
+        statusReason: statusReason,
+      );
+    }
+
+    // merged가 원본과 다르면 (계산된 항목 추가됨) 새 인스턴스 반환
+    if (merged.length != ulAtLimit.length) {
+      return OnestopAnalysisResult(
+        products: products,
+        overlaps: overlaps,
+        functionalOverlaps: functionalOverlaps,
+        safetyAlerts: safetyAlerts,
+        singleProductUlExcess: singleProductUlExcess,
+        ulAtLimit: merged,
+        exclusionRecommendation: exclusionRecommendation,
+        overallStatus: overallStatus,
         statusReason: statusReason,
       );
     }
@@ -110,6 +197,7 @@ class OnestopAnalysisResult {
       'safety_alerts': safetyAlerts.map((e) => e.toJson()).toList(),
       'single_product_ul_excess':
           singleProductUlExcess.map((e) => e.toJson()).toList(),
+      'ul_at_limit': ulAtLimit.map((e) => e.toJson()).toList(),
       if (exclusionRecommendation != null)
         'exclusion_recommendation': exclusionRecommendation!.toJson(),
       'overall_status': overallStatus,
@@ -186,6 +274,7 @@ class OnestopAnalysisResult {
       functionalOverlaps: functionalOverlaps,
       safetyAlerts: safetyAlerts,
       singleProductUlExcess: singleProductUlExcess,
+      ulAtLimit: ulAtLimit,
       exclusionResult: exclusion.hasExclusion ? exclusion : null,
     );
   }
@@ -459,6 +548,49 @@ class SingleProductUlExcess {
         'ul': ul,
         'severity': severity,
         if (warning != null) 'warning': warning,
+      };
+}
+
+/// 단일 제품 UL 근접 (95~100%)
+class UlAtLimit {
+  final String product;
+  final String ingredient;
+  final double amount;
+  final String unit;
+  final double ul;
+  final int percentageOfUl;
+  final String message;
+
+  const UlAtLimit({
+    required this.product,
+    required this.ingredient,
+    required this.amount,
+    required this.unit,
+    required this.ul,
+    required this.percentageOfUl,
+    required this.message,
+  });
+
+  factory UlAtLimit.fromJson(Map<String, dynamic> json) {
+    return UlAtLimit(
+      product: json['product'] as String? ?? '',
+      ingredient: json['ingredient'] as String? ?? '',
+      amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+      unit: json['unit'] as String? ?? '',
+      ul: (json['ul'] as num?)?.toDouble() ?? 0.0,
+      percentageOfUl: (json['percentage_of_ul'] as num?)?.round() ?? 0,
+      message: json['message'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'product': product,
+        'ingredient': ingredient,
+        'amount': amount,
+        'unit': unit,
+        'ul': ul,
+        'percentage_of_ul': percentageOfUl,
+        'message': message,
       };
 }
 

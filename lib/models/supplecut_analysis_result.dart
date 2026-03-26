@@ -39,6 +39,9 @@ class SuppleCutAnalysisResult {
   /// 단일 제품 UL 초과 목록 (원스톱 분석에서 제공)
   final List<SingleProductUlExcess> singleProductUlExcess;
 
+  /// 단일 제품 UL 근접 (95~100%) 목록
+  final List<UlAtLimit> ulAtLimit;
+
   /// ExclusionEngine 결과 (USD 기반, 제외/유지 리스트 포함)
   final ExclusionResult? exclusionResult;
 
@@ -55,6 +58,7 @@ class SuppleCutAnalysisResult {
     this.functionalOverlaps = const [],
     this.safetyAlerts = const [],
     this.singleProductUlExcess = const [],
+    this.ulAtLimit = const [],
     this.exclusionResult,
   });
 
@@ -90,6 +94,9 @@ class SuppleCutAnalysisResult {
               [])
           .map((e) => SingleProductUlExcess.fromJson(e as Map<String, dynamic>))
           .toList(),
+      ulAtLimit: (json['ulAtLimit'] as List<dynamic>? ?? [])
+          .map((e) => UlAtLimit.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 
@@ -108,6 +115,7 @@ class SuppleCutAnalysisResult {
       'safetyAlerts': safetyAlerts.map((e) => e.toJson()).toList(),
       'singleProductUlExcess':
           singleProductUlExcess.map((e) => e.toJson()).toList(),
+      'ulAtLimit': ulAtLimit.map((e) => e.toJson()).toList(),
     };
   }
 
