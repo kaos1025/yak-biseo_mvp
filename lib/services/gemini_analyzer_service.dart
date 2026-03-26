@@ -6,6 +6,7 @@ import '../models/analysis_input.dart';
 import '../models/supplement_analysis.dart';
 import '../models/consultant_result.dart';
 import '../models/supplement_product.dart';
+import '../models/onestop_analysis_result.dart';
 import '../models/supplecut_analysis_result.dart';
 import '../models/unified_analysis_result.dart';
 import 'exclusion_engine.dart';
@@ -834,13 +835,28 @@ $contextLines
       // ── 제외 추천: 코드에서 결정적으로 계산 (Gemini 결과 무시) ──
       final tempResult = SuppleCutAnalysisResult.fromJson(json);
       final exclusion = ExclusionEngine.calculate(
+        products: tempResult.products
+            .map((p) => OnestopProduct(
+                  name: p.name,
+                  source: p.source,
+                  monthlyCostEstimate: p.estimatedMonthlyPrice / 1400.0,
+                  ingredients: p.ingredients
+                      .map((i) => OnestopIngredient(
+                            name: i.name,
+                            amount: i.amount,
+                            unit: i.unit,
+                          ))
+                      .toList(),
+                ))
+            .toList(),
+        functionalOverlaps: const [],
+        safetyAlerts: const [],
         duplicates: tempResult.duplicates,
-        products: tempResult.products,
       );
-      if (exclusion.excludedProduct != null) {
-        json['excludedProduct'] = exclusion.excludedProduct;
-        json['monthlySavings'] = exclusion.monthlySavings;
-        json['yearlySavings'] = exclusion.yearlySavings;
+      if (exclusion.hasExclusion) {
+        json['excludedProduct'] = exclusion.excludedProducts.join(', ');
+        json['monthlySavings'] = (exclusion.monthlySavings * 1400).round();
+        json['yearlySavings'] = (exclusion.annualSavings * 1400).round();
       }
 
       return SuppleCutAnalysisResult.fromJson(json);

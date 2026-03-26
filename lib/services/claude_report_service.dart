@@ -61,7 +61,8 @@ class ClaudeReportService {
     String locale = 'ko',
   }) async* {
     final analysisJson = jsonEncode(result.toJson());
-    final prompt = _buildPrompt(analysisJson, locale);
+    final exclusionContext = _buildExclusionContext(result);
+    final prompt = _buildPrompt(analysisJson, locale, exclusionContext);
 
     final content = <Map<String, dynamic>>[];
 
@@ -165,13 +166,63 @@ class ClaudeReportService {
     return imageBytes;
   }
 
-  String _buildPrompt(String analysisJson, String locale) {
+  /// 가격표 + 제외 권장 정보를 프롬프트 컨텍스트로 변환
+  String _buildExclusionContext(SuppleCutAnalysisResult result) {
+    final buffer = StringBuffer();
+
+    // ── 제품별 월비용 가격표 (항상 삽입) ──
+    buffer.writeln('\n## Product Monthly Costs (USD)');
+    for (final p in result.products) {
+      final shortName = p.name.split(',').take(2).join(',').trim();
+      buffer
+          .writeln('- $shortName: \$${p.monthlyCostUsd.toStringAsFixed(2)}/mo');
+    }
+
+    // ── 제외 추천 (있을 때만) ──
+    final ex = result.exclusionResult;
+    if (ex != null && ex.hasExclusion) {
+      // Critical Safety — 즉시 중단 (절감액 무관)
+      final critical = ex.criticalStopItems;
+      if (critical.isNotEmpty) {
+        buffer.writeln('\n## Critical Safety — Discontinue Immediately');
+        buffer.writeln(
+            'These products must be discontinued for safety reasons. They are NOT included in savings calculations.');
+        for (final item in critical) {
+          final shortName = item.product.split(',').take(2).join(',').trim();
+          buffer.writeln('- $shortName: ${item.reason}');
+        }
+      }
+
+      // Recommended Removal — 절감 대상
+      final savings = ex.savingsItems;
+      if (savings.isNotEmpty) {
+        buffer.writeln('\n## Pre-determined Removal Recommendation');
+        buffer.writeln('Products to remove (cost savings):');
+        for (final item in savings) {
+          final shortName = item.product.split(',').take(2).join(',').trim();
+          buffer.writeln('- $shortName');
+        }
+        buffer.writeln(
+            'Monthly savings: \$${ex.monthlySavings.toStringAsFixed(2)}');
+        buffer.writeln(
+            'Annual savings: \$${ex.annualSavings.toStringAsFixed(2)}');
+        buffer.writeln(
+            'NOTE: These savings already exclude critical safety items. Use these exact amounts — do NOT recalculate.');
+      }
+    }
+
+    return buffer.toString();
+  }
+
+  String _buildPrompt(
+      String analysisJson, String locale, String exclusionContext) {
     return '''
 You are a licensed pharmacist and supplement cost analyst.
 Analyze the data below and produce a concise **Premium Report**.
 
 ## Analysis Data (JSON)
 $analysisJson
+$exclusionContext
 
 ## Report Structure (5 sections only)
 
@@ -189,9 +240,11 @@ One Markdown table with EXACTLY 3 columns: Product | Key Ingredients | Price
 - If nothing to flag, skip this section entirely
 
 ### 4. What to Cut
-- Recommend 1 product to drop + 3-line reason
-- Monthly and yearly savings
+- Use ONLY the pre-determined exclusion list provided above
+- Explain WHY those products should be excluded (3-line reason per product)
+- Show the exact monthly and yearly savings from the provided data
 - Remaining stack summary after removal
+- If no products are flagged for exclusion, state: "No products flagged for removal. Your current stack is well-optimized."
 
 ### 5. How to Take
 - Morning vs evening timing only, keep it brief
@@ -208,6 +261,23 @@ One Markdown table with EXACTLY 3 columns: Product | Key Ingredients | Price
 - Do NOT repeat the same risk across multiple sections
 - Do NOT use academic tone like "Evidence shows..." or "Studies suggest..."
 - Be direct and concise
+- Always use USD (\$) for all prices
+
+## Severity Rules
+- Respect the overall_status from the analysis data — if "warning", maintain HIGH RISK tone throughout
+- For any ingredient exceeding 200% of UL, use "WARNING" label (not "CAUTION") in Section 2
+- If critical_stop items exist, mention them prominently as "Discontinue Immediately" — separate from cost savings
+
+## Pricing Rules (CRITICAL)
+- Use EXACTLY the prices provided in "Product Monthly Costs" above — copy dollar amounts verbatim
+- Do NOT estimate, round, or recalculate any prices — use the exact decimal values given
+- Section 1 Price column must match the provided values to the cent (e.g., if given \$10.08, write \$10.08 not \$10.00)
+- Monthly/annual savings must match the provided figures exactly — do NOT recalculate
+
+## Exclusion Rules
+- Section 4 must ONLY reference the pre-determined exclusion list
+- Do NOT suggest alternative products, substitutions, or brand switches
+- Do NOT recommend independent cost-saving measures
 
 ## Tone Guidelines
 - Never use "overdose", "overdosing", or "mimics overdose" — instead say "creates dangerously excessive" or "exceeds reasonable safety standards"
@@ -218,6 +288,13 @@ One Markdown table with EXACTLY 3 columns: Product | Key Ingredients | Price
 - Frame risks as actionable: tell users what to DO, not just what to fear
 - OK to use: "dangerous", "unsafe", "high risk", "discontinue", "consult your doctor"
 - NOT OK: "fatal", "deadly", "life-threatening", "you could die" unless genuinely immediate danger (e.g. MAOI + serotonergic combo)
+
+## Exclusion Logic Rules
+- When ALL products share the same pharmacological mechanism (e.g., all GABAergic, all serotonergic), recommend keeping only 1-2 products maximum, not the entire stack minus one
+- "Functional overlap" across the entire stack is MORE dangerous than a single ingredient safety issue — prioritize mechanism-level risk over individual product risk
+- If 4+ products share the same mechanism, the default recommendation must be "keep 1-2, remove the rest" — not "remove the worst one"
+- The What to Cut section must reflect the FULL recommended reduction, not just the single most dangerous product
+- It is OK to firmly recommend major stack reduction — strong safety recommendations are not the same as fear-inducing language
 ''';
   }
 }

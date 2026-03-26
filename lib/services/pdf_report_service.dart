@@ -265,12 +265,11 @@ class PdfReportService {
   pw.Widget _buildProductTable(
       SuppleCutAnalysisResult result, bool isKo, PdfColor borderColor) {
     // A4 기준 가용폭 = 595 - 40*2 = 515pt
-    // 제품명 20% | 소스 8% | 주요성분 60% | 월가격 12%
+    // 제품명 25% | 주요성분 60% | 월가격 15%
     final columnWidths = {
-      0: const pw.FlexColumnWidth(20),
-      1: const pw.FlexColumnWidth(8),
-      2: const pw.FlexColumnWidth(60),
-      3: const pw.FlexColumnWidth(12),
+      0: const pw.FlexColumnWidth(25),
+      1: const pw.FlexColumnWidth(60),
+      2: const pw.FlexColumnWidth(15),
     };
 
     return pw.TableHelper.fromTextArray(
@@ -289,26 +288,22 @@ class PdfReportService {
       cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       headers: [
         isKo ? '제품명' : 'Product',
-        isKo ? '소스' : 'Src',
         isKo ? '주요 성분' : 'Key Ingredients',
         isKo ? '월 가격' : 'Price',
       ],
       data: result.products.map((p) {
         final displayName = isKo ? (p.nameKo ?? p.name) : p.name;
-        final source = p.isEstimated
-            ? (isKo ? 'AI 추정' : 'AI Est.')
-            : (isKo ? 'DB 매칭' : 'DB');
         final ingredients = p.ingredients
             .take(3)
             .map(
                 (i) => i.amount > 0 ? '${i.name} ${i.amount}${i.unit}' : i.name)
             .join(', ');
-        final price = p.estimatedMonthlyPrice > 0
-            ? (isKo
+        final price = p.monthlyCostUsd > 0
+            ? '\$${p.monthlyCostUsd.toStringAsFixed(2)}/mo'
+            : (p.estimatedMonthlyPrice > 0
                 ? '${NumberFormat('#,###').format(p.estimatedMonthlyPrice)}원'
-                : '\$${(p.estimatedMonthlyPrice / 1300).toStringAsFixed(1)}')
-            : '-';
-        return [displayName, source, ingredients, price];
+                : '-');
+        return [displayName, ingredients, price];
       }).toList(),
     );
   }
@@ -393,12 +388,13 @@ class PdfReportService {
 
   pw.Widget _buildSavingsSection(
       SuppleCutAnalysisResult result, bool isKo, PdfColor color) {
-    final monthlyStr = isKo
-        ? '${NumberFormat('#,###').format(result.monthlySavings)}원'
-        : '\$${(result.monthlySavings / 1300).toStringAsFixed(0)}';
-    final yearlyStr = isKo
-        ? '${NumberFormat('#,###').format(result.yearlySavings)}원'
-        : '\$${(result.yearlySavings / 1300).toStringAsFixed(0)}';
+    final ex = result.exclusionResult;
+    final monthlyStr = ex != null
+        ? '\$${ex.monthlySavings.toStringAsFixed(2)}'
+        : '${NumberFormat('#,###').format(result.monthlySavings)}원';
+    final yearlyStr = ex != null
+        ? '\$${ex.annualSavings.toStringAsFixed(2)}'
+        : '${NumberFormat('#,###').format(result.yearlySavings)}원';
 
     return pw.Container(
       padding: const pw.EdgeInsets.all(12),

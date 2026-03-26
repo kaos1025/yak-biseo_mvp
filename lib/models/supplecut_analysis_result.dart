@@ -1,4 +1,5 @@
 import 'package:myapp/models/onestop_analysis_result.dart';
+import 'package:myapp/services/exclusion_engine.dart';
 
 /// SuppleCut 분석 응답 모델
 class SuppleCutAnalysisResult {
@@ -38,6 +39,9 @@ class SuppleCutAnalysisResult {
   /// 단일 제품 UL 초과 목록 (원스톱 분석에서 제공)
   final List<SingleProductUlExcess> singleProductUlExcess;
 
+  /// ExclusionEngine 결과 (USD 기반, 제외/유지 리스트 포함)
+  final ExclusionResult? exclusionResult;
+
   const SuppleCutAnalysisResult({
     required this.products,
     required this.duplicates,
@@ -51,6 +55,7 @@ class SuppleCutAnalysisResult {
     this.functionalOverlaps = const [],
     this.safetyAlerts = const [],
     this.singleProductUlExcess = const [],
+    this.exclusionResult,
   });
 
   /// Gemini JSON 응답에서 생성
@@ -149,6 +154,9 @@ class AnalyzedProduct {
   /// AI 추정 월 환산 가격 (KRW)
   final int estimatedMonthlyPrice;
 
+  /// Gemini 원본 월비용 (USD) — KRW 변환 없이 보존
+  final double monthlyCostUsd;
+
   const AnalyzedProduct({
     required this.name,
     required this.source,
@@ -157,6 +165,7 @@ class AnalyzedProduct {
     this.confidence,
     this.note,
     this.estimatedMonthlyPrice = 0,
+    this.monthlyCostUsd = 0.0,
   });
 
   factory AnalyzedProduct.fromJson(Map<String, dynamic> json) {

@@ -248,13 +248,28 @@ Return ONLY valid JSON (no markdown, no preamble):
 ## CRITICAL RULES
 
 1. overall_status rules (strictly enforced):
-   - "warning" if: safety_alerts has 1+ items, OR functional_overlaps has severity "high", OR research_chemical alert exists
-   - "caution" if: single_product_ul_excess has 1+ items, OR functional_overlaps exist (any severity)
+   - "warning" if ANY of these:
+     * safety_alerts has 1+ items
+     * functional_overlaps has severity "high"
+     * research_chemical OR therapeutic_dose alert exists
+     * any overlap where total_amount / ul >= 2.0 (200%+ of UL)
+     * any functional_overlap pathway with 3+ products
+   - "caution" if ANY of these (and no warning conditions):
+     * single_product_ul_excess has 1+ items
+     * functional_overlaps exist (any severity)
+     * any overlap exceeds UL (but below 200%)
    - "perfect" ONLY when none of the above conditions apply
 2. Include ALL ingredients for complex products (multivitamins have 20+ ingredients -- list them all).
 3. Excipient nutrients (dicalcium phosphate calcium, etc.) MUST be included in overlap calculations.
 4. When you cannot read a label clearly, say so in the source field ("estimated - label partially obscured") rather than guessing a wrong product.
-5. Monthly cost estimates should be based on typical US retail prices for the identified product.
+5. monthly_cost_estimate calculation (CRITICAL — do NOT use retail price directly):
+   a. Identify the product retail price (USD) based on typical US retail
+   b. Identify total servings = total_count ÷ serving_size (from label)
+   c. monthly_cost_estimate = (retail_price / total_servings) × 30
+   d. Round to 2 decimal places
+   e. If serving size is not visible on the label, assume 1 unit per serving
+   Example: $22.40 retail, 120 capsules, 1 cap/serving → ($22.40 / 120) × 30 = $5.60
 6. For powder products, use the standard serving size (e.g., creatine = 5g/serving, protein = 1 scoop).
+7. INGREDIENT-PRODUCT MAPPING (CRITICAL): Each product's ingredients[] array must contain ONLY ingredients that belong to THAT specific product. Do NOT mix ingredients between products. Before returning, verify that each ingredient is listed under the correct product.
 ''';
 }

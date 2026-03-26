@@ -1,3 +1,4 @@
+import '../services/exclusion_engine.dart';
 import 'supplecut_analysis_result.dart';
 
 /// Gemini/Claude 원스톱 분석 결과 모델
@@ -54,11 +55,18 @@ class OnestopAnalysisResult {
   }
 
   /// AI 응답의 overall_status를 규칙 기반으로 강제 보정
+  ///
+  /// 단방향 격상만 수행 — 절대 다운그레이드 없음.
   OnestopAnalysisResult _enforceOverallStatus() {
-    // warning 조건: safety_alerts 존재, high severity functional overlap, research_chemical
+    // warning 조건
     final hasWarning = safetyAlerts.isNotEmpty ||
         functionalOverlaps.any((fo) => fo.severity == 'high') ||
-        safetyAlerts.any((sa) => sa.alertType == 'research_chemical');
+        safetyAlerts.any((sa) =>
+            sa.alertType == 'research_chemical' ||
+            sa.alertType == 'therapeutic_dose') ||
+        overlaps.any(
+            (o) => o.ul != null && o.ul! > 0 && o.totalAmount / o.ul! >= 2.0) ||
+        functionalOverlaps.any((fo) => fo.products.length >= 3);
 
     if (hasWarning && overallStatus != 'warning') {
       return OnestopAnalysisResult(
@@ -73,9 +81,10 @@ class OnestopAnalysisResult {
       );
     }
 
-    // caution 조건: single_product_ul_excess 존재, functional_overlaps 존재
-    final hasCaution =
-        singleProductUlExcess.isNotEmpty || functionalOverlaps.isNotEmpty;
+    // caution 조건 (warning 아닌 경우만)
+    final hasCaution = singleProductUlExcess.isNotEmpty ||
+        functionalOverlaps.isNotEmpty ||
+        overlaps.any((o) => o.exceedsUl);
 
     if (hasCaution && overallStatus == 'perfect') {
       return OnestopAnalysisResult(
@@ -126,6 +135,27 @@ class OnestopAnalysisResult {
         overallRisk = 'safe';
     }
 
+    final convertedDuplicates = overlaps
+        .map((o) => DuplicateIngredient(
+              ingredient: o.ingredient,
+              products: o.sources.map((s) => s.product).toList(),
+              totalAmount: '${o.totalAmount}${o.unit}',
+              dailyLimit: o.ul != null ? '${o.ul}${o.ulUnit ?? o.unit}' : null,
+              riskLevel: o.severity,
+              advice: o.exceedsUl
+                  ? '합산 섭취량이 일일 상한(UL)을 초과합니다.'
+                  : '중복되지만 안전 범위 내입니다.',
+            ))
+        .toList();
+
+    // ExclusionEngine으로 제외 추천 결정적 계산 (Gemini 결과 덮어씌움)
+    final exclusion = ExclusionEngine.calculate(
+      products: products,
+      functionalOverlaps: functionalOverlaps,
+      safetyAlerts: safetyAlerts,
+      duplicates: convertedDuplicates,
+    );
+
     return SuppleCutAnalysisResult(
       products: products
           .map((p) => AnalyzedProduct(
@@ -142,32 +172,21 @@ class OnestopAnalysisResult {
                     .toList(),
                 estimatedMonthlyPrice:
                     (p.monthlyCostEstimate * 1400).round(), // USD→KRW 근사
+                monthlyCostUsd: p.monthlyCostEstimate,
               ))
           .toList(),
-      duplicates: overlaps
-          .map((o) => DuplicateIngredient(
-                ingredient: o.ingredient,
-                products: o.sources.map((s) => s.product).toList(),
-                totalAmount: '${o.totalAmount}${o.unit}',
-                dailyLimit:
-                    o.ul != null ? '${o.ul}${o.ulUnit ?? o.unit}' : null,
-                riskLevel: o.severity,
-                advice: o.exceedsUl
-                    ? '합산 섭취량이 일일 상한(UL)을 초과합니다.'
-                    : '중복되지만 안전 범위 내입니다.',
-              ))
-          .toList(),
+      duplicates: convertedDuplicates,
       overallRisk: overallRisk,
       summary: statusReason,
       recommendations: _buildRecommendations(),
-      monthlySavings:
-          ((exclusionRecommendation?.monthlySavings ?? 0) * 1400).round(),
-      yearlySavings:
-          ((exclusionRecommendation?.annualSavings ?? 0) * 1400).round(),
-      excludedProduct: exclusionRecommendation?.excludeProduct,
+      monthlySavings: (exclusion.monthlySavings * 1400).round(),
+      yearlySavings: (exclusion.annualSavings * 1400).round(),
+      excludedProduct:
+          exclusion.hasExclusion ? exclusion.excludedProducts.join(', ') : null,
       functionalOverlaps: functionalOverlaps,
       safetyAlerts: safetyAlerts,
       singleProductUlExcess: singleProductUlExcess,
+      exclusionResult: exclusion.hasExclusion ? exclusion : null,
     );
   }
 

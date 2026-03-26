@@ -38,7 +38,6 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
   bool _isReportLoading = false;
   bool _isReportStreaming = false;
   bool _isPdfGenerating = false;
-  bool _isSummaryExpanded = false;
   String? _detailedReport;
   String? _reportError;
 
@@ -49,6 +48,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
   /// 커서 깜빡임 애니메이션
   late AnimationController _cursorController;
   late Animation<double> _cursorOpacity;
+
+  /// Safety details 섹션 스크롤 키
+  final _safetyDetailKey = GlobalKey();
 
   SuppleCutAnalysisResult get result => widget.result;
 
@@ -121,8 +123,17 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
               children: [
                 // ── 무료 섹션 ──
 
-                // 1. 절감 금액 배너 (또는 긍정 배너)
-                if (result.hasSavings) ...[
+                // 1. critical_stop 배너 (있을 때만)
+                if (result.exclusionResult?.hasCriticalStop ?? false) ...[
+                  _buildCriticalStopBanner(),
+                  const SizedBox(height: 12),
+                ],
+
+                // 2. 절감 금액 배너 (또는 긍정 배너)
+                if (result.exclusionResult?.hasSavings ?? false) ...[
+                  _buildSavingsBanner(),
+                  const SizedBox(height: 16),
+                ] else if (result.hasSavings) ...[
                   _buildSavingsBanner(),
                   const SizedBox(height: 16),
                 ] else if (result.hasDuplicates) ...[
@@ -143,13 +154,16 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
 
                 // ── 안전성 경고 섹션 ──
                 if (result.safetyAlerts.isNotEmpty) ...[
-                  const SizedBox(height: 20),
+                  SizedBox(key: _safetyDetailKey, height: 20),
                   ...result.safetyAlerts.map(_buildSafetyAlertCard),
                 ],
 
                 // ── 기전 중복 섹션 ──
                 if (result.functionalOverlaps.isNotEmpty) ...[
-                  const SizedBox(height: 20),
+                  SizedBox(
+                      key:
+                          result.safetyAlerts.isEmpty ? _safetyDetailKey : null,
+                      height: 20),
                   const Text('🧬 Mechanism Overlap Warning',
                       style:
                           TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -246,6 +260,78 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
     );
   }
 
+  /// Critical Stop 배너 — Research Chemical / Therapeutic Dose
+  Widget _buildCriticalStopBanner() {
+    final criticalItems = result.exclusionResult!.criticalStopItems;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFEBEE),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEF5350), width: 1.5),
+      ),
+      child: Column(
+        children: [
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('⛔', style: TextStyle(fontSize: 24)),
+              SizedBox(width: 8),
+              Text(
+                'Discontinue Immediately',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFC62828),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...criticalItems.map((item) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _shortenProductName(item.product),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFC62828),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item.reason,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF424242),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )),
+          const SizedBox(height: 4),
+          const Text(
+            'Consult your doctor before making changes to prescribed products.',
+            style: TextStyle(fontSize: 11, color: Color(0xFF757575)),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
   /// 유료 컨텐츠가 있는지 확인
   bool _hasPremiumContent() {
     return result.hasDuplicates ||
@@ -256,8 +342,57 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
   // ── 위젯 빌더들 ──
 
   /// 절감 금액 배너 (무료)
+  /// 제품명 축약: "Brand, Product, Dosage, Count" → "Brand, Product"
+  String _shortenProductName(String fullName) {
+    final parts = fullName.split(',').map((s) => s.trim()).toList();
+    if (parts.length >= 2) return parts.take(2).join(', ');
+    return fullName;
+  }
+
+  /// Keep/Remove 텍스트 생성
+  String _buildKeepRemoveText() {
+    final ex = result.exclusionResult;
+    if (ex == null || !ex.hasExclusion) return '';
+
+    final removeCount = ex.excludedProducts.length;
+    final keepCount = ex.keptProducts.length;
+
+    if (removeCount <= 2) {
+      final names = ex.excludedProducts.map(_shortenProductName).join(', ');
+      return 'Remove: $names';
+    }
+
+    if (keepCount == 1) {
+      return 'Keep: ${_shortenProductName(ex.keptProducts.first)}\nRemove: $removeCount other products';
+    }
+
+    return 'Keep: $keepCount products\nRemove: $removeCount other products';
+  }
+
+  /// 경고 요약 텍스트
+  String? _buildWarningSummary() {
+    // functional_overlaps HIGH 우선
+    final highFo =
+        result.functionalOverlaps.where((fo) => fo.severity == 'high').toList();
+    if (highFo.isNotEmpty) {
+      final count = highFo.first.products.length;
+      return '$count ${highFo.first.pathway} detected';
+    }
+
+    // safety_alerts
+    if (result.safetyAlerts.isNotEmpty) {
+      final sa = result.safetyAlerts.first;
+      return 'Safety alert: ${_shortenProductName(sa.product)}';
+    }
+
+    return null;
+  }
+
   Widget _buildSavingsBanner() {
-    final l10n = AppLocalizations.of(context)!;
+    final ex = result.exclusionResult;
+    final monthlySavingsUsd = ex?.monthlySavings ?? 0.0;
+    final annualSavingsUsd = ex?.annualSavings ?? 0.0;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       decoration: BoxDecoration(
@@ -277,45 +412,30 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
       ),
       child: Column(
         children: [
-          // 제외 제품명 (상단)
-          if (result.excludedProduct != null) ...[
-            Text(
-              l10n.analysisExcludingProduct(result.excludedProduct!),
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF5D4037),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // 라벨
-          Text(
-            '💰 ${l10n.analysisSavings}',
-            style: const TextStyle(
-              fontSize: 13,
+          // 1. 헤드라인
+          const Text(
+            'You could save',
+            style: TextStyle(
+              fontSize: 14,
               fontWeight: FontWeight.w500,
               color: Color(0xFF795548),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
 
-          // 금액
+          // 2. 절감액 (USD)
           Text(
-            LocalizationUtils.formatCurrency(
-                result.monthlySavings.toDouble(), l10n.localeName),
+            '\$${monthlySavingsUsd.toStringAsFixed(2)}/mo',
             style: const TextStyle(
-              fontSize: 34,
-              fontWeight: FontWeight.bold,
+              fontSize: 40,
+              fontWeight: FontWeight.w900,
               color: Color(0xFF3E2723),
             ),
           ),
 
-          // 연간 절감 필
-          if (result.yearlySavings > 0) ...[
-            const SizedBox(height: 10),
+          // 3. 연간 절감 배지
+          if (annualSavingsUsd > 0) ...[
+            const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
@@ -323,9 +443,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                '🎉 ${l10n.analysisYearly(LocalizationUtils.formatCurrency(result.yearlySavings.toDouble(), l10n.localeName))}',
+                "That's \$${annualSavingsUsd.toStringAsFixed(0)}/year!",
                 style: const TextStyle(
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF5D4037),
                 ),
@@ -333,53 +453,63 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
             ),
           ],
 
-          // 하단 설명 (접이식)
-          if (result.summary.isNotEmpty) ...[
-            const SizedBox(height: 14),
+          // 4. Keep/Remove 정보
+          if (ex != null && ex.hasExclusion) ...[
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                _buildKeepRemoveText(),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF4E342E),
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+
+          // 5. 경고 요약 + "See safety details ▾"
+          if (_buildWarningSummary() != null) ...[
+            const SizedBox(height: 12),
             GestureDetector(
-              onTap: () =>
-                  setState(() => _isSummaryExpanded = !_isSummaryExpanded),
-              child: Column(
+              onTap: () {
+                final ctx = _safetyDetailKey.currentContext;
+                if (ctx != null) {
+                  Scrollable.ensureVisible(ctx,
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.easeInOut);
+                }
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    '💊 ${result.summary}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      height: 1.5,
-                      color: Color(0xFF5D4037),
+                  Flexible(
+                    child: Text(
+                      '⚠️ ${_buildWarningSummary()}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF795548),
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                    maxLines: _isSummaryExpanded ? null : 1,
-                    overflow: _isSummaryExpanded
-                        ? TextOverflow.visible
-                        : TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _isSummaryExpanded
-                            ? (AppLocalizations.of(context)!.localeName == 'ko'
-                                ? '접기'
-                                : 'Show less')
-                            : (AppLocalizations.of(context)!.localeName == 'ko'
-                                ? '자세히 보기'
-                                : 'See details'),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF795548),
-                        ),
-                      ),
-                      Icon(
-                        _isSummaryExpanded
-                            ? Icons.keyboard_arrow_up
-                            : Icons.keyboard_arrow_down,
-                        size: 16,
-                        color: const Color(0xFF795548),
-                      ),
-                    ],
+                  const SizedBox(width: 4),
+                  const Text(
+                    'See safety details ▾',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF5D4037),
+                      decoration: TextDecoration.underline,
+                    ),
                   ),
                 ],
               ),
@@ -406,6 +536,18 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
     if (pnKo.length >= 2 && dn.isNotEmpty) {
       if (dn.contains(pnKo) || pnKo.contains(dn)) return true;
     }
+    // 토큰 기반 매칭 — dupName의 토큰 80%+ 가 productName에 포함
+    final dnTokens = dn
+        .split(RegExp(r'[\s,;:/\-\(\)]+'))
+        .where((t) => t.length >= 2)
+        .toList();
+    if (dnTokens.length >= 2) {
+      int score = 0;
+      for (final token in dnTokens) {
+        if (pn.contains(token)) score++;
+      }
+      if (score >= (dnTokens.length * 0.8).ceil()) return true;
+    }
     return false;
   }
 
@@ -417,27 +559,45 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
   /// - 중복 있음 + warning riskLevel → 주황
   /// - 중복 있음 + safe riskLevel → 노랑
   Color _getProductSignalColor(AnalyzedProduct product) {
-    // 이 제품과 관련된 중복 성분 확인
-    final relatedDups = result.duplicates.where((dup) {
-      return dup.products.any((dupName) =>
-          _productNameMatches(dupName, product.name, product.nameKo));
-    }).toList();
+    const red = Color(0xFFE53935);
+    const orange = Color(0xFFFFA726);
+    const yellow = Color(0xFFFDD835);
+    const green = Color(0xFF43A047);
 
-    if (relatedDups.isEmpty) return const Color(0xFF43A047); // 초록: safe
+    // 1. safety_alerts에 포함 → 빨강
+    final hasSafetyAlert = result.safetyAlerts.any(
+        (sa) => _productNameMatches(sa.product, product.name, product.nameKo));
+    if (hasSafetyAlert) return red;
 
-    // 이 제품이 절감 추천 대상인지 확인 (퍼지 매칭)
-    final excluded = result.excludedProduct ?? '';
-    final isExcluded = excluded.isNotEmpty &&
-        _productNameMatches(excluded, product.name, product.nameKo);
-    if (isExcluded) return const Color(0xFFE53935); // 빨강: 절감 추천 대상
+    // 2~4. functional_overlaps 최대 severity 확인
+    String? maxFoSeverity;
+    for (final fo in result.functionalOverlaps) {
+      final isInvolved = fo.products.any((foName) =>
+          _productNameMatches(foName, product.name, product.nameKo));
+      if (!isInvolved) continue;
 
-    // 관련 중복 성분 중 최대 riskLevel 확인
-    final hasDanger = relatedDups.any((d) => d.riskLevel == 'danger');
-    final hasWarning = relatedDups.any((d) => d.riskLevel == 'warning');
+      if (fo.severity == 'high') {
+        maxFoSeverity = 'high';
+        break; // 이미 최고 severity
+      } else if (fo.severity == 'medium' && maxFoSeverity != 'high') {
+        maxFoSeverity = 'medium';
+      } else if (fo.severity == 'low' && maxFoSeverity == null) {
+        maxFoSeverity = 'low';
+      }
+    }
 
-    if (hasDanger) return const Color(0xFFE53935); // 빨강: danger
-    if (hasWarning) return const Color(0xFFFFA726); // 주황: warning
-    return const Color(0xFFFDD835); // 노랑: safe 중복
+    if (maxFoSeverity == 'high') return red;
+    if (maxFoSeverity == 'medium') return orange;
+    if (maxFoSeverity == 'low') return yellow;
+
+    // 5. overlaps(성분 중복)에 포함 → 노랑
+    final hasDuplicate = result.duplicates.any((dup) => dup.products.any(
+        (dupName) =>
+            _productNameMatches(dupName, product.name, product.nameKo)));
+    if (hasDuplicate) return yellow;
+
+    // 6. 해당 없음 → 초록
+    return green;
   }
 
   /// 제품 카드 (무료) — 제품명 + 소스 태그 + 월 가격 + 성분 칩 + 중복 뼉지
@@ -537,10 +697,13 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
             ],
 
             // 월 환산 가격
-            if (product.estimatedMonthlyPrice > 0) ...[
+            if (product.monthlyCostUsd > 0 ||
+                product.estimatedMonthlyPrice > 0) ...[
               const SizedBox(height: 6),
               Text(
-                '💰 ${l10n.localeName == 'en' ? 'Monthly' : '월'} ${LocalizationUtils.formatCurrency(product.estimatedMonthlyPrice.toDouble(), l10n.localeName)}',
+                product.monthlyCostUsd > 0
+                    ? '💰 Monthly \$${product.monthlyCostUsd.toStringAsFixed(2)}/mo'
+                    : '💰 ${l10n.localeName == 'en' ? 'Monthly' : '월'} ${LocalizationUtils.formatCurrency(product.estimatedMonthlyPrice.toDouble(), l10n.localeName)}',
                 style: const TextStyle(
                   fontSize: 13,
                   color: Colors.black54,
@@ -1166,7 +1329,14 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
 
   /// 긍정 피드백 배너 (중복/과잉이 없을 때)
   Widget _buildPositiveBanner() {
-    final l10n = AppLocalizations.of(context)!;
+    // 월간 총 비용 (USD) — monthlyCostUsd 직접 합산
+    double totalMonthlyUsd = 0.0;
+    for (final p in result.products) {
+      totalMonthlyUsd += p.monthlyCostUsd > 0
+          ? p.monthlyCostUsd
+          : p.estimatedMonthlyPrice / 1400.0;
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       decoration: BoxDecoration(
@@ -1194,9 +1364,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
             size: 40,
           ),
           const SizedBox(height: 12),
-          Text(
-            l10n.positiveBannerTitle,
-            style: const TextStyle(
+          const Text(
+            'Your stack looks good!',
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Color(0xFF1B5E20),
@@ -1204,15 +1374,24 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
-          Text(
-            l10n.positiveBannerDesc,
-            style: const TextStyle(
+          const Text(
+            'No overlaps or safety issues detected',
+            style: TextStyle(
               fontSize: 13,
               height: 1.5,
               fontWeight: FontWeight.w500,
               color: Color(0xFF388E3C),
             ),
             textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Total: \$${totalMonthlyUsd.toStringAsFixed(2)}/mo',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2E7D32),
+            ),
           ),
         ],
       ),
