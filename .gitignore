@@ -27,6 +27,10 @@ build/
 *.png
 *.gif
 
+# Allow screenshots for Play Store
+!screenshots/
+!screenshots/**
+
 # Secrets
 .env
 *.jks
