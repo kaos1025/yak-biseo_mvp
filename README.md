@@ -1,22 +1,11 @@
-<p align="center">
-  <img src="assets/icon/icon.png" alt="SuppleCut Logo" width="120" />
-</p>
+# SuppleCut — AI Supplement Stack Analyzer
 
-<h1 align="center">SuppleCut — AI Supplement Stack Analyzer</h1>
+![Google Play](https://img.shields.io/badge/Google_Play-Closed_Beta-green?logo=google-play)
+![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)
+![Gemini](https://img.shields.io/badge/Gemini_Flash-Vision%2FOCR-4285F4?logo=google)
+![Claude](https://img.shields.io/badge/Claude_Sonnet-Reasoning-CC785C?logo=anthropic)
 
-<p align="center">
-  <strong>Scan your supplements. Find overlaps. Cut waste. Save money.</strong>
-</p>
-
-<p align="center">
-  <a href="https://play.google.com/store/apps/details?id=com.supplecut.app">
-    <img src="https://img.shields.io/badge/Google_Play-Closed_Beta-green?logo=google-play" alt="Google Play" />
-  </a>
-  <img src="https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter" alt="Flutter" />
-  <img src="https://img.shields.io/badge/Gemini_Flash-Vision%2FOCR-4285F4?logo=google" alt="Gemini" />
-  <img src="https://img.shields.io/badge/Claude_Sonnet-Reasoning-CC785C?logo=anthropic" alt="Claude" />
-  <img src="https://img.shields.io/badge/License-Proprietary-red" alt="License" />
-</p>
+> **Scan your supplements. Find overlaps. Cut waste. Save money.**
 
 ---
 
@@ -31,17 +20,14 @@ Even pharmacists can miss hidden overlaps buried in excipient-level ingredients 
 **SuppleCut** takes a photo of your supplement bottles, identifies every product using AI vision, and analyzes the entire stack for:
 
 - 🔴 **Ingredient Overlaps** — Same nutrient from multiple products exceeding UL
-- 🟡 **Mechanism Conflicts** — GABAergic, androgenic, blood-thinning pathway overlaps  
+- 🟡 **Mechanism Conflicts** — GABAergic, androgenic, blood-thinning pathway overlaps
 - ⚡ **UL Exceedance** — Single-product or cross-product Upper Limit violations
 - ⚕️ **Drug Interactions** — Statin equivalents (Red Yeast Rice), thyroid conflicts, etc.
 - 💰 **Cost Optimization** — Which supplement to cut, with monthly/annual savings
 
-<p align="center">
-  <img src="screenshots/playstore_v4_01.jpg" alt="Scan" width="180" />
-  <img src="screenshots/playstore_v4_02.jpg" alt="Analysis" width="180" />
-  <img src="screenshots/playstore_v4_03.jpg" alt="Overlap" width="180" />
-  <img src="screenshots/playstore_v4_04.jpg" alt="Report" width="180" />
-</p>
+| | | | |
+|:---:|:---:|:---:|:---:|
+| ![Scan](screenshots/playstore_v4_01.jpg) | ![Analysis](screenshots/playstore_v4_02.jpg) | ![Overlap](screenshots/playstore_v4_03.jpg) | ![Report](screenshots/playstore_v4_04.jpg) |
 
 ## Architecture
 
@@ -86,9 +72,11 @@ Even pharmacists can miss hidden overlaps buried in excipient-level ingredients 
 ## Key Features
 
 ### 🔬 Excipient-Level Detection (Killer Feature)
+
 Most analyzers only check active ingredients. SuppleCut detects hidden nutrients in inactive ingredients — like calcium from Dicalcium Phosphate tablet binders — that even pharmacists can miss.
 
 ### 🚦 4-Tier Exclusion System
+
 | Tier | Color | Action |
 |------|-------|--------|
 | `critical_stop` | 🔴 Red | ⛔ Discontinue Immediately (Research chemicals) |
@@ -97,7 +85,9 @@ Most analyzers only check active ingredients. SuppleCut detects hidden nutrients
 | `conditional_remove` | 🟡 Yellow | Remove only if condition applies |
 
 ### 📊 Validated Across 20 Test Cases
+
 Pharmacist-reviewed analysis covering 3–12 products per case, including edge cases like:
+
 - 7-product GABAergic pathway overlap detection
 - Monacolin K = Lovastatin (prescription statin) identification in Red Yeast Rice
 - Therapeutic dose medications (Palafer iron) — flagged for medical supervision, not removal
@@ -155,6 +145,4 @@ SuppleCut is the first product in an **AI ingredient analysis platform**:
 
 ---
 
-<p align="center">
-  <sub>Built by a solo developer with 18 years of backend experience, AI-assisted coding, and a lot of supplements.</sub>
-</p>
+*Built by a solo developer with 18 years of backend experience, AI-assisted coding, and a lot of supplements.*
