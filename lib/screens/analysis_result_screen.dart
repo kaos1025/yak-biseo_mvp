@@ -12,6 +12,7 @@ import 'package:myapp/core/service_locator.dart';
 import 'package:myapp/services/iap_service.dart';
 import 'package:myapp/config/pricing_config.dart';
 import 'package:myapp/utils/localization_utils.dart';
+import 'package:myapp/widgets/disclaimer_banner.dart';
 
 /// SuppleCut 분석 결과 화면
 ///
@@ -113,162 +114,175 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
               Navigator.of(context).popUntil((route) => route.isFirst),
         ),
       ),
-      body: Stack(
+      body: Column(
         children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.only(
-                left: 20, right: 20, top: 20, bottom: 100),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          const DisclaimerBanner(),
+          Expanded(
+            child: Stack(
               children: [
-                // ── 무료 섹션 ──
+                SingleChildScrollView(
+                  padding: const EdgeInsets.only(
+                      left: 20, right: 20, top: 20, bottom: 100),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // ── 무료 섹션 ──
 
-                // 1. critical_stop 배너 (있을 때만)
-                if (result.exclusionResult?.hasCriticalStop ?? false) ...[
-                  _buildCriticalStopBanner(),
-                  const SizedBox(height: 12),
-                ],
+                      // 1. critical_stop 배너 (있을 때만)
+                      if (result.exclusionResult?.hasCriticalStop ?? false) ...[
+                        _buildCriticalStopBanner(),
+                        const SizedBox(height: 12),
+                      ],
 
-                // 1b. medical_supervision 배너 (있을 때만)
-                if (result.exclusionResult?.hasMedicalSupervision ?? false) ...[
-                  _buildMedicalSupervisionBanner(),
-                  const SizedBox(height: 12),
-                ],
+                      // 1b. medical_supervision 배너 (있을 때만)
+                      if (result.exclusionResult?.hasMedicalSupervision ??
+                          false) ...[
+                        _buildMedicalSupervisionBanner(),
+                        const SizedBox(height: 12),
+                      ],
 
-                // 2. 상단 배너 (이슈 유형별 분기)
-                if (result.exclusionResult?.hasSavings ?? false) ...[
-                  _buildSavingsBanner(),
-                  const SizedBox(height: 16),
-                ] else if (result.hasSavings) ...[
-                  _buildSavingsBanner(),
-                  const SizedBox(height: 16),
-                ] else if (result.hasDuplicates ||
-                    result.singleProductUlExcess.isNotEmpty) ...[
-                  _buildSafetyIssuesBanner(),
-                  const SizedBox(height: 16),
-                ] else if (result.functionalOverlaps.isNotEmpty) ...[
-                  _buildFunctionalOverlapBanner(),
-                  const SizedBox(height: 16),
-                ] else ...[
-                  _buildPositiveBanner(),
-                  const SizedBox(height: 16),
-                ],
+                      // 2. 상단 배너 (이슈 유형별 분기)
+                      if (result.exclusionResult?.hasSavings ?? false) ...[
+                        _buildSavingsBanner(),
+                        const SizedBox(height: 16),
+                      ] else if (result.hasSavings &&
+                          result.overallRisk != 'safe') ...[
+                        _buildSavingsBanner(),
+                        const SizedBox(height: 16),
+                      ] else if (result.hasDuplicates ||
+                          result.singleProductUlExcess.isNotEmpty) ...[
+                        _buildSafetyIssuesBanner(),
+                        const SizedBox(height: 16),
+                      ] else if (result.functionalOverlaps.isNotEmpty) ...[
+                        _buildFunctionalOverlapBanner(),
+                        const SizedBox(height: 16),
+                      ] else ...[
+                        _buildPositiveBanner(),
+                        const SizedBox(height: 16),
+                      ],
 
-                // 3. 제품 목록
-                const SizedBox(height: 20),
-                Text('📦 ${l10n.analyzedProducts}',
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                ...result.products.map(_buildProductCard),
+                      // 3. 제품 목록
+                      const SizedBox(height: 20),
+                      Text('📦 ${l10n.analyzedProducts}',
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      ...result.products.map(_buildProductCard),
 
-                // ── 안전성 경고 섹션 ──
-                if (result.safetyAlerts.isNotEmpty) ...[
-                  SizedBox(key: _safetyDetailKey, height: 20),
-                  ...result.safetyAlerts.map(_buildSafetyAlertCard),
-                ],
+                      // ── 안전성 경고 섹션 ──
+                      if (result.safetyAlerts.isNotEmpty) ...[
+                        SizedBox(key: _safetyDetailKey, height: 20),
+                        ...result.safetyAlerts.map(_buildSafetyAlertCard),
+                      ],
 
-                // ── 기전 중복 섹션 ──
-                if (result.functionalOverlaps.isNotEmpty) ...[
-                  SizedBox(
-                      key:
-                          result.safetyAlerts.isEmpty ? _safetyDetailKey : null,
-                      height: 20),
-                  const Text('🧬 Mechanism Overlap Warning',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  ...result.functionalOverlaps.map(_buildFunctionalOverlapCard),
-                ],
+                      // ── 기전 중복 섹션 ──
+                      if (result.functionalOverlaps.isNotEmpty) ...[
+                        SizedBox(
+                            key: result.safetyAlerts.isEmpty
+                                ? _safetyDetailKey
+                                : null,
+                            height: 20),
+                        const Text('🧬 Mechanism Overlap Warning',
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 12),
+                        ...result.functionalOverlaps
+                            .map(_buildFunctionalOverlapCard),
+                      ],
 
-                // ── 단일 제품 UL 근접 (95~100%) 섹션 ──
-                if (result.ulAtLimit.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  ...result.ulAtLimit.map(_buildUlAtLimitCard),
-                ],
+                      // ── 단일 제품 UL 근접 (95~100%) 섹션 ──
+                      if (result.ulAtLimit.isNotEmpty) ...[
+                        const SizedBox(height: 20),
+                        ...result.ulAtLimit.map(_buildUlAtLimitCard),
+                      ],
 
-                // ── 단일 제품 UL 초과 섹션 ──
-                if (result.singleProductUlExcess.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  ...result.singleProductUlExcess.map(_buildSingleUlExcessCard),
-                ],
+                      // ── 단일 제품 UL 초과 섹션 ──
+                      if (result.singleProductUlExcess.isNotEmpty) ...[
+                        const SizedBox(height: 20),
+                        ...result.singleProductUlExcess
+                            .map(_buildSingleUlExcessCard),
+                      ],
 
-                // ── 유료 잠금 섹션: AI 상세 분석 리포트 ──
-                if (_hasPremiumContent()) ...[
-                  const SizedBox(height: 20),
-                  _buildPremiumReportCard(),
-                ],
+                      // ── 유료 잠금 섹션: AI 상세 분석 리포트 ──
+                      if (_hasPremiumContent()) ...[
+                        const SizedBox(height: 20),
+                        _buildPremiumReportCard(),
+                      ],
 
-                // Disclaimer
-                if (result.disclaimer != null) ...[
-                  const SizedBox(height: 20),
-                  _buildDisclaimerCard(),
-                ],
+                      // Disclaimer
+                      if (result.disclaimer != null) ...[
+                        const SizedBox(height: 20),
+                        _buildDisclaimerCard(),
+                      ],
 
-                const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                // 기본 Disclaimer
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.info_outline_rounded,
-                        size: 16, color: Colors.grey),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        l10n.homeDisclaimer,
-                        style:
-                            const TextStyle(fontSize: 12, color: Colors.grey),
+                      // 기본 Disclaimer
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.info_outline_rounded,
+                              size: 16, color: Colors.grey),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              l10n.homeDisclaimer,
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.grey),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
+                ),
+
+                // Bottom Action Button
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    padding: EdgeInsets.fromLTRB(
+                        20, 20, 20, 20 + MediaQuery.of(context).padding.bottom),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      border:
+                          Border(top: BorderSide(color: Colors.grey.shade200)),
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, -4)),
+                      ],
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(context)
+                            .popUntil((route) => route.isFirst),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4CAF50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          l10n.btnBackHome,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 40),
               ],
-            ),
-          ),
-
-          // Bottom Action Button
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(
-                  20, 20, 20, 20 + MediaQuery.of(context).padding.bottom),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.9),
-                border: Border(top: BorderSide(color: Colors.grey.shade200)),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, -4)),
-                ],
-              ),
-              child: SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () =>
-                      Navigator.of(context).popUntil((route) => route.isFirst),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4CAF50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    l10n.btnBackHome,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
             ),
           ),
         ],
@@ -478,8 +492,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
 
   Widget _buildSavingsBanner() {
     final ex = result.exclusionResult;
-    final monthlySavingsUsd = ex?.monthlySavings ?? 0.0;
-    final annualSavingsUsd = ex?.annualSavings ?? 0.0;
+    final monthlySavingsUsd =
+        ex?.monthlySavings ?? result.geminiMonthlySavingsUsd;
+    final annualSavingsUsd = ex?.annualSavings ?? result.geminiAnnualSavingsUsd;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
@@ -961,6 +976,8 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
         children: [
           const Divider(height: 1),
           const SizedBox(height: 16),
+          const DisclaimerBanner(),
+          const SizedBox(height: 12),
           if (_isReportLoading)
             const Center(
               child: Padding(

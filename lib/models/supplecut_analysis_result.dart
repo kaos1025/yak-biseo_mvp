@@ -42,6 +42,12 @@ class SuppleCutAnalysisResult {
   /// 단일 제품 UL 근접 (95~100%) 목록
   final List<UlAtLimit> ulAtLimit;
 
+  /// Gemini 원본 월간 절감액 (USD) — ExclusionEngine 미산출 시 fallback
+  final double geminiMonthlySavingsUsd;
+
+  /// Gemini 원본 연간 절감액 (USD) — ExclusionEngine 미산출 시 fallback
+  final double geminiAnnualSavingsUsd;
+
   /// ExclusionEngine 결과 (USD 기반, 제외/유지 리스트 포함)
   final ExclusionResult? exclusionResult;
 
@@ -59,6 +65,8 @@ class SuppleCutAnalysisResult {
     this.safetyAlerts = const [],
     this.singleProductUlExcess = const [],
     this.ulAtLimit = const [],
+    this.geminiMonthlySavingsUsd = 0.0,
+    this.geminiAnnualSavingsUsd = 0.0,
     this.exclusionResult,
   });
 
@@ -97,6 +105,10 @@ class SuppleCutAnalysisResult {
       ulAtLimit: (json['ulAtLimit'] as List<dynamic>? ?? [])
           .map((e) => UlAtLimit.fromJson(e as Map<String, dynamic>))
           .toList(),
+      geminiMonthlySavingsUsd:
+          (json['geminiMonthlySavingsUsd'] as num?)?.toDouble() ?? 0.0,
+      geminiAnnualSavingsUsd:
+          (json['geminiAnnualSavingsUsd'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -116,6 +128,10 @@ class SuppleCutAnalysisResult {
       'singleProductUlExcess':
           singleProductUlExcess.map((e) => e.toJson()).toList(),
       'ulAtLimit': ulAtLimit.map((e) => e.toJson()).toList(),
+      if (geminiMonthlySavingsUsd > 0)
+        'geminiMonthlySavingsUsd': geminiMonthlySavingsUsd,
+      if (geminiAnnualSavingsUsd > 0)
+        'geminiAnnualSavingsUsd': geminiAnnualSavingsUsd,
     };
   }
 
@@ -126,8 +142,8 @@ class SuppleCutAnalysisResult {
   bool get hasFallbackProducts =>
       products.any((p) => p.source == 'ai_estimated');
 
-  /// 절감액이 있는지 여부
-  bool get hasSavings => monthlySavings > 0;
+  /// 절감액이 있는지 여부 (ExclusionEngine 또는 Gemini fallback)
+  bool get hasSavings => monthlySavings > 0 || geminiMonthlySavingsUsd > 0;
 
   @override
   String toString() {

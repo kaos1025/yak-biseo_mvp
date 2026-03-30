@@ -267,8 +267,14 @@ class OnestopAnalysisResult {
       overallRisk: overallRisk,
       summary: statusReason,
       recommendations: _buildRecommendations(),
-      monthlySavings: (exclusion.monthlySavings * 1400).round(),
-      yearlySavings: (exclusion.annualSavings * 1400).round(),
+      monthlySavings: exclusion.monthlySavings > 0
+          ? (exclusion.monthlySavings * 1400).round()
+          : ((exclusionRecommendation?.monthlySavings ?? 0.0) * 1400).round(),
+      yearlySavings: exclusion.annualSavings > 0
+          ? (exclusion.annualSavings * 1400).round()
+          : ((exclusionRecommendation?.annualSavings ?? 0.0) * 1400).round(),
+      geminiMonthlySavingsUsd: exclusionRecommendation?.monthlySavings ?? 0.0,
+      geminiAnnualSavingsUsd: exclusionRecommendation?.annualSavings ?? 0.0,
       excludedProduct:
           exclusion.hasExclusion ? exclusion.excludedProducts.join(', ') : null,
       functionalOverlaps: functionalOverlaps,
