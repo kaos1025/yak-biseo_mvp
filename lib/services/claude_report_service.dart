@@ -288,6 +288,7 @@ One Markdown table with EXACTLY 3 columns: Product | Key Ingredients | Price
 - Do NOT estimate, round, or recalculate any prices — use the exact decimal values given
 - Section 1 Price column must match the provided values to the cent (e.g., if given \$10.08, write \$10.08 not \$10.00)
 - Monthly/annual savings must match the provided figures exactly — do NOT recalculate
+- Only products with critical_stop or medical_supervision exclusion tier are excluded from monthly/annual savings calculations. Products recommended for removal (recommend_remove or conditional_remove tier) ARE included in savings calculations, even if the overlap involves a therapeutic-dose product.
 
 ## Exclusion Rules
 - Section 4 must ONLY reference the pre-determined exclusion list
