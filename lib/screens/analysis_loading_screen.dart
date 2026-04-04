@@ -6,6 +6,7 @@ import 'package:myapp/screens/analysis_result_screen.dart';
 import 'package:myapp/data/local/recent_analysis_storage.dart';
 import 'package:myapp/data/models/recent_analysis_model.dart';
 import 'package:uuid/uuid.dart';
+import 'package:myapp/services/in_app_review_service.dart';
 import 'package:myapp/l10n/app_localizations.dart';
 
 enum AnalysisStep {
@@ -123,6 +124,9 @@ class _AnalysisLoadingScreenState extends State<AnalysisLoadingScreen> {
 
       // 분석 완료 즉시 로컬 스토리지에 결과 저장
       await _saveRecentAnalysis(result);
+
+      // 3회째 분석 완료 시 인앱 리뷰 요청
+      await InAppReviewService.recordAnalysisAndPromptReview();
 
       if (!mounted) return;
 

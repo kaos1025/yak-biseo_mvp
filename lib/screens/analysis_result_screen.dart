@@ -452,23 +452,36 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
   }
 
   /// Keep/Remove 텍스트 생성
+  /// medical_supervision / critical_stop은 별도 카드로 표시하므로
+  /// Remove에는 recommend_remove + conditional_remove만 표시.
+  /// ExclusionEngine에 savingsItems가 없으면 excludedProduct(sanitizedRec 경유) fallback.
   String _buildKeepRemoveText() {
     final ex = result.exclusionResult;
-    if (ex == null || !ex.hasExclusion) return '';
 
-    final removeCount = ex.excludedProducts.length;
-    final keepCount = ex.keptProducts.length;
+    // 1차: ExclusionEngine의 savingsItems
+    if (ex != null && ex.savingsItems.isNotEmpty) {
+      final removeItems = ex.savingsItems;
+      final removeCount = removeItems.length;
+      final removeNames =
+          removeItems.map((i) => _shortenProductName(i.product)).toList();
+      final keepCount = ex.keptProducts.length;
 
-    if (removeCount <= 2) {
-      final names = ex.excludedProducts.map(_shortenProductName).join(', ');
-      return 'Remove: $names';
+      if (removeCount <= 2) {
+        return 'Remove: ${removeNames.join(', ')}';
+      }
+      if (keepCount == 1) {
+        return 'Keep: ${_shortenProductName(ex.keptProducts.first)}\nRemove: $removeCount other products';
+      }
+      return 'Keep: $keepCount products\nRemove: $removeCount other products';
     }
 
-    if (keepCount == 1) {
-      return 'Keep: ${_shortenProductName(ex.keptProducts.first)}\nRemove: $removeCount other products';
+    // 2차: sanitizedRec에서 온 excludedProduct fallback
+    final fallback = result.excludedProduct;
+    if (fallback != null && fallback.isNotEmpty) {
+      return 'Remove: ${_shortenProductName(fallback)}';
     }
 
-    return 'Keep: $keepCount products\nRemove: $removeCount other products';
+    return '';
   }
 
   /// 경고 요약 텍스트
@@ -492,9 +505,12 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
 
   Widget _buildSavingsBanner() {
     final ex = result.exclusionResult;
-    final monthlySavingsUsd =
-        ex?.monthlySavings ?? result.geminiMonthlySavingsUsd;
-    final annualSavingsUsd = ex?.annualSavings ?? result.geminiAnnualSavingsUsd;
+    final monthlySavingsUsd = (ex?.monthlySavings ?? 0) > 0
+        ? ex!.monthlySavings
+        : result.geminiMonthlySavingsUsd;
+    final annualSavingsUsd = (ex?.annualSavings ?? 0) > 0
+        ? ex!.annualSavings
+        : result.geminiAnnualSavingsUsd;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
@@ -557,7 +573,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
           ],
 
           // 4. Keep/Remove 정보
-          if (ex != null && ex.hasExclusion) ...[
+          if (_buildKeepRemoveText().isNotEmpty) ...[
             const SizedBox(height: 16),
             Container(
               width: double.infinity,

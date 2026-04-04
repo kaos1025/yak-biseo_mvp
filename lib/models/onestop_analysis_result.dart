@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../services/exclusion_engine.dart';
 import 'supplecut_analysis_result.dart';
 
@@ -244,6 +246,9 @@ class OnestopAnalysisResult {
       duplicates: convertedDuplicates,
     );
 
+    // Gemini exclusion_recommendation 후처리 (unsafe 제품 필터 + savings 재계산)
+    final sanitizedRec = _sanitizedExclusionRecommendation(exclusion);
+
     return SuppleCutAnalysisResult(
       products: products
           .map((p) => AnalyzedProduct(
@@ -266,17 +271,18 @@ class OnestopAnalysisResult {
       duplicates: convertedDuplicates,
       overallRisk: overallRisk,
       summary: statusReason,
-      recommendations: _buildRecommendations(),
+      recommendations: _buildRecommendations(sanitizedRec),
       monthlySavings: exclusion.monthlySavings > 0
           ? (exclusion.monthlySavings * 1400).round()
-          : ((exclusionRecommendation?.monthlySavings ?? 0.0) * 1400).round(),
+          : ((sanitizedRec?.monthlySavings ?? 0.0) * 1400).round(),
       yearlySavings: exclusion.annualSavings > 0
           ? (exclusion.annualSavings * 1400).round()
-          : ((exclusionRecommendation?.annualSavings ?? 0.0) * 1400).round(),
-      geminiMonthlySavingsUsd: exclusionRecommendation?.monthlySavings ?? 0.0,
-      geminiAnnualSavingsUsd: exclusionRecommendation?.annualSavings ?? 0.0,
-      excludedProduct:
-          exclusion.hasExclusion ? exclusion.excludedProducts.join(', ') : null,
+          : ((sanitizedRec?.annualSavings ?? 0.0) * 1400).round(),
+      geminiMonthlySavingsUsd: sanitizedRec?.monthlySavings ?? 0.0,
+      geminiAnnualSavingsUsd: sanitizedRec?.annualSavings ?? 0.0,
+      excludedProduct: exclusion.hasExclusion && exclusion.monthlySavings > 0
+          ? exclusion.excludedProducts.join(', ')
+          : sanitizedRec?.excludeProduct,
       functionalOverlaps: functionalOverlaps,
       safetyAlerts: safetyAlerts,
       singleProductUlExcess: singleProductUlExcess,
@@ -285,7 +291,7 @@ class OnestopAnalysisResult {
     );
   }
 
-  List<String> _buildRecommendations() {
+  List<String> _buildRecommendations(ExclusionRecommendation? sanitizedRec) {
     final recs = <String>[];
     for (final fo in functionalOverlaps) {
       recs.add('[Mechanism Overlap] ${fo.pathway}: ${fo.warning}');
@@ -293,11 +299,161 @@ class OnestopAnalysisResult {
     for (final sa in safetyAlerts) {
       recs.add('[Safety Alert] ${sa.product}: ${sa.summary}');
     }
-    if (exclusionRecommendation?.excludeProduct != null) {
+    if (sanitizedRec?.excludeProduct != null) {
       recs.add(
-          '[제외 추천] ${exclusionRecommendation!.excludeProduct}: ${exclusionRecommendation!.reason}');
+          '[제외 추천] ${sanitizedRec!.excludeProduct}: ${sanitizedRec.reason}');
     }
     return recs;
+  }
+
+  /// Gemini exclusion_recommendation 후처리.
+  /// critical_stop / medical_supervision 제품이면 제거 후 대체 후보 교체.
+  ExclusionRecommendation? _sanitizedExclusionRecommendation(
+      ExclusionResult exclusion) {
+    final rec = exclusionRecommendation;
+
+    // [DEBUG] 1. rec.excludeProduct 값
+    debugPrint(
+        '[SANITIZE] 1. rec.excludeProduct: ${rec?.excludeProduct ?? "(null)"}');
+
+    // unsafe 제품 목록: safetyAlerts + ExclusionEngine 결과 union
+    // therapeutic_dose는 Iron >= 45mg인 경우만 unsafe (Gemini 오분류 방어)
+    final unsafeFromAlerts = safetyAlerts
+        .where((sa) {
+          if (sa.alertType == 'research_chemical') return true;
+          if (sa.alertType == 'therapeutic_dose') {
+            return ExclusionEngine.hasHighIron(products, sa.product, 45.0);
+          }
+          return false;
+        })
+        .map((sa) => sa.product)
+        .toSet();
+
+    // [DEBUG] 2. safetyAlerts 기반 unsafe
+    debugPrint('[SANITIZE] 2. unsafeFromAlerts: $unsafeFromAlerts');
+
+    final unsafeFromEngine = {
+      ...exclusion.criticalStopItems.map((i) => i.product),
+      ...exclusion.medicalSupervisionItems.map((i) => i.product),
+    };
+
+    // [DEBUG] 3. ExclusionEngine 기반 unsafe
+    debugPrint('[SANITIZE] 3. unsafeFromEngine: $unsafeFromEngine');
+
+    final allUnsafe = unsafeFromAlerts.union(unsafeFromEngine);
+
+    // ── excludeProduct가 null인 경우: unsafe 제품의 peer에서 탐색 ──
+    if (rec == null || rec.excludeProduct == null) {
+      debugPrint('[SANITIZE] → excludeProduct is null, scanning unsafe peers');
+      if (allUnsafe.isEmpty) {
+        debugPrint('[SANITIZE] → No unsafe products, returning null');
+        return null;
+      }
+      final best = _findBestSafePeer(allUnsafe, allUnsafe);
+      if (best == null) {
+        debugPrint('[SANITIZE] → No safe peers found, returning null');
+        return null;
+      }
+      final cost = best.monthlyCostEstimate;
+      debugPrint('[SANITIZE] → Found safe peer: ${best.name}, cost: \$$cost');
+      return ExclusionRecommendation(
+        excludeProduct: best.name,
+        reason: 'Overlapping ingredient detected',
+        monthlySavings: cost,
+        annualSavings: cost * 12,
+      );
+    }
+
+    // ── excludeProduct가 있는 경우: unsafe 여부 판정 ──
+    final excludedProduct =
+        ExclusionEngine.findProduct(products, rec.excludeProduct!);
+    final isUnsafe = excludedProduct != null &&
+        allUnsafe.any((u) =>
+            ExclusionEngine.findProduct(products, u)?.name ==
+            excludedProduct.name);
+
+    // [DEBUG] 4. isUnsafe 판정
+    debugPrint(
+        '[SANITIZE] 4. isUnsafe: $isUnsafe (matched: ${excludedProduct?.name})');
+
+    if (!isUnsafe) {
+      // 제품은 OK, savings만 재계산
+      final cost = excludedProduct?.monthlyCostEstimate ?? 0.0;
+      debugPrint('[SANITIZE] → SAFE path, recalculated cost: \$$cost');
+      return ExclusionRecommendation(
+        excludeProduct: rec.excludeProduct,
+        reason: rec.reason,
+        monthlySavings: cost,
+        annualSavings: cost * 12,
+      );
+    }
+
+    // unsafe → overlaps에서 대체 후보 찾기
+    final unsafeNames = {excludedProduct.name};
+    final best = _findBestSafePeer(unsafeNames, allUnsafe);
+
+    // [DEBUG] 5/6. peer 탐색 결과
+    debugPrint('[SANITIZE] 5/6. replacement: ${best?.name ?? "(none)"}');
+
+    if (best == null) {
+      debugPrint('[SANITIZE] → No safe peers, returning null');
+      return null;
+    }
+
+    final cost = best.monthlyCostEstimate;
+    return ExclusionRecommendation(
+      excludeProduct: best.name,
+      reason: 'Redundant supplement — overlapping ingredients detected',
+      monthlySavings: cost,
+      annualSavings: cost * 12,
+    );
+  }
+
+  /// overlaps에서 [targetNames] 제품과 겹치는 safe peer 중 최대 비용 제품 반환.
+  OnestopProduct? _findBestSafePeer(
+      Set<String> targetNames, Set<String> allUnsafe) {
+    final peerProducts = <String>{};
+    for (final o in overlaps) {
+      final sourceNames = o.sources.map((s) => s.product).toList();
+      final hasTarget = sourceNames.any((s) {
+        final matched = ExclusionEngine.findProduct(products, s);
+        return matched != null &&
+            targetNames.any((t) =>
+                ExclusionEngine.findProduct(products, t)?.name == matched.name);
+      });
+      if (hasTarget) {
+        peerProducts.addAll(sourceNames);
+      }
+    }
+    // target 자신은 제거
+    for (final t in targetNames) {
+      final matched = ExclusionEngine.findProduct(products, t);
+      if (matched != null) peerProducts.remove(matched.name);
+    }
+
+    debugPrint('[SANITIZE] peerProducts: $peerProducts');
+
+    // safe peer만 필터
+    final safePeers = peerProducts.where((p) {
+      final matched = ExclusionEngine.findProduct(products, p);
+      return matched != null &&
+          !allUnsafe.any((u) =>
+              ExclusionEngine.findProduct(products, u)?.name == matched.name);
+    }).toList();
+
+    debugPrint('[SANITIZE] safePeers: $safePeers');
+
+    if (safePeers.isEmpty) return null;
+
+    OnestopProduct? best;
+    for (final name in safePeers) {
+      final p = ExclusionEngine.findProduct(products, name);
+      if (p != null &&
+          (best == null || p.monthlyCostEstimate > best.monthlyCostEstimate)) {
+        best = p;
+      }
+    }
+    return best;
   }
 
   bool get hasOverlaps => overlaps.isNotEmpty;

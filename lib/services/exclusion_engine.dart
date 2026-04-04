@@ -115,7 +115,7 @@ class ExclusionEngine {
     // ── safety_alerts를 정규 이름 + alertType으로 resolve ──
     final resolvedAlerts = <_ResolvedAlert>[];
     for (final sa in safetyAlerts) {
-      final matched = _findProduct(products, sa.product);
+      final matched = findProduct(products, sa.product);
       if (matched != null) {
         resolvedAlerts
             .add(_ResolvedAlert(matched.name, sa.alertType, sa.summary));
@@ -125,7 +125,7 @@ class ExclusionEngine {
     // ── 1a. critical_stop: research_chemical ──
     for (final ra in resolvedAlerts) {
       if (ra.alertType == 'research_chemical') {
-        final product = _findProduct(products, ra.name);
+        final product = findProduct(products, ra.name);
         items[ra.name] = ExclusionItem(
           product: ra.name,
           tier: ExclusionTier.criticalStop,
@@ -137,8 +137,10 @@ class ExclusionEngine {
 
     // ── 1b. medical_supervision: therapeutic_dose ──
     for (final ra in resolvedAlerts) {
-      if (ra.alertType == 'therapeutic_dose' && !items.containsKey(ra.name)) {
-        final product = _findProduct(products, ra.name);
+      if (ra.alertType == 'therapeutic_dose' &&
+          !items.containsKey(ra.name) &&
+          hasHighIron(products, ra.name, 45.0)) {
+        final product = findProduct(products, ra.name);
         items[ra.name] = ExclusionItem(
           product: ra.name,
           tier: ExclusionTier.medicalSupervision,
@@ -157,7 +159,7 @@ class ExclusionEngine {
 
       final groupProducts = <_ProductWithCost>[];
       for (final foName in fo.products) {
-        final matched = _findProduct(products, foName);
+        final matched = findProduct(products, foName);
         if (matched != null &&
             !groupProducts.any((p) => p.name == matched.name)) {
           groupProducts
@@ -212,7 +214,7 @@ class ExclusionEngine {
       if (ra.alertType == 'regulatory_warning' &&
           !items.containsKey(ra.name) &&
           !keepSet.contains(ra.name)) {
-        final product = _findProduct(products, ra.name);
+        final product = findProduct(products, ra.name);
         items[ra.name] = ExclusionItem(
           product: ra.name,
           tier: ExclusionTier.recommendRemove,
@@ -256,7 +258,7 @@ class ExclusionEngine {
       if (bestCandidate != null &&
           !keepSet.contains(bestCandidate) &&
           !items.containsKey(bestCandidate)) {
-        final product = _findProduct(products, bestCandidate);
+        final product = findProduct(products, bestCandidate);
         items[bestCandidate] = ExclusionItem(
           product: bestCandidate,
           tier: ExclusionTier.conditionalRemove,
@@ -307,9 +309,30 @@ class ExclusionEngine {
     );
   }
 
-  // ── Private helpers ──
+  // ── Public helpers ──
 
-  static OnestopProduct? _findProduct(
+  /// therapeutic_dose 판정용: 제품의 Iron 합산이 [thresholdMg] 이상인지 확인.
+  static bool hasHighIron(
+      List<OnestopProduct> products, String productName, double thresholdMg) {
+    final product = findProduct(products, productName);
+    if (product == null) return true; // 못 찾으면 보수적으로 unsafe 유지
+    double ironMg = 0.0;
+    for (final ing in product.ingredients) {
+      final nameLower = ing.name.toLowerCase();
+      final keyLower = ing.normalizedKey?.toLowerCase() ?? '';
+      if (nameLower.contains('iron') || keyLower.contains('iron')) {
+        final unitLower = ing.unit.toLowerCase().trim();
+        if (unitLower == 'mcg' || unitLower == 'µg' || unitLower == 'ug') {
+          ironMg += ing.amount / 1000;
+        } else {
+          ironMg += ing.amount;
+        }
+      }
+    }
+    return ironMg >= thresholdMg;
+  }
+
+  static OnestopProduct? findProduct(
     List<OnestopProduct> products,
     String name,
   ) {
