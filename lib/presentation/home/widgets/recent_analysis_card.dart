@@ -4,12 +4,9 @@ import 'package:myapp/l10n/app_localizations.dart';
 
 class RecentAnalysisCard extends StatelessWidget {
   final RecentAnalysisModel analysis;
-  final VoidCallback? onReanalyzeTap;
-
   const RecentAnalysisCard({
     super.key,
     required this.analysis,
-    this.onReanalyzeTap,
   });
 
   @override
@@ -138,34 +135,10 @@ class RecentAnalysisCard extends StatelessWidget {
               color: Colors.grey[600],
             ),
           ),
-          const SizedBox(height: 20),
-          Align(
-            alignment: Alignment.centerRight,
-            child: GestureDetector(
-              onTap: onReanalyzeTap,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  l10n.btnReanalyze,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue[800],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Align(
-            alignment: Alignment.centerRight,
+          const SizedBox(height: 16),
+          Center(
             child: Text(
-              l10n.reanalyzeHint,
+              'Results wrong? Use buttons below for fresh analysis',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[500],

@@ -241,6 +241,10 @@ If overlaps cause UL exceedance, recommend excluding the product that:
 
 NEVER recommend excluding a therapeutic dose product for cost savings.
 
+CRITICAL: Products flagged as medical_supervision or critical_stop must NEVER be placed in exclusion_recommendation.products_to_remove. Only recommend_remove or conditional_remove tier products are valid removal candidates. If a medical_supervision product overlaps with a regular supplement, always recommend removing the regular supplement, not the therapeutic product.
+
+When calculating monthly_savings, include the monthly_cost_estimate of every product in products_to_remove that has recommend_remove or conditional_remove tier. Do NOT include medical_supervision or critical_stop products in savings calculations.
+
 ## OUTPUT FORMAT
 
 Return ONLY valid JSON (no markdown, no preamble):
