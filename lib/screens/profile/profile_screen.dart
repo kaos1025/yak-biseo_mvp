@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/utils/unit_converter.dart';
 import '../../l10n/app_localizations.dart';
+import '../onboarding_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -215,6 +216,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 icon: Icons.medical_information_outlined,
                 title: 'FDA Disclaimer',
                 onTap: () => _showFdaDisclaimer(context),
+              ),
+              _buildLegalTile(
+                icon: Icons.school_outlined,
+                title: 'View Tutorial',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => OnboardingScreen(
+                        onComplete: () => Navigator.pop(context),
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
