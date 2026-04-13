@@ -10,7 +10,6 @@ import 'dart:async';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:myapp/core/service_locator.dart';
 import 'package:myapp/services/iap_service.dart';
-import 'package:myapp/config/pricing_config.dart';
 import 'package:myapp/utils/localization_utils.dart';
 import 'package:myapp/widgets/disclaimer_banner.dart';
 
@@ -1770,8 +1769,6 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
 
   void _showPaymentBottomSheet() {
     final l10n = AppLocalizations.of(context)!;
-    final isPromo = PricingConfig.isPromoActive;
-    final daysLeft = PricingConfig.remainingPromoDays;
     // Play Store에서 조회한 실제 가격 사용
     final formattedPrice = _iapService.formattedPrice;
 
@@ -1790,26 +1787,6 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (isPromo) ...[
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFEBEE),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '🔥 ${l10n.promoTitle} - ${l10n.daysLeft(daysLeft)}',
-                      style: const TextStyle(
-                        color: Color(0xFFD32F2F),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
                 Text(
                   l10n.paymentTitle,
                   style: const TextStyle(

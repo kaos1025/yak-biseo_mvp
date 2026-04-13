@@ -300,9 +300,7 @@ class PdfReportService {
             .join(', ');
         final price = p.monthlyCostUsd > 0
             ? '\$${p.monthlyCostUsd.toStringAsFixed(2)}/mo'
-            : (p.estimatedMonthlyPrice > 0
-                ? '${NumberFormat('#,###').format(p.estimatedMonthlyPrice)}원'
-                : '-');
+            : '-';
         return [displayName, ingredients, price];
       }).toList(),
     );
@@ -389,12 +387,14 @@ class PdfReportService {
   pw.Widget _buildSavingsSection(
       SuppleCutAnalysisResult result, bool isKo, PdfColor color) {
     final ex = result.exclusionResult;
-    final monthlyStr = ex != null
-        ? '\$${ex.monthlySavings.toStringAsFixed(2)}'
-        : '${NumberFormat('#,###').format(result.monthlySavings)}원';
-    final yearlyStr = ex != null
-        ? '\$${ex.annualSavings.toStringAsFixed(2)}'
-        : '${NumberFormat('#,###').format(result.yearlySavings)}원';
+    final monthlySavingsUsd = (ex?.monthlySavings ?? 0) > 0
+        ? ex!.monthlySavings
+        : result.geminiMonthlySavingsUsd;
+    final annualSavingsUsd = (ex?.annualSavings ?? 0) > 0
+        ? ex!.annualSavings
+        : result.geminiAnnualSavingsUsd;
+    final monthlyStr = '\$${monthlySavingsUsd.toStringAsFixed(2)}';
+    final yearlyStr = '\$${annualSavingsUsd.toStringAsFixed(2)}';
 
     return pw.Container(
       padding: const pw.EdgeInsets.all(12),
