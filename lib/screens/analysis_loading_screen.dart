@@ -7,6 +7,10 @@ import 'package:myapp/data/local/recent_analysis_storage.dart';
 import 'package:myapp/data/models/recent_analysis_model.dart';
 import 'package:uuid/uuid.dart';
 import 'package:myapp/services/in_app_review_service.dart';
+import 'package:myapp/services/subscription_service.dart';
+import 'package:myapp/services/stack_service.dart';
+import 'package:myapp/models/saved_product.dart';
+import 'package:myapp/models/saved_stack.dart';
 import 'package:myapp/l10n/app_localizations.dart';
 
 enum AnalysisStep {
@@ -125,6 +129,9 @@ class _AnalysisLoadingScreenState extends State<AnalysisLoadingScreen> {
       // 분석 완료 즉시 로컬 스토리지에 결과 저장
       await _saveRecentAnalysis(result);
 
+      // Basic 구독자: SavedStack 자동 저장
+      final savedToStack = await _saveToStack(result);
+
       // 3회째 분석 완료 시 인앱 리뷰 요청
       await InAppReviewService.recordAnalysisAndPromptReview();
 
@@ -147,6 +154,17 @@ class _AnalysisLoadingScreenState extends State<AnalysisLoadingScreen> {
         ),
         (route) => route.isFirst, // HomeScreen만 남기고 중간 라우트 제거
       );
+
+      // Stack 저장 완료 피드백 (결과 화면 전환 후 표시)
+      if (savedToStack && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Stack saved to My Stack ✓'),
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     } catch (e) {
       // 에러 처리
       if (!mounted) return;
@@ -173,6 +191,37 @@ class _AnalysisLoadingScreenState extends State<AnalysisLoadingScreen> {
     } catch (e) {
       // ignore: avoid_print
       print('Failed to save recent analysis: $e');
+    }
+  }
+
+  /// Basic 구독자인 경우 분석 결과를 SavedStack으로 저장
+  Future<bool> _saveToStack(SuppleCutAnalysisResult result) async {
+    try {
+      final subscriptionService = SubscriptionService();
+      await subscriptionService.initialize();
+      final canSave = await subscriptionService.canUseMyStack();
+      subscriptionService.dispose();
+      if (!canSave) return false;
+
+      final products = result.products.map((p) {
+        final ingredientNames = p.ingredients.map((i) => i.name).toList();
+        return SavedProduct(
+          name: p.name,
+          ingredients: ingredientNames,
+          monthlyCost: p.monthlyCostUsd > 0 ? p.monthlyCostUsd : null,
+        );
+      }).toList();
+
+      final stack = SavedStack(
+        products: products,
+        lastAnalyzed: DateTime.now(),
+        lastAnalysisJson: jsonEncode(result.toJson()),
+      );
+
+      await StackService().saveStack(stack);
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
