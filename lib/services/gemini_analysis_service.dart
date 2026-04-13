@@ -157,6 +157,8 @@ Flag when:
 - A SINGLE product exceeds UL (>100%) -> severity "medium" in single_product_ul_excess
 - A SINGLE product provides >=95% AND <=100% of UL -> add to ul_at_limit array (NOT single_product_ul_excess)
 
+IMPORTANT — Folate UL key: When reporting UL data for folate in single_product_ul_excess or ul_at_limit, use ONLY the ingredient key "Folate" regardless of form (5-MTHF, folic acid, folinic acid, L-methylfolate). Do NOT create separate entries like "Folate" and "Folate (5-MTHF)" — they share the same UL of 1000mcg. You may note the specific form in the message field, but the ingredient key must be "Folate" only.
+
 ## FUNCTIONAL OVERLAP DETECTION (Mechanism of Action)
 
 Beyond identical ingredients, check for FUNCTIONAL OVERLAP -- different ingredients acting on the same biological pathway. This is critical for user safety.

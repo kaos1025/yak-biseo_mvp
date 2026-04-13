@@ -156,6 +156,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
                       ] else if (result.functionalOverlaps.isNotEmpty) ...[
                         _buildFunctionalOverlapBanner(),
                         const SizedBox(height: 16),
+                      ] else if (result.ulAtLimit.isNotEmpty) ...[
+                        _buildUlAtLimitBanner(),
+                        const SizedBox(height: 16),
                       ] else ...[
                         _buildPositiveBanner(),
                         const SizedBox(height: 16),
@@ -1516,6 +1519,60 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
           SizedBox(height: 8),
           Text(
             'Some supplements have overlapping mechanisms. Check details below.',
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.5,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFFF57C00),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// UL 근접 caution 배너 (95~100% UL 도달 시)
+  Widget _buildUlAtLimitBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFF8E1), Color(0xFFFFECB3)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFF9800).withValues(alpha: 0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border:
+            Border.all(color: const Color(0xFFFFB74D).withValues(alpha: 0.5)),
+      ),
+      child: const Column(
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            color: Color(0xFFE65100),
+            size: 40,
+          ),
+          SizedBox(height: 12),
+          Text(
+            'Some nutrients are at the safe upper limit',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFE65100),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Check details below.',
             style: TextStyle(
               fontSize: 13,
               height: 1.5,

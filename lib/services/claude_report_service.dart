@@ -263,6 +263,29 @@ One Markdown table with EXACTLY 3 columns: Product | Key Ingredients | Price
 ### 5. How to Take
 - Morning vs evening timing only, keep it brief
 
+## Folate Form Accuracy (CRITICAL)
+When discussing folate/folic acid, you MUST distinguish between forms:
+- "Folic acid" = synthetic form (pteroylmonoglutamic acid). UL of 1000mcg was established based on this form's risk of masking B12 deficiency.
+- "5-MTHF" / "L-methylfolate" / "methylfolate" = bioactive/active form. Do NOT call it "synthetic." It does NOT undergo the same metabolic pathway as folic acid (no DHFR conversion needed).
+- "Folinic acid" / "5-formyl-THF" = another active form. Also NOT synthetic.
+
+When a product contains 5-MTHF and approaches UL:
+- State: "This is the bioactive form of folate, not synthetic folic acid."
+- State: "The UL of 1000mcg was originally established for synthetic folic acid. While regulatory bodies apply it to all supplemental folate forms, 5-MTHF carries lower risk of masking B12 deficiency than synthetic folic acid."
+- Still warn about UL compliance (we follow FDA/NIH guidelines), but do NOT use the word "synthetic" to describe 5-MTHF.
+
+WRONG: "Exceeding synthetic folate UL can mask B12 deficiency" (when the product is 5-MTHF)
+RIGHT: "While 5-MTHF is the bioactive form of folate with lower B12-masking risk than synthetic folic acid, the FDA/NIH UL of 1000mcg applies to all supplemental folate forms. Any additional folate from fortified foods could exceed this limit."
+
+WRONG: "This is the maximum safe daily dose of synthetic folate" (when product is 5-MTHF)
+RIGHT: "This is at the UL for supplemental folate (1000mcg). The UL was established based on synthetic folic acid, but FDA/NIH applies it to all supplemental forms including 5-MTHF."
+
+## Biotin Lab Interference Warning
+When Biotin intake is ≥1000mcg (1mg) from any source:
+- In Section 3 (Safety Alerts), add a LOW RISK warning:
+  "High-dose Biotin (≥1000mcg) can interfere with streptavidin-biotin immunoassays used in common blood tests, including troponin (heart attack diagnosis), TSH/Free T4 (thyroid function), and BNP (heart failure marker). This may cause false results. Discontinue Biotin 48-72 hours before scheduled blood work and inform your healthcare provider about Biotin supplementation."
+- Do NOT say "No concerns" or "SAFE" just because Biotin has no established UL. The absence of a UL does not mean absence of clinical considerations.
+
 ## Rules
 - Language: English only
 - Format: pure Markdown text, NOT JSON

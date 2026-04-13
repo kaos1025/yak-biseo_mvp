@@ -116,6 +116,55 @@ class OnestopAnalysisResult {
     return result;
   }
 
+  /// Folate 계열 ingredient 이름인지 판별
+  static bool _isFolateKey(String ingredient) {
+    final lower = ingredient.toLowerCase();
+    return lower.contains('folate') ||
+        lower.contains('folic') ||
+        lower.contains('5-mthf') ||
+        lower.contains('mthf') ||
+        lower.contains('methylfolate') ||
+        lower == 'vitamin b9';
+  }
+
+  /// UlAtLimit 리스트에서 같은 product의 folate 계열 중복 제거
+  static List<UlAtLimit> _deduplicateUlAtLimit(List<UlAtLimit> items) {
+    final seen = <String, int>{}; // "product::FOLATE" → index in result
+    final result = <UlAtLimit>[];
+    for (final item in items) {
+      if (_isFolateKey(item.ingredient)) {
+        final key = '${item.product}::FOLATE';
+        if (seen.containsKey(key)) {
+          // 이미 있으면 percentageOfUl 높은 쪽 유지
+          final idx = seen[key]!;
+          if (item.percentageOfUl > result[idx].percentageOfUl) {
+            result[idx] = item;
+          }
+          continue;
+        }
+        seen[key] = result.length;
+      }
+      result.add(item);
+    }
+    return result;
+  }
+
+  /// SingleProductUlExcess 리스트에서 같은 product의 folate 계열 중복 제거
+  static List<SingleProductUlExcess> _deduplicateUlExcess(
+      List<SingleProductUlExcess> items) {
+    final seen = <String, int>{};
+    final result = <SingleProductUlExcess>[];
+    for (final item in items) {
+      if (_isFolateKey(item.ingredient)) {
+        final key = '${item.product}::FOLATE';
+        if (seen.containsKey(key)) continue; // 첫 번째 유지
+        seen[key] = result.length;
+      }
+      result.add(item);
+    }
+    return result;
+  }
+
   /// AI 응답의 overall_status를 규칙 기반으로 강제 보정
   ///
   /// 단방향 격상만 수행 — 절대 다운그레이드 없음.
@@ -124,11 +173,13 @@ class OnestopAnalysisResult {
     final computed = _computeUlAtLimit();
     final existingKeys =
         ulAtLimit.map((e) => '${e.product}::${e.ingredient}').toSet();
-    final merged = [
+    final mergedRaw = [
       ...ulAtLimit,
       ...computed.where(
           (c) => !existingKeys.contains('${c.product}::${c.ingredient}')),
     ];
+    final merged = _deduplicateUlAtLimit(mergedRaw);
+    final dedupedUlExcess = _deduplicateUlExcess(singleProductUlExcess);
     // warning 조건
     final hasWarning = safetyAlerts.isNotEmpty ||
         functionalOverlaps.any((fo) => fo.severity == 'high') ||
@@ -145,7 +196,7 @@ class OnestopAnalysisResult {
         overlaps: overlaps,
         functionalOverlaps: functionalOverlaps,
         safetyAlerts: safetyAlerts,
-        singleProductUlExcess: singleProductUlExcess,
+        singleProductUlExcess: dedupedUlExcess,
         ulAtLimit: merged,
         exclusionRecommendation: exclusionRecommendation,
         overallStatus: 'warning',
@@ -154,7 +205,7 @@ class OnestopAnalysisResult {
     }
 
     // caution 조건 (warning 아닌 경우만)
-    final hasCaution = singleProductUlExcess.isNotEmpty ||
+    final hasCaution = dedupedUlExcess.isNotEmpty ||
         merged.isNotEmpty ||
         functionalOverlaps.isNotEmpty ||
         overlaps.any((o) => o.exceedsUl);
@@ -165,7 +216,7 @@ class OnestopAnalysisResult {
         overlaps: overlaps,
         functionalOverlaps: functionalOverlaps,
         safetyAlerts: safetyAlerts,
-        singleProductUlExcess: singleProductUlExcess,
+        singleProductUlExcess: dedupedUlExcess,
         ulAtLimit: merged,
         exclusionRecommendation: exclusionRecommendation,
         overallStatus: 'caution',
@@ -173,14 +224,15 @@ class OnestopAnalysisResult {
       );
     }
 
-    // merged가 원본과 다르면 (계산된 항목 추가됨) 새 인스턴스 반환
-    if (merged.length != ulAtLimit.length) {
+    // merged/dedupedUlExcess가 원본과 다르면 새 인스턴스 반환
+    if (merged.length != ulAtLimit.length ||
+        dedupedUlExcess.length != singleProductUlExcess.length) {
       return OnestopAnalysisResult(
         products: products,
         overlaps: overlaps,
         functionalOverlaps: functionalOverlaps,
         safetyAlerts: safetyAlerts,
-        singleProductUlExcess: singleProductUlExcess,
+        singleProductUlExcess: dedupedUlExcess,
         ulAtLimit: merged,
         exclusionRecommendation: exclusionRecommendation,
         overallStatus: overallStatus,
