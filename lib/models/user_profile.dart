@@ -35,10 +35,9 @@ class UserProfile {
               .toList() ??
           [],
       dietPattern: json['dietPattern'] as String? ?? 'standard',
-      goals: (json['goals'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
+      goals:
+          (json['goals'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              [],
       isPregnant: json['isPregnant'] as bool? ?? false,
     );
   }

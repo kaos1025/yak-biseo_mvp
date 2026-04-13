@@ -240,7 +240,8 @@ class SubscriptionService {
     _tierController.add(tier);
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_cacheKey, tier == SubscriptionTier.basic ? 'basic' : 'free');
+      await prefs.setString(
+          _cacheKey, tier == SubscriptionTier.basic ? 'basic' : 'free');
     } catch (_) {}
   }
 
