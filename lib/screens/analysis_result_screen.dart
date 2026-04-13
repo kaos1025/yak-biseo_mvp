@@ -12,6 +12,9 @@ import 'package:myapp/core/service_locator.dart';
 import 'package:myapp/services/iap_service.dart';
 import 'package:myapp/utils/localization_utils.dart';
 import 'package:myapp/widgets/disclaimer_banner.dart';
+import 'package:myapp/services/subscription_service.dart';
+import 'package:myapp/screens/subscription/paywall_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// SuppleCut 분석 결과 화면
 ///
@@ -42,6 +45,8 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
   String? _reportError;
 
   late IAPService _iapService;
+  final SubscriptionService _subscriptionService = SubscriptionService();
+  bool _hasUnlimitedReports = false;
   StreamSubscription<PurchaseStatus>? _purchaseSubscription;
   StreamSubscription<String>? _reportStreamSubscription;
 
@@ -70,6 +75,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
       if (status == PurchaseStatus.purchased ||
           status == PurchaseStatus.restored) {
         _generateReport(showPdfPrompt: true);
+        _trackReportPurchaseAndUpsell();
       } else if (status == PurchaseStatus.error) {
         setState(() {
           _isReportLoading = false;
@@ -83,12 +89,24 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
         });
       }
     });
+
+    // 구독 상태 체크
+    _checkSubscription();
+  }
+
+  Future<void> _checkSubscription() async {
+    await _subscriptionService.initialize();
+    final unlimited = await _subscriptionService.hasUnlimitedReports();
+    if (mounted) {
+      setState(() => _hasUnlimitedReports = unlimited);
+    }
   }
 
   @override
   void dispose() {
     _reportStreamSubscription?.cancel();
     _purchaseSubscription?.cancel();
+    _subscriptionService.dispose();
     _cursorController.dispose();
     super.dispose();
   }
@@ -1397,7 +1415,9 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _showPaymentBottomSheet,
+                    onPressed: _hasUnlimitedReports
+                        ? () => _generateReport(showPdfPrompt: true)
+                        : _showPaymentBottomSheet,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF7B1FA2),
                       foregroundColor: Colors.white,
@@ -1406,12 +1426,28 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: Text(
-                      l10n.premiumUnlockBtn,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _hasUnlimitedReports
+                              ? 'Get Full Report'
+                              : l10n.premiumUnlockBtn,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (_hasUnlimitedReports)
+                          const Text(
+                            'Included with Basic',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.normal,
+                              color: Colors.white70,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -2092,6 +2128,31 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
         ],
       ),
     );
+  }
+
+  static const String _kReportPurchaseCountKey = 'v1_report_purchase_count';
+
+  /// Free 유저 리포트 구매 횟수 추적 + 2회째 구매 시 구독 유도
+  Future<void> _trackReportPurchaseAndUpsell() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final count = (prefs.getInt(_kReportPurchaseCountKey) ?? 0) + 1;
+      await prefs.setInt(_kReportPurchaseCountKey, count);
+
+      if (count == 2 && mounted) {
+        // 2회째 구매 → 구독 유도 (분석 리포트 표시 후 약간 지연)
+        await Future.delayed(const Duration(seconds: 2));
+        if (!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PaywallScreen(
+              trigger: PaywallTrigger.reportUpsell,
+              amountSpent: count * 1.99,
+            ),
+          ),
+        );
+      }
+    } catch (_) {}
   }
 
   Future<void> _initiatePurchase() async {
