@@ -5,6 +5,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
 import '../models/onestop_analysis_result.dart';
+import '../models/saved_stack.dart';
+import '../models/user_profile.dart';
+import '../services/profile_service.dart';
 
 /// Gemini 원스톱 분석 서비스
 ///
@@ -33,6 +36,10 @@ class GeminiAnalysisService {
       systemInstruction: Content.text(_systemPrompt),
     );
 
+    // 프로필 로드 → 프롬프트 prepend
+    final profile = await ProfileService().getProfile();
+    final userPrompt = _buildUserPrompt(profile);
+
     Exception? lastError;
 
     for (var attempt = 0; attempt < 3; attempt++) {
@@ -40,7 +47,7 @@ class GeminiAnalysisService {
         final response = await model.generateContent([
           Content.multi([
             DataPart('image/jpeg', imageBytes),
-            TextPart(_userPrompt),
+            TextPart(userPrompt),
           ]),
         ]);
 
@@ -67,6 +74,92 @@ class GeminiAnalysisService {
     throw lastError ?? Exception('분석 실패');
   }
 
+  /// Quick Check 분석: 기존 스택 + 신규 이미지 → Diff 분석
+  Future<OnestopAnalysisResult> quickCheck(
+    Uint8List imageBytes,
+    SavedStack existingStack,
+  ) async {
+    final model = GenerativeModel(
+      model: _model,
+      apiKey: _apiKey,
+      systemInstruction: Content.text(_systemPrompt),
+    );
+
+    final profile = await ProfileService().getProfile();
+    final userPrompt = _buildQuickCheckPrompt(profile, existingStack);
+
+    Exception? lastError;
+
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        final response = await model.generateContent([
+          Content.multi([
+            DataPart('image/jpeg', imageBytes),
+            TextPart(userPrompt),
+          ]),
+        ]);
+
+        final text = response.text ?? '';
+        if (text.isEmpty) {
+          throw Exception('Gemini returned empty response');
+        }
+
+        final json = _parseJson(text);
+        return OnestopAnalysisResult.fromJson(json);
+      } on FormatException catch (e) {
+        lastError = Exception('JSON 파싱 실패 (시도 ${attempt + 1}/3): $e');
+        if (attempt < 2) {
+          await Future.delayed(Duration(seconds: 2 * (attempt + 1)));
+        }
+      } catch (e) {
+        lastError = e is Exception ? e : Exception(e.toString());
+        if (attempt < 2) {
+          await Future.delayed(Duration(seconds: 2 * (attempt + 1)));
+        }
+      }
+    }
+
+    throw lastError ?? Exception('분석 실패');
+  }
+
+  /// Quick Check 전용 프롬프트: 기존 스택 컨텍스트 + 프로필
+  static String _buildQuickCheckPrompt(UserProfile? profile, SavedStack stack) {
+    final buffer = StringBuffer();
+
+    // 프로필 컨텍스트 (있으면)
+    if (profile != null) {
+      final profilePrompt = _buildUserPrompt(profile);
+      // _buildUserPrompt는 끝에 _userPrompt를 붙이므로 그 부분 제거
+      final profileOnly =
+          profilePrompt.substring(0, profilePrompt.length - _userPrompt.length);
+      buffer.write(profileOnly);
+    }
+
+    // Quick Check 컨텍스트
+    buffer.writeln('QUICK CHECK MODE:');
+    buffer.writeln('Existing stack (${stack.products.length} supplements):');
+    for (final p in stack.products) {
+      final ingredients = p.ingredients.take(5).join(', ');
+      buffer.writeln('- ${p.name}: $ingredients');
+    }
+    buffer.writeln();
+    buffer.writeln('New supplement: see attached image');
+    buffer.writeln();
+    buffer.writeln(
+        'Analyze ONLY the impact of adding the new supplement to the existing stack.');
+    buffer.writeln('Focus on:');
+    buffer.writeln('1. NEW overlaps created by adding this supplement');
+    buffer.writeln('2. NEW UL exceedances caused by this supplement');
+    buffer.writeln('3. Drug interactions (if user profile has medications)');
+    buffer.writeln('4. Positive synergies with existing stack');
+    buffer.writeln('5. Monthly cost impact');
+    buffer.writeln();
+    buffer.write('Return same JSON format as standard analysis. '
+        'Follow the system instructions precisely. Return ONLY valid JSON.');
+
+    return buffer.toString();
+  }
+
   /// JSON 파싱 (```json ... ``` 마크다운 제거)
   Map<String, dynamic> _parseJson(String raw) {
     var cleaned = raw.trim();
@@ -82,6 +175,64 @@ class GeminiAnalysisService {
   static const String _userPrompt =
       'Analyze all supplement products visible in this photo. '
       'Follow the system instructions precisely. Return ONLY valid JSON.';
+
+  /// 프로필이 있으면 컨텍스트 블록을 prepend, 없으면 기존 프롬프트 그대로 반환
+  static String _buildUserPrompt(UserProfile? profile) {
+    if (profile == null) return _userPrompt;
+
+    final buffer = StringBuffer();
+
+    // 기본 프로필 컨텍스트
+    buffer.writeln('USER PROFILE (apply to all analysis):');
+    buffer.writeln('- Age: ${profile.age} years old');
+    buffer.writeln('- Sex: ${profile.gender}');
+    buffer.writeln('- Weight: ${profile.weightKg.toStringAsFixed(1)}kg');
+    buffer.writeln(
+        '- Medications: ${profile.medications.isEmpty ? "None reported" : profile.medications.join(", ")}');
+    buffer.writeln(
+        '- Health Conditions: ${profile.conditions.isEmpty ? "None reported" : profile.conditions.join(", ")}');
+    buffer.writeln('- Diet Pattern: ${profile.dietPattern}');
+    buffer.writeln(
+        '- Health Goals: ${profile.goals.isEmpty ? "Not specified" : profile.goals.join(", ")}');
+    buffer.writeln('- Pregnant/Nursing: ${profile.isPregnant ? "Yes" : "No"}');
+    buffer.writeln();
+    buffer.writeln('Apply this profile when:');
+    buffer.writeln('1. Calculating UL thresholds (age/sex-specific values)');
+    buffer.writeln('2. Flagging drug-supplement interactions');
+    buffer.writeln('3. Assessing diet-related deficiency risks');
+    buffer.writeln('4. Evaluating supplement relevance to health goals');
+    buffer.writeln();
+
+    // 약물 상호작용 강화
+    if (profile.medications.isNotEmpty) {
+      buffer.writeln(
+          'CRITICAL: Check each supplement against these medications:');
+      buffer.writeln(profile.medications.join(', '));
+      buffer.writeln('Flag any interactions as CRITICAL priority.');
+      buffer.writeln('Known high-risk combinations:');
+      buffer.writeln('- Warfarin + Vitamin K, Omega-3, Ginkgo → bleeding risk');
+      buffer
+          .writeln('- Levothyroxine + Calcium, Iron → absorption interference');
+      buffer.writeln('- Statins + Red Yeast Rice → duplicate mechanism');
+      buffer.writeln(
+          '- SSRIs + 5-HTP, St. John\'s Wort → serotonin syndrome risk');
+      buffer.writeln(
+          '- Immunosuppressants + Echinacea, medicinal mushrooms → contraindicated');
+      buffer.writeln();
+    }
+
+    // 임신 플래그
+    if (profile.isPregnant) {
+      buffer.writeln('PREGNANCY FLAG: User is pregnant or nursing.');
+      buffer.writeln('- Flag high-dose Vitamin A (Retinol form) as CRITICAL');
+      buffer.writeln('- Note Folate requirement increase');
+      buffer.writeln('- Flag herbs with insufficient safety data');
+      buffer.writeln();
+    }
+
+    buffer.write(_userPrompt);
+    return buffer.toString();
+  }
 
   // ── 시스템 프롬프트 (PoC 검증 완료) ──
 
