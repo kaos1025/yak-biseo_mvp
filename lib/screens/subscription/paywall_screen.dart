@@ -73,7 +73,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
       if (!mounted) return;
       final tier = await _subscriptionService.getCurrentTier();
       if (!mounted) return;
-      if (tier == SubscriptionTier.basic) {
+      if (tier == SubscriptionTier.basic || tier == SubscriptionTier.family) {
         Navigator.of(context).pop(true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -160,7 +160,6 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
   Widget _buildFeatureList() {
     const features = [
-      ('My Profile', 'personalized analysis'),
       ('My Stack', 'save & manage your supplements'),
       ('Quick Check', 'scan new supplements instantly'),
       ('Unlimited Detail Reports', null),
@@ -222,7 +221,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
   }
 
   Widget _buildSubscriptionButtons() {
-    final monthlyDisplayPrice = _subscriptionService.monthlyPrice ?? '\$2.99';
+    final monthlyDisplayPrice = _subscriptionService.monthlyPrice ?? '\$1.99';
     final yearlyDisplayPrice = _subscriptionService.yearlyPrice ?? '\$29.99';
 
     return Column(
@@ -241,9 +240,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
           onTap: () =>
               _handlePurchase(_subscriptionService.purchaseBasicMonthly),
           label: 'Start for $monthlyDisplayPrice/mo',
-          sub: 'Then \$4.99/mo after 3 months',
+          sub: 'Then \$3.99/mo after 3 months',
           isPrimary: false,
         ),
+        // TODO: v1.3 — Family 티어 버튼 추가 예정
       ],
     );
   }

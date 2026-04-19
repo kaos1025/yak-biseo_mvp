@@ -5,14 +5,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const String kBasicMonthly = 'basic_monthly';
 const String kBasicYearly = 'basic_yearly';
+const String kFamilyMonthly = 'family_monthly';
+const String kFamilyYearly = 'family_yearly';
+const String kDetailedReport199 = 'detailed_report_199';
 
-enum SubscriptionTier { free, basic }
+enum SubscriptionTier { free, basic, family }
 
 enum PurchaseResult { success, cancelled, error, alreadyOwned }
 
 class SubscriptionService {
   static const String _cacheKey = 'v1_subscription_tier';
-  static const Set<String> _subscriptionIds = {kBasicMonthly, kBasicYearly};
+  static const String _trialExpiryKey = 'v1_trial_expiry';
+  static const String _trialGrantedKey = 'v1_trial_granted';
+  static const Set<String> _subscriptionIds = {
+    kBasicMonthly,
+    kBasicYearly,
+    kFamilyMonthly,
+    kFamilyYearly,
+  };
 
   final InAppPurchase _iap = InAppPurchase.instance;
   StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
@@ -71,20 +81,58 @@ class SubscriptionService {
 
   Future<SubscriptionTier> getCurrentTier() async {
     if (!_initialized) await initialize();
+
+    // Trial 만료 체크
+    if (_currentTier == SubscriptionTier.basic) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final expiryStr = prefs.getString(_trialExpiryKey);
+        if (expiryStr != null) {
+          final expiry = DateTime.tryParse(expiryStr);
+          if (expiry != null && DateTime.now().isAfter(expiry)) {
+            // Trial 만료 → free로 전환
+            final cachedRaw = prefs.getString(_cacheKey);
+            if (cachedRaw == 'basic_trial') {
+              _currentTier = SubscriptionTier.free;
+              await prefs.remove(_cacheKey);
+              await prefs.remove(_trialExpiryKey);
+              _tierController.add(_currentTier);
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
     return _currentTier;
   }
 
-  Future<bool> isBasic() async {
-    return await getCurrentTier() == SubscriptionTier.basic;
+  Future<bool> isPaid() async {
+    final tier = await getCurrentTier();
+    return tier == SubscriptionTier.basic || tier == SubscriptionTier.family;
   }
 
   // ── 기능 게이트 헬퍼 ──
 
-  Future<bool> canUseMyStack() async => isBasic();
+  Future<bool> canUseMyStack() async => isPaid();
 
-  Future<bool> canUseQuickCheck() async => isBasic();
+  Future<bool> canUseQuickCheck() async => isPaid();
 
-  Future<bool> hasUnlimitedReports() async => isBasic();
+  Future<bool> hasUnlimitedReports() async => isPaid();
+
+  // ── $1.99 첫 구매 → 30일 Basic 체험 자동 부여 ──
+
+  Future<void> grantTrialFromReport() async {
+    final prefs = await SharedPreferences.getInstance();
+    final trialGranted = prefs.getBool(_trialGrantedKey) ?? false;
+    if (!trialGranted) {
+      final trialExpiry = DateTime.now().add(const Duration(days: 30));
+      await prefs.setString(_trialExpiryKey, trialExpiry.toIso8601String());
+      await prefs.setBool(_trialGrantedKey, true);
+      await prefs.setString(_cacheKey, 'basic_trial');
+      _currentTier = SubscriptionTier.basic;
+      _tierController.add(_currentTier);
+    }
+  }
 
   // ── 상품 정보 ──
 
@@ -106,6 +154,24 @@ class SubscriptionService {
     }
   }
 
+  /// Family 월간 구독 상품의 Play Store 가격 문자열
+  String? get familyMonthlyPrice {
+    try {
+      return _products.firstWhere((p) => p.id == kFamilyMonthly).price;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Family 연간 구독 상품의 Play Store 가격 문자열
+  String? get familyYearlyPrice {
+    try {
+      return _products.firstWhere((p) => p.id == kFamilyYearly).price;
+    } catch (_) {
+      return null;
+    }
+  }
+
   // ── 구매 ──
 
   Future<PurchaseResult> purchaseBasicMonthly() async {
@@ -114,6 +180,14 @@ class SubscriptionService {
 
   Future<PurchaseResult> purchaseBasicYearly() async {
     return _purchase(kBasicYearly);
+  }
+
+  Future<PurchaseResult> purchaseFamilyMonthly() async {
+    return _purchase(kFamilyMonthly);
+  }
+
+  Future<PurchaseResult> purchaseFamilyYearly() async {
+    return _purchase(kFamilyYearly);
   }
 
   Future<PurchaseResult> _purchase(String productId) async {
@@ -158,19 +232,25 @@ class SubscriptionService {
       // 구독 상품이 아니면 무시 (기존 IAP 서비스가 처리)
       if (!_subscriptionIds.contains(details.productID)) continue;
 
+      final tierForProduct =
+          (details.productID == kFamilyMonthly ||
+                  details.productID == kFamilyYearly)
+              ? SubscriptionTier.family
+              : SubscriptionTier.basic;
+
       switch (details.status) {
         case PurchaseStatus.pending:
           break;
         case PurchaseStatus.purchased:
         case PurchaseStatus.restored:
-          await _setTier(SubscriptionTier.basic);
+          await _setTier(tierForProduct);
           _completePendingPurchase(PurchaseResult.success);
           break;
         case PurchaseStatus.error:
           final message = details.error?.message ?? '';
           if (message.contains('already owned') ||
               message.contains('AlreadyOwned')) {
-            await _setTier(SubscriptionTier.basic);
+            await _setTier(tierForProduct);
             _completePendingPurchase(PurchaseResult.alreadyOwned);
           } else {
             _completePendingPurchase(PurchaseResult.error);
@@ -225,10 +305,16 @@ class SubscriptionService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_cacheKey);
-      if (raw == 'basic') {
-        _currentTier = SubscriptionTier.basic;
-      } else {
-        _currentTier = SubscriptionTier.free;
+      switch (raw) {
+        case 'family':
+          _currentTier = SubscriptionTier.family;
+          break;
+        case 'basic':
+        case 'basic_trial':
+          _currentTier = SubscriptionTier.basic;
+          break;
+        default:
+          _currentTier = SubscriptionTier.free;
       }
     } catch (_) {
       _currentTier = SubscriptionTier.free;
@@ -240,8 +326,19 @@ class SubscriptionService {
     _tierController.add(tier);
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-          _cacheKey, tier == SubscriptionTier.basic ? 'basic' : 'free');
+      String value;
+      switch (tier) {
+        case SubscriptionTier.family:
+          value = 'family';
+          break;
+        case SubscriptionTier.basic:
+          value = 'basic';
+          break;
+        case SubscriptionTier.free:
+          value = 'free';
+          break;
+      }
+      await prefs.setString(_cacheKey, value);
     } catch (_) {}
   }
 

@@ -7,6 +7,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/supplecut_analysis_result.dart';
+import '../models/user_profile.dart';
+import 'profile_service.dart';
 
 /// API 에러 (4xx/5xx)
 class ClaudeApiException implements Exception {
@@ -60,9 +62,11 @@ class ClaudeReportService {
     Uint8List? imageBytes,
     String locale = 'ko',
   }) async* {
+    final profile = await ProfileService().getProfile();
     final analysisJson = jsonEncode(result.toJson());
     final exclusionContext = _buildExclusionContext(result);
-    final prompt = _buildPrompt(analysisJson, locale, exclusionContext);
+    final profileContext = _buildProfileContext(profile);
+    final prompt = _buildPrompt(analysisJson, locale, exclusionContext, profileContext);
 
     final content = <Map<String, dynamic>>[];
 
@@ -226,11 +230,61 @@ class ClaudeReportService {
     return buffer.toString();
   }
 
+  /// UserProfile → Claude 프롬프트 컨텍스트 블록
+  String _buildProfileContext(UserProfile? profile) {
+    if (profile == null) return '';
+
+    final buffer = StringBuffer();
+    buffer.writeln('\n## USER PROFILE (personalize all recommendations)');
+    buffer.writeln('- Age: ${profile.age} years old');
+    buffer.writeln('- Sex: ${profile.gender}');
+    buffer.writeln('- Weight: ${profile.weightKg.toStringAsFixed(1)}kg');
+    buffer.writeln(
+        '- Medications: ${profile.medications.isEmpty ? "None reported" : profile.medications.join(", ")}');
+    buffer.writeln(
+        '- Health Conditions: ${profile.conditions.isEmpty ? "None reported" : profile.conditions.join(", ")}');
+    buffer.writeln('- Diet Pattern: ${profile.dietPattern}');
+    buffer.writeln(
+        '- Health Goals: ${profile.goals.isEmpty ? "Not specified" : profile.goals.join(", ")}');
+    buffer.writeln('- Pregnant/Nursing: ${profile.isPregnant ? "Yes" : "No"}');
+    buffer.writeln();
+    buffer.writeln('Apply this profile throughout all 5 report sections:');
+    buffer.writeln(
+        '1. Personalize UL threshold warnings by age and sex');
+    buffer.writeln(
+        '2. Flag drug-supplement interactions based on medications');
+    buffer.writeln(
+        '3. Adjust removal recommendations considering health conditions');
+    buffer.writeln(
+        '4. Reference health goals when evaluating supplement relevance');
+    buffer.writeln(
+        '5. Apply pregnancy/nursing restrictions if applicable');
+
+    if (profile.medications.isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln(
+          'CRITICAL: Check each supplement against these medications:');
+      buffer.writeln(profile.medications.join(', '));
+      buffer.writeln('Flag any interactions as CRITICAL priority.');
+    }
+
+    if (profile.isPregnant) {
+      buffer.writeln();
+      buffer.writeln('PREGNANCY FLAG: User is pregnant or nursing.');
+      buffer.writeln('- Flag high-dose Vitamin A (Retinol form) as CRITICAL');
+      buffer.writeln('- Note Folate requirement increase');
+      buffer.writeln('- Flag herbs with insufficient safety data');
+    }
+
+    return buffer.toString();
+  }
+
   String _buildPrompt(
-      String analysisJson, String locale, String exclusionContext) {
+      String analysisJson, String locale, String exclusionContext, String profileContext) {
     return '''
 You are a licensed pharmacist and supplement cost analyst.
 Analyze the data below and produce a concise **Premium Report**.
+$profileContext
 
 ## Analysis Data (JSON)
 $analysisJson

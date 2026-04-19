@@ -13,7 +13,10 @@ import 'package:myapp/services/iap_service.dart';
 import 'package:myapp/utils/localization_utils.dart';
 import 'package:myapp/widgets/disclaimer_banner.dart';
 import 'package:myapp/services/subscription_service.dart';
+import 'package:myapp/services/profile_service.dart';
 import 'package:myapp/screens/subscription/paywall_screen.dart';
+import 'package:myapp/screens/profile/profile_setup_screen.dart';
+import 'package:myapp/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// SuppleCut 분석 결과 화면
@@ -47,6 +50,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
   late IAPService _iapService;
   final SubscriptionService _subscriptionService = SubscriptionService();
   bool _hasUnlimitedReports = false;
+  bool _showProfileBanner = false;
   StreamSubscription<PurchaseStatus>? _purchaseSubscription;
   StreamSubscription<String>? _reportStreamSubscription;
 
@@ -92,6 +96,14 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
 
     // 구독 상태 체크
     _checkSubscription();
+    _checkProfileBanner();
+  }
+
+  Future<void> _checkProfileBanner() async {
+    final hasProfile = await ProfileService().hasProfile();
+    if (mounted && !hasProfile) {
+      setState(() => _showProfileBanner = true);
+    }
   }
 
   Future<void> _checkSubscription() async {
@@ -258,48 +270,56 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
                   ),
                 ),
 
-                // Bottom Action Button
+                // Bottom Action Button + Profile Banner
                 Positioned(
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  child: Container(
-                    padding: EdgeInsets.fromLTRB(
-                        20, 20, 20, 20 + MediaQuery.of(context).padding.bottom),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      border:
-                          Border(top: BorderSide(color: Colors.grey.shade200)),
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, -4)),
-                      ],
-                    ),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.of(context)
-                            .popUntil((route) => route.isFirst),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4CAF50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 0,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 프로필 미입력 유도 배너
+                      if (_showProfileBanner) _buildProfileBanner(),
+                      // 홈 버튼
+                      Container(
+                        padding: EdgeInsets.fromLTRB(
+                            20, 20, 20, 20 + MediaQuery.of(context).padding.bottom),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          border:
+                              Border(top: BorderSide(color: Colors.grey.shade200)),
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, -4)),
+                          ],
                         ),
-                        child: Text(
-                          l10n.btnBackHome,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.of(context)
+                                .popUntil((route) => route.isFirst),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF4CAF50),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              l10n.btnBackHome,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ],
@@ -2130,14 +2150,101 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
     );
   }
 
+  /// 프로필 미입력 유도 배너
+  Widget _buildProfileBanner() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryColor.withValues(alpha: 0.1),
+        border: Border(
+          top: BorderSide(
+            color: AppTheme.primaryColor.withValues(alpha: 0.2),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.person_outline,
+            color: AppTheme.primaryColor,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Get personalized analysis',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Add your profile for age & medication-specific results',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: _openProfileSetup,
+            child: const Text(
+              'Set Up',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 32,
+            height: 32,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              iconSize: 18,
+              icon: const Icon(Icons.close, color: Colors.black38),
+              onPressed: () => setState(() => _showProfileBanner = false),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openProfileSetup() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
+    );
+    if (result == true && mounted) {
+      setState(() => _showProfileBanner = false);
+    }
+  }
+
   static const String _kReportPurchaseCountKey = 'v1_report_purchase_count';
 
-  /// Free 유저 리포트 구매 횟수 추적 + 2회째 구매 시 구독 유도
+  /// Free 유저 리포트 구매 횟수 추적 + 1회째 Basic 체험 부여 + 2회째 구독 유도
   Future<void> _trackReportPurchaseAndUpsell() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final count = (prefs.getInt(_kReportPurchaseCountKey) ?? 0) + 1;
       await prefs.setInt(_kReportPurchaseCountKey, count);
+
+      // 첫 구매 → 30일 Basic 체험 자동 부여
+      if (count == 1) {
+        await _subscriptionService.grantTrialFromReport();
+        if (mounted) {
+          setState(() => _hasUnlimitedReports = true);
+        }
+      }
 
       if (count == 2 && mounted) {
         // 2회째 구매 → 구독 유도 (분석 리포트 표시 후 약간 지연)

@@ -3,7 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/utils/unit_converter.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/profile_service.dart';
 import '../onboarding_screen.dart';
+import 'profile_setup_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -34,6 +36,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _weightController = TextEditingController();
     _inchesController = TextEditingController();
     _loadSavedValues();
+    _checkProfileSetup();
+  }
+
+  Future<void> _checkProfileSetup() async {
+    final hasProfile = await ProfileService().hasProfile();
+    if (!hasProfile && mounted) {
+      final result = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
+      );
+      if (result == true && mounted) {
+        _loadSavedValues();
+      }
+    }
   }
 
   Future<void> _loadSavedValues() async {
