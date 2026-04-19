@@ -12,6 +12,9 @@ import 'package:myapp/core/service_locator.dart';
 import 'package:myapp/services/iap_service.dart';
 import 'package:myapp/utils/localization_utils.dart';
 import 'package:myapp/widgets/disclaimer_banner.dart';
+import 'package:myapp/services/profile_service.dart';
+import 'package:myapp/screens/profile/profile_setup_screen.dart';
+import 'package:myapp/theme/app_theme.dart';
 
 /// SuppleCut 분석 결과 화면
 ///
@@ -42,6 +45,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
   String? _reportError;
 
   late IAPService _iapService;
+  bool _showProfileBanner = false;
   StreamSubscription<PurchaseStatus>? _purchaseSubscription;
   StreamSubscription<String>? _reportStreamSubscription;
 
@@ -83,6 +87,15 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
         });
       }
     });
+
+    _checkProfileBanner();
+  }
+
+  Future<void> _checkProfileBanner() async {
+    final hasProfile = await ProfileService().hasProfile();
+    if (mounted && !hasProfile) {
+      setState(() => _showProfileBanner = true);
+    }
   }
 
   @override
@@ -125,6 +138,12 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      // ── 프로필 유도 배너 ──
+                      if (_showProfileBanner) ...[
+                        _buildProfileBanner(),
+                        const SizedBox(height: 12),
+                      ],
+
                       // ── 무료 섹션 ──
 
                       // 1. critical_stop 배너 (있을 때만)
@@ -2092,6 +2111,84 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
         ],
       ),
     );
+  }
+
+  /// 프로필 미입력 유도 배너
+  Widget _buildProfileBanner() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.person_outline,
+            color: AppTheme.primaryColor,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Get personalized analysis',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Add your profile for age & medication-specific results',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: _openProfileSetup,
+            child: const Text(
+              'Set Up',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 32,
+            height: 32,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              iconSize: 18,
+              icon: const Icon(Icons.close, color: Colors.black38),
+              onPressed: () => setState(() => _showProfileBanner = false),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openProfileSetup() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
+    );
+    if (result == true && mounted) {
+      setState(() => _showProfileBanner = false);
+    }
   }
 
   Future<void> _initiatePurchase() async {

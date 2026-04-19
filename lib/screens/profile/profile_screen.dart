@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../core/utils/unit_converter.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/user_profile.dart';
+import '../../services/profile_service.dart';
+import '../../theme/app_theme.dart';
 import '../onboarding_screen.dart';
+import 'profile_setup_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,228 +15,266 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final _formKey = GlobalKey<FormState>();
-
-  static const String _heightCmKey = 'profile_height_cm';
-  static const String _weightKgKey = 'profile_weight_kg';
-
-  // Internally stored in Metric units (cm, kg)
-  double _heightCm = 170.0;
-  double _weightKg = 70.0;
-  bool _loaded = false;
-
-  late TextEditingController _heightController;
-  late TextEditingController _weightController;
-  late TextEditingController _inchesController; // for US height
+  final ProfileService _profileService = ProfileService();
+  UserProfile? _profile;
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _heightController = TextEditingController();
-    _weightController = TextEditingController();
-    _inchesController = TextEditingController();
-    _loadSavedValues();
+    _loadProfile();
   }
 
-  Future<void> _loadSavedValues() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedHeight = prefs.getDouble(_heightCmKey);
-    final savedWeight = prefs.getDouble(_weightKgKey);
-    if (savedHeight != null) _heightCm = savedHeight;
-    if (savedWeight != null) _weightKg = savedWeight;
+  Future<void> _loadProfile() async {
+    final profile = await _profileService.getProfile();
     if (!mounted) return;
-    setState(() {
-      _loaded = true;
-    });
-  }
 
-  @override
-  void dispose() {
-    _heightController.dispose();
-    _weightController.dispose();
-    _inchesController.dispose();
-    super.dispose();
-  }
-
-  void _updateControllers(bool isEn) {
-    if (isEn) {
-      final ftIn = UnitConverter.cmToFeetInches(_heightCm);
-      _heightController.text = ftIn['feet'].toString();
-      _inchesController.text = ftIn['inches'].toString();
-      _weightController.text =
-          UnitConverter.kgToLb(_weightKg).toStringAsFixed(1);
+    if (profile == null) {
+      // 프로필 없음 → SetupScreen으로 바로 이동
+      final result = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
+      );
+      if (!mounted) return;
+      if (result == true) {
+        // 설정 완료 → 홈으로 바로 복귀
+        if (mounted) Navigator.pop(context);
+        return;
+      } else {
+        // X로 닫음 → 홈으로 복귀
+        Navigator.pop(context);
+      }
     } else {
-      _heightController.text = _heightCm.toStringAsFixed(1);
-      _weightController.text = _weightKg.toStringAsFixed(1);
+      setState(() {
+        _profile = profile;
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _editProfile() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProfileSetupScreen(initialProfile: _profile),
+      ),
+    );
+    if (result == true && mounted) {
+      final saved = await _profileService.getProfile();
+      if (mounted) setState(() => _profile = saved);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isEn = Localizations.localeOf(context).languageCode == 'en';
 
-    // Sync controllers once after saved values are loaded
-    if (_loaded) {
-      _loaded = false;
-      _updateControllers(isEn);
+    if (_loading) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.profileTitle), centerTitle: true),
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.profileTitle),
         centerTitle: true,
+        actions: [
+          TextButton(
+            onPressed: _editProfile,
+            child: const Text(
+              'Edit',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 프로필 정보 카드
+            if (_profile != null) _buildProfileCard(_profile!),
+
+            const SizedBox(height: 24),
+
+            // 프로필 삭제
+            if (_profile != null)
+              Center(
+                child: TextButton(
+                  onPressed: _confirmDeleteProfile,
+                  child: const Text(
+                    'Delete My Health Profile',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.redAccent,
+                    ),
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 8),
+            const Divider(),
+            const SizedBox(height: 8),
+            Text(
+              'Legal',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[700],
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildLegalTile(
+              icon: Icons.shield_outlined,
+              title: 'Privacy Policy',
+              onTap: () => _launchUrl(
+                  'https://temporal-guppy-37e.notion.site/Privacy-Policy-SuppleCut-312c5710750781368e50f9682a70a76c'),
+            ),
+            _buildLegalTile(
+              icon: Icons.description_outlined,
+              title: 'Terms of Service',
+              onTap: () => _launchUrl(
+                  'https://temporal-guppy-37e.notion.site/Terms-of-Service-SuppleCut-312c571075078197a122dcf42e646399'),
+            ),
+            _buildLegalTile(
+              icon: Icons.medical_information_outlined,
+              title: 'FDA Disclaimer',
+              onTap: () => _showFdaDisclaimer(context),
+            ),
+            _buildLegalTile(
+              icon: Icons.school_outlined,
+              title: 'View Tutorial',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => OnboardingScreen(
+                      onComplete: () => Navigator.pop(context),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileCard(UserProfile profile) {
+    final genderLabel = switch (profile.gender) {
+      'male' => 'Male',
+      'female' => 'Female',
+      _ => 'Other',
+    };
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F8E9),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 기본 정보
+          Row(
+            children: [
+              const Icon(Icons.person, color: AppTheme.primaryColor, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                '$genderLabel · ${profile.age} years old · ${profile.weightKg.toStringAsFixed(1)}kg',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+
+          // 약물
+          if (profile.medications.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildInfoRow(
+              Icons.medication_outlined,
+              'Medications',
+              profile.medications.join(', '),
+            ),
+          ],
+
+          // 건강 상태
+          if (profile.conditions.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildInfoRow(
+              Icons.health_and_safety_outlined,
+              'Conditions',
+              profile.conditions.join(', '),
+            ),
+          ],
+
+          // 건강 목표
+          if (profile.goals.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildInfoRow(
+              Icons.flag_outlined,
+              'Goals',
+              profile.goals.join(', '),
+            ),
+          ],
+
+          // 임신 여부
+          if (profile.isPregnant) ...[
+            const SizedBox(height: 12),
+            _buildInfoRow(
+              Icons.pregnant_woman,
+              'Pregnant / Nursing',
+              'Yes',
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: Colors.black54),
+        const SizedBox(width: 8),
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isEn ? 'Personal Information' : '개인 정보 입력',
-                style:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 24),
-
-              // Height Input
-              Text(l10n.heightLabel,
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              if (isEn)
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _heightController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          suffixText: 'ft',
-                          border: OutlineInputBorder(),
-                        ),
-                        onChanged: (val) => _saveMetric(isEn),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _inchesController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          suffixText: 'in',
-                          border: OutlineInputBorder(),
-                        ),
-                        onChanged: (val) => _saveMetric(isEn),
-                      ),
-                    ),
-                  ],
-                )
-              else
-                TextFormField(
-                  controller: _heightController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    suffixText: 'cm',
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (val) => _saveMetric(isEn),
-                ),
-
-              const SizedBox(height: 20),
-
-              // Weight Input
-              Text(l10n.weightLabel,
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _weightController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  suffixText: isEn ? 'lb' : 'kg',
-                  border: const OutlineInputBorder(),
-                ),
-                onChanged: (val) => _saveMetric(isEn),
-              ),
-
-              const SizedBox(height: 40),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.setDouble(_heightCmKey, _heightCm);
-                      await prefs.setDouble(_weightKgKey, _weightKg);
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                            content: Text(isEn
-                                ? 'Saved! (Metric: ${_heightCm.toStringAsFixed(1)}cm, ${_weightKg.toStringAsFixed(1)}kg)'
-                                : '저장되었습니다!')),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D32),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: Text(l10n.saveBtn),
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black54,
                 ),
               ),
-
-              const SizedBox(height: 32),
-              const Divider(),
-              const SizedBox(height: 8),
+              const SizedBox(height: 2),
               Text(
-                'Legal',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[700],
-                ),
-              ),
-              const SizedBox(height: 8),
-              _buildLegalTile(
-                icon: Icons.shield_outlined,
-                title: 'Privacy Policy',
-                onTap: () => _launchUrl(
-                    'https://temporal-guppy-37e.notion.site/Privacy-Policy-SuppleCut-312c5710750781368e50f9682a70a76c'),
-              ),
-              _buildLegalTile(
-                icon: Icons.description_outlined,
-                title: 'Terms of Service',
-                onTap: () => _launchUrl(
-                    'https://temporal-guppy-37e.notion.site/Terms-of-Service-SuppleCut-312c571075078197a122dcf42e646399'),
-              ),
-              _buildLegalTile(
-                icon: Icons.medical_information_outlined,
-                title: 'FDA Disclaimer',
-                onTap: () => _showFdaDisclaimer(context),
-              ),
-              _buildLegalTile(
-                icon: Icons.school_outlined,
-                title: 'View Tutorial',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => OnboardingScreen(
-                        onComplete: () => Navigator.pop(context),
-                      ),
-                    ),
-                  );
-                },
+                value,
+                style: const TextStyle(fontSize: 14, color: Colors.black87),
               ),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 
@@ -262,6 +302,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _confirmDeleteProfile() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete your health profile?'),
+        content: const Text(
+          'Your age, weight, medications and health goals will be removed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await _profileService.deleteProfile();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Health profile deleted')),
+      );
+      Navigator.pop(context);
+    }
+  }
+
   void _showFdaDisclaimer(BuildContext context) {
     showDialog(
       context: context,
@@ -285,21 +359,5 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
-  }
-
-  void _saveMetric(bool isEn) {
-    setState(() {
-      if (isEn) {
-        int ft = int.tryParse(_heightController.text) ?? 0;
-        int inch = int.tryParse(_inchesController.text) ?? 0;
-        _heightCm = UnitConverter.feetInchesToCm(ft, inch);
-
-        double lb = double.tryParse(_weightController.text) ?? 0;
-        _weightKg = UnitConverter.lbToKg(lb);
-      } else {
-        _heightCm = double.tryParse(_heightController.text) ?? 0;
-        _weightKg = double.tryParse(_weightController.text) ?? 0;
-      }
-    });
   }
 }

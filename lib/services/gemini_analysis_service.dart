@@ -5,6 +5,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
 import '../models/onestop_analysis_result.dart';
+import '../models/user_profile.dart';
+import '../services/profile_service.dart';
 
 /// Gemini 원스톱 분석 서비스
 ///
@@ -33,6 +35,10 @@ class GeminiAnalysisService {
       systemInstruction: Content.text(_systemPrompt),
     );
 
+    // 프로필 로드 → 프롬프트 prepend
+    final profile = await ProfileService().getProfile();
+    final userPrompt = _buildUserPrompt(profile);
+
     Exception? lastError;
 
     for (var attempt = 0; attempt < 3; attempt++) {
@@ -40,7 +46,7 @@ class GeminiAnalysisService {
         final response = await model.generateContent([
           Content.multi([
             DataPart('image/jpeg', imageBytes),
-            TextPart(_userPrompt),
+            TextPart(userPrompt),
           ]),
         ]);
 
@@ -77,6 +83,63 @@ class GeminiAnalysisService {
     }
     cleaned = cleaned.trim();
     return jsonDecode(cleaned) as Map<String, dynamic>;
+  }
+
+  static String _buildUserPrompt(UserProfile? profile) {
+    if (profile == null) return _userPrompt;
+
+    final buffer = StringBuffer();
+
+    // 기본 프로필 컨텍스트
+    buffer.writeln('USER PROFILE (apply to all analysis):');
+    buffer.writeln('- Age: ${profile.age} years old');
+    buffer.writeln('- Sex: ${profile.gender}');
+    buffer.writeln('- Weight: ${profile.weightKg.toStringAsFixed(1)}kg');
+    buffer.writeln(
+        '- Medications: ${profile.medications.isEmpty ? "None reported" : profile.medications.join(", ")}');
+    buffer.writeln(
+        '- Health Conditions: ${profile.conditions.isEmpty ? "None reported" : profile.conditions.join(", ")}');
+    buffer.writeln('- Diet Pattern: ${profile.dietPattern}');
+    buffer.writeln(
+        '- Health Goals: ${profile.goals.isEmpty ? "Not specified" : profile.goals.join(", ")}');
+    buffer.writeln('- Pregnant/Nursing: ${profile.isPregnant ? "Yes" : "No"}');
+    buffer.writeln();
+    buffer.writeln('Apply this profile when:');
+    buffer.writeln('1. Calculating UL thresholds (age/sex-specific values)');
+    buffer.writeln('2. Flagging drug-supplement interactions');
+    buffer.writeln('3. Assessing diet-related deficiency risks');
+    buffer.writeln('4. Evaluating supplement relevance to health goals');
+    buffer.writeln();
+
+    // 약물 상호작용 강화
+    if (profile.medications.isNotEmpty) {
+      buffer.writeln(
+          'CRITICAL: Check each supplement against these medications:');
+      buffer.writeln(profile.medications.join(', '));
+      buffer.writeln('Flag any interactions as CRITICAL priority.');
+      buffer.writeln('Known high-risk combinations:');
+      buffer.writeln('- Warfarin + Vitamin K, Omega-3, Ginkgo → bleeding risk');
+      buffer
+          .writeln('- Levothyroxine + Calcium, Iron → absorption interference');
+      buffer.writeln('- Statins + Red Yeast Rice → duplicate mechanism');
+      buffer.writeln(
+          '- SSRIs + 5-HTP, St. John\'s Wort → serotonin syndrome risk');
+      buffer.writeln(
+          '- Immunosuppressants + Echinacea, medicinal mushrooms → contraindicated');
+      buffer.writeln();
+    }
+
+    // 임신 플래그
+    if (profile.isPregnant) {
+      buffer.writeln('PREGNANCY FLAG: User is pregnant or nursing.');
+      buffer.writeln('- Flag high-dose Vitamin A (Retinol form) as CRITICAL');
+      buffer.writeln('- Note Folate requirement increase');
+      buffer.writeln('- Flag herbs with insufficient safety data');
+      buffer.writeln();
+    }
+
+    buffer.write(_userPrompt);
+    return buffer.toString();
   }
 
   static const String _userPrompt =
