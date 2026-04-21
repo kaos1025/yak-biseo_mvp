@@ -155,6 +155,12 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      // ── 프로필 유도 배너 ──
+                      if (_showProfileBanner) ...[
+                        _buildProfileBanner(),
+                        const SizedBox(height: 12),
+                      ],
+
                       // ── 무료 섹션 ──
 
                       // 1. critical_stop 배너 (있을 때만)
@@ -270,7 +276,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
                   ),
                 ),
 
-                // Bottom Action Button + Profile Banner
+                // Bottom Action Button
                 Positioned(
                   left: 0,
                   right: 0,
@@ -278,8 +284,6 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // 프로필 미입력 유도 배너
-                      if (_showProfileBanner) _buildProfileBanner(),
                       // 홈 버튼
                       Container(
                         padding: EdgeInsets.fromLTRB(
@@ -2153,13 +2157,12 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
   /// 프로필 미입력 유도 배너
   Widget _buildProfileBanner() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+      padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
       decoration: BoxDecoration(
         color: AppTheme.primaryColor.withValues(alpha: 0.1),
-        border: Border(
-          top: BorderSide(
-            color: AppTheme.primaryColor.withValues(alpha: 0.2),
-          ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.2),
         ),
       ),
       child: Row(

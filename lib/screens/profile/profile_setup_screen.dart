@@ -5,7 +5,9 @@ import 'package:myapp/services/profile_service.dart';
 import 'package:myapp/theme/app_theme.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
-  const ProfileSetupScreen({super.key});
+  final UserProfile? initialProfile;
+
+  const ProfileSetupScreen({super.key, this.initialProfile});
 
   @override
   State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
@@ -16,7 +18,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final ProfileService _profileService = ProfileService();
 
   int _currentStep = 0;
-  static const int _totalSteps = 3;
+  static const int _totalSteps = 3; // 입력 단계만 (완료 화면 제외)
+  bool _isSaved = false;
+  UserProfile? _savedProfile;
 
   // ── Step 1: 기본 정보 ──
   String? _gender;
@@ -24,12 +28,27 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final TextEditingController _weightController = TextEditingController();
   bool _isLb = false;
 
-  // ── Step 2: 복용 약물 ──
+  // ── Step 2: 복용 약물 + 임신/수유 ──
   final TextEditingController _medicationController = TextEditingController();
   final List<String> _medications = [];
+  bool _isPregnant = false;
 
   // ── Step 3: 건강 목표 ──
   final Set<String> _selectedGoals = {};
+
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.initialProfile;
+    if (p != null) {
+      _gender = p.gender;
+      _birthYear = p.birthYear;
+      _weightController.text = p.weightKg.toStringAsFixed(1);
+      _medications.addAll(p.medications);
+      _isPregnant = p.isPregnant;
+      _selectedGoals.addAll(p.goals);
+    }
+  }
 
   static const List<String> _goalOptions = [
     'Sleep',
@@ -48,11 +67,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   bool get _isStep1Valid =>
       _gender != null && _weightController.text.trim().isNotEmpty;
 
-  bool get _isLastStep => _currentStep == _totalSteps - 1;
+  bool get _isLastInputStep => _currentStep == _totalSteps - 1;
 
   void _nextStep() {
-    if (_isLastStep) {
-      _saveAndFinish();
+    if (_isLastInputStep) {
+      _saveAndShowConfirmation();
       return;
     }
     _pageController.nextPage(
@@ -62,7 +81,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   }
 
   void _previousStep() {
-    if (_currentStep > 0) {
+    if (_currentStep > 0 && !_isSaved) {
       _pageController.previousPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -70,7 +89,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     }
   }
 
-  Future<void> _saveAndFinish() async {
+  Future<void> _saveAndShowConfirmation() async {
     double weightKg;
     final rawWeight = double.tryParse(_weightController.text.trim());
     if (rawWeight == null) return;
@@ -82,11 +101,16 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       weightKg: weightKg,
       medications: List.unmodifiable(_medications),
       goals: _selectedGoals.toList(),
+      isPregnant: _gender == 'female' ? _isPregnant : false,
     );
 
     try {
       await _profileService.saveProfile(profile);
-      if (mounted) Navigator.of(context).pop(true);
+      if (!mounted) return;
+      setState(() {
+        _savedProfile = profile;
+        _isSaved = true;
+      });
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -99,48 +123,53 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: _currentStep == 0,
+      canPop: _currentStep == 0 || _isSaved,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _previousStep();
+        if (!didPop && !_isSaved) _previousStep();
       },
       child: Scaffold(
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: _currentStep > 0
-              ? IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: _previousStep,
-                )
-              : IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.of(context).pop(false),
+        appBar: _isSaved
+            ? null
+            : AppBar(
+                backgroundColor: Colors.white,
+                elevation: 0,
+                leading: _currentStep > 0
+                    ? IconButton(
+                        icon: const Icon(Icons.arrow_back),
+                        onPressed: _previousStep,
+                      )
+                    : IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.of(context).pop(false),
+                      ),
+                title: Text(
+                  'Step ${_currentStep + 1} of $_totalSteps',
+                  style: const TextStyle(fontSize: 16, color: Colors.black54),
                 ),
-          title: Text(
-            'Step ${_currentStep + 1} of $_totalSteps',
-            style: const TextStyle(fontSize: 16, color: Colors.black54),
-          ),
-          centerTitle: true,
-        ),
-        body: Column(
-          children: [
-            _buildStepIndicator(),
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
-                onPageChanged: (index) => setState(() => _currentStep = index),
+                centerTitle: true,
+              ),
+        body: _isSaved
+            ? _buildConfirmationStep()
+            : Column(
                 children: [
-                  _buildStep1(),
-                  _buildStep2(),
-                  _buildStep3(),
+                  _buildStepIndicator(),
+                  Expanded(
+                    child: PageView(
+                      controller: _pageController,
+                      physics: const NeverScrollableScrollPhysics(),
+                      onPageChanged: (index) =>
+                          setState(() => _currentStep = index),
+                      children: [
+                        _buildStep1(),
+                        _buildStep2(),
+                        _buildStep3(),
+                      ],
+                    ),
+                  ),
+                  _buildBottomBar(),
                 ],
               ),
-            ),
-            _buildBottomBar(),
-          ],
-        ),
       ),
     );
   }
@@ -180,9 +209,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           children: [
             if (_currentStep > 0) ...[
               TextButton(
-                onPressed: _isLastStep ? _nextStep : null,
+                onPressed: _isLastInputStep ? _nextStep : null,
                 child: Text(
-                  _isLastStep ? 'Skip' : '',
+                  _isLastInputStep ? 'Skip' : '',
                   style: const TextStyle(fontSize: 16, color: Colors.black54),
                 ),
               ),
@@ -204,7 +233,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   ),
                 ),
                 child: Text(
-                  _isLastStep ? 'Done' : 'Next',
+                  _isLastInputStep ? 'Done' : 'Next',
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold),
                 ),
@@ -565,7 +594,62 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
             ),
           ],
+
+          // 임신/수유 여부 (female만)
+          if (_gender == 'female') ...[
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 16),
+            const Text(
+              'Pregnant or nursing?',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _buildPregnancyOption('Yes', true),
+                const SizedBox(width: 12),
+                _buildPregnancyOption('No', false),
+              ],
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildPregnancyOption(String label, bool value) {
+    final isSelected = _isPregnant == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _isPregnant = value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppTheme.primaryColor.withValues(alpha: 0.08)
+                : const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+              width: 2,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? AppTheme.primaryColor : Colors.black54,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -647,6 +731,128 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             }).toList(),
           ),
         ],
+      ),
+    );
+  }
+
+  // ══════════════════════════════════════════════
+  // Confirmation — 저장 완료 화면
+  // ══════════════════════════════════════════════
+
+  Widget _buildConfirmationStep() {
+    final profile = _savedProfile;
+    if (profile == null) return const SizedBox.shrink();
+
+    final genderLabel = switch (profile.gender) {
+      'male' => 'Male',
+      'female' => 'Female',
+      _ => 'Other',
+    };
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(
+          children: [
+            const Spacer(),
+
+            // 체크 아이콘
+            const Icon(
+              Icons.check_circle_outline,
+              color: AppTheme.primaryColor,
+              size: 64,
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Profile Saved!',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Your next analysis will be personalized\nbased on your profile.',
+              style:
+                  TextStyle(fontSize: 15, color: Colors.black54, height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 28),
+
+            // 프로필 요약 카드
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F8E9),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$genderLabel · Age: ${profile.age} · ${profile.weightKg.toStringAsFixed(1)}kg',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  if (profile.medications.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Medications: ${profile.medications.join(", ")}',
+                      style:
+                          const TextStyle(fontSize: 13, color: Colors.black54),
+                    ),
+                  ],
+                  if (profile.goals.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Goals: ${profile.goals.join(", ")}',
+                      style:
+                          const TextStyle(fontSize: 13, color: Colors.black54),
+                    ),
+                  ],
+                  if (profile.isPregnant) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Pregnant / Nursing: Yes',
+                      style: TextStyle(fontSize: 13, color: Colors.black54),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            const Spacer(),
+
+            // 버튼
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Done',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
