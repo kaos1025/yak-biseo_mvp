@@ -5,6 +5,8 @@ import 'package:myapp/screens/result_screen.dart';
 import 'package:myapp/services/analytics_service.dart';
 import 'package:myapp/l10n/app_localizations.dart';
 import 'package:myapp/screens/profile/profile_screen.dart';
+import 'package:myapp/screens/stack/my_stack_screen.dart';
+import 'package:myapp/screens/stack/quick_check_screen.dart';
 
 import 'package:myapp/presentation/home/home_view_model.dart';
 import 'package:myapp/presentation/home/widgets/health_tip_banner.dart';
@@ -318,6 +320,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                           ),
                           const SizedBox(height: 24),
 
+                          // ── My Stack / Quick Check 진입 카드 ──
+                          _buildStackShortcutRow(l10n),
+                          const SizedBox(height: 24),
+
                           // "How it works" 가이드 (분석 이력 없는 사용자만)
                           AnimatedBuilder(
                             animation: _viewModel,
@@ -430,6 +436,104 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             );
           }),
         ],
+      ),
+    );
+  }
+
+  // ── My Stack / Quick Check 진입 ──
+
+  void _openMyStack() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MyStackScreen()),
+    );
+  }
+
+  void _openQuickCheck() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const QuickCheckScreen()),
+    );
+  }
+
+  Widget _buildStackShortcutRow(AppLocalizations l10n) {
+    final isKo = l10n.localeName == 'ko';
+    return Row(
+      children: [
+        Expanded(
+          child: _buildStackShortcutCard(
+            icon: Icons.inventory_2_outlined,
+            title: isKo ? '내 스택' : 'My Stack',
+            subtitle: isKo ? '저장된 영양제 관리' : 'Your saved supplements',
+            onTap: _openMyStack,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStackShortcutCard(
+            icon: Icons.flash_on_rounded,
+            title: isKo ? '퀵 체크' : 'Quick Check',
+            subtitle: isKo ? '새 영양제 호환성 확인' : 'Test a new supplement',
+            onTap: _openQuickCheck,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStackShortcutCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, size: 26, color: const Color(0xFF2E7D32)),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
+                    height: 1.3,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
