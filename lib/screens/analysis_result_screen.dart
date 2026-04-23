@@ -76,10 +76,11 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
     _iapService = getIt<IAPService>();
     _purchaseSubscription = _iapService.purchaseStatusStream.listen((status) {
       if (!mounted) return;
-      if (status == PurchaseStatus.purchased ||
-          status == PurchaseStatus.restored) {
+      if (status == PurchaseStatus.purchased) {
         _generateReport(showPdfPrompt: true);
         _trackReportPurchaseAndUpsell();
+      } else if (status == PurchaseStatus.restored) {
+        _generateReport(showPdfPrompt: true);
       } else if (status == PurchaseStatus.error) {
         setState(() {
           _isReportLoading = false;
