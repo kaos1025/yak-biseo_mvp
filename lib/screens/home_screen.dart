@@ -7,6 +7,8 @@ import 'package:myapp/l10n/app_localizations.dart';
 import 'package:myapp/screens/profile/profile_screen.dart';
 import 'package:myapp/screens/stack/my_stack_screen.dart';
 import 'package:myapp/screens/stack/quick_check_screen.dart';
+import 'package:myapp/screens/subscription/paywall_screen.dart';
+import 'package:myapp/services/subscription_service.dart';
 
 import 'package:myapp/presentation/home/home_view_model.dart';
 import 'package:myapp/presentation/home/widgets/health_tip_banner.dart';
@@ -26,12 +28,23 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final HomeViewModel _viewModel = HomeViewModel();
   final AnalyticsService _analyticsService = AnalyticsService();
   final ImagePicker _picker = ImagePicker();
+  final SubscriptionService _subscriptionService = SubscriptionService();
+
+  bool _isTrialActive = false;
 
   @override
   void initState() {
     super.initState();
     _analyticsService.logAppOpen();
     _checkDisclaimer();
+    _checkTrialStatus();
+  }
+
+  Future<void> _checkTrialStatus() async {
+    final active = await _subscriptionService.isTrialActive();
+    if (mounted) {
+      setState(() => _isTrialActive = active);
+    }
   }
 
   @override
@@ -50,6 +63,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   void didPopNext() {
     // Top route popped, returning to Home
     _refreshMyPills();
+    _checkTrialStatus();
   }
 
   void _refreshMyPills() {
@@ -182,14 +196,58 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         scrolledUnderElevation: 0,
         foregroundColor: const Color(0xFF4CAF50),
         actions: [
-          IconButton(
+          PopupMenuButton<String>(
             icon: const Icon(Icons.person_outline, size: 28),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfileScreen()),
-              );
+            tooltip: 'Menu',
+            onSelected: (value) async {
+              switch (value) {
+                case 'profile':
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ProfileScreen(),
+                    ),
+                  );
+                  break;
+                case 'upgrade':
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PaywallScreen(
+                        trigger: PaywallTrigger.myStack,
+                      ),
+                    ),
+                  );
+                  _checkTrialStatus();
+                  break;
+              }
             },
+            itemBuilder: (context) => [
+              const PopupMenuItem<String>(
+                value: 'profile',
+                child: Row(
+                  children: [
+                    Icon(Icons.account_circle_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('My Profile'),
+                  ],
+                ),
+              ),
+              if (_isTrialActive)
+                const PopupMenuItem<String>(
+                  value: 'upgrade',
+                  child: Row(
+                    children: [
+                      Icon(Icons.upgrade, size: 20, color: Colors.green),
+                      SizedBox(width: 12),
+                      Text(
+                        'Upgrade to Basic',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
           const SizedBox(width: 8),
         ],

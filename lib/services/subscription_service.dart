@@ -111,6 +111,23 @@ class SubscriptionService {
     return tier == SubscriptionTier.basic || tier == SubscriptionTier.family;
   }
 
+  /// Trial(basic_trial) 기간이 현재 활성 중인지 여부.
+  /// 정식 구독자는 false를 반환 — 체험 ↔ 정식 구독을 구분하기 위한 헬퍼.
+  Future<bool> isTrialActive() async {
+    if (!_initialized) await initialize();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getString(_cacheKey) != 'basic_trial') return false;
+      final expiryStr = prefs.getString(_trialExpiryKey);
+      if (expiryStr == null) return false;
+      final expiry = DateTime.tryParse(expiryStr);
+      if (expiry == null) return false;
+      return DateTime.now().isBefore(expiry);
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ── 기능 게이트 헬퍼 ──
 
   Future<bool> canUseMyStack() async => isPaid();
