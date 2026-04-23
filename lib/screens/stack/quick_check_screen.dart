@@ -115,13 +115,32 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
   Future<void> _addToStack() async {
     if (_result == null || _stack == null) return;
 
-    final newProducts = _result!.products.map((p) {
-      return SavedProduct(
-        name: p.name,
-        ingredients: p.ingredients.map((i) => i.name).toList(),
-        monthlyCost: p.monthlyCostUsd > 0 ? p.monthlyCostUsd : null,
-      );
-    }).toList();
+    final existingNames = _stack!.products
+        .map((p) => p.name.trim().toLowerCase())
+        .toSet();
+
+    final newProducts = _result!.products
+        .where((p) => !existingNames.contains(p.name.trim().toLowerCase()))
+        .map((p) => SavedProduct(
+              name: p.name,
+              ingredients: p.ingredients.map((i) => i.name).toList(),
+              monthlyCost: p.monthlyCostUsd > 0 ? p.monthlyCostUsd : null,
+            ))
+        .toList();
+
+    if (newProducts.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This product is already in your stack'),
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        Navigator.of(context).pop(false);
+      }
+      return;
+    }
 
     final updatedStack = SavedStack(
       products: [..._stack!.products, ...newProducts],
@@ -197,25 +216,27 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
   }
 
   Widget _buildContent() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildStackSummary(),
-          const SizedBox(height: 16),
-          _buildCaptureArea(),
-          const SizedBox(height: 16),
-          if (_capturedImage != null && _result == null && !_isAnalyzing)
-            _buildCheckButton(),
-          if (_isAnalyzing) _buildAnalyzingIndicator(),
-          if (_errorMessage != null) _buildError(),
-          if (_result != null) ...[
-            _buildDiffResults(),
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildStackSummary(),
             const SizedBox(height: 16),
-            _buildResultActions(),
+            _buildCaptureArea(),
+            const SizedBox(height: 16),
+            if (_capturedImage != null && _result == null && !_isAnalyzing)
+              _buildCheckButton(),
+            if (_isAnalyzing) _buildAnalyzingIndicator(),
+            if (_errorMessage != null) _buildError(),
+            if (_result != null) ...[
+              _buildDiffResults(),
+              const SizedBox(height: 16),
+              _buildResultActions(),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
