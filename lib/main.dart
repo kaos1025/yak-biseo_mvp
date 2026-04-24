@@ -6,6 +6,7 @@ import 'package:myapp/screens/home_screen.dart';
 import 'package:myapp/screens/onboarding_screen.dart';
 import 'package:myapp/theme/app_theme.dart';
 import 'package:myapp/l10n/app_localizations.dart';
+import 'package:myapp/utils/license_registration.dart';
 import 'firebase_options.dart';
 
 import 'package:myapp/core/service_locator.dart';
@@ -15,6 +16,7 @@ final RouteObserver<ModalRoute<void>> routeObserver =
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  registerPretendardLicense();
   await dotenv.load(fileName: ".env");
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
