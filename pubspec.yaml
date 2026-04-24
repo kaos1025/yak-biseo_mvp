@@ -47,6 +47,13 @@ flutter:
     - assets/images/
     - assets/fonts/
     - assets/test/
+  fonts:
+    - family: Pretendard
+      fonts:
+        - asset: assets/fonts/Pretendard-Regular.otf
+          weight: 400
+        - asset: assets/fonts/Pretendard-Medium.otf
+          weight: 500
 
 flutter_launcher_icons:
   android: true
