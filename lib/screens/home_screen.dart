@@ -7,13 +7,12 @@ import 'package:myapp/l10n/app_localizations.dart';
 import 'package:myapp/screens/profile/profile_screen.dart';
 import 'package:myapp/screens/stack/my_stack_screen.dart';
 import 'package:myapp/screens/stack/quick_check_screen.dart';
-import 'package:myapp/screens/subscription/paywall_screen.dart';
-import 'package:myapp/services/subscription_service.dart';
+import 'package:myapp/theme/supplecut_tokens.dart';
 
 import 'package:myapp/presentation/home/home_view_model.dart';
-import 'package:myapp/presentation/home/widgets/health_tip_banner.dart';
+import 'package:myapp/presentation/home/widgets/health_tip_modal.dart';
 import 'package:myapp/presentation/home/widgets/recent_analysis_card.dart';
-import 'package:myapp/widgets/bottom_action_area.dart';
+import 'package:myapp/widgets/home/content_question_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:myapp/main.dart';
 
@@ -28,23 +27,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final HomeViewModel _viewModel = HomeViewModel();
   final AnalyticsService _analyticsService = AnalyticsService();
   final ImagePicker _picker = ImagePicker();
-  final SubscriptionService _subscriptionService = SubscriptionService();
-
-  bool _isTrialActive = false;
 
   @override
   void initState() {
     super.initState();
     _analyticsService.logAppOpen();
     _checkDisclaimer();
-    _checkTrialStatus();
-  }
-
-  Future<void> _checkTrialStatus() async {
-    final active = await _subscriptionService.isTrialActive();
-    if (mounted) {
-      setState(() => _isTrialActive = active);
-    }
   }
 
   @override
@@ -61,9 +49,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   @override
   void didPopNext() {
-    // Top route popped, returning to Home
     _refreshMyPills();
-    _checkTrialStatus();
   }
 
   void _refreshMyPills() {
@@ -71,7 +57,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   Future<void> _checkDisclaimer() async {
-    // Wait for the locale to be available
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final locale = Localizations.localeOf(context);
       if (locale.languageCode == 'en') {
@@ -123,8 +108,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     _analyticsService.logCameraClick();
     final XFile? pickedFile = await _picker.pickImage(
       source: ImageSource.camera,
-      maxWidth: 800, // Resize to max 800px width
-      imageQuality: 85, // Compress lightly
+      maxWidth: 800,
+      imageQuality: 85,
     );
     if (pickedFile != null) {
       if (!mounted) {
@@ -152,8 +137,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     developer.log('갤러리 버튼 클릭됨', name: 'com.example.myapp.ui');
     final XFile? pickedFile = await _picker.pickImage(
       source: ImageSource.gallery,
-      maxWidth: 800, // Resize to max 800px width
-      imageQuality: 85, // Compress lightly
+      maxWidth: 800,
+      imageQuality: 85,
     );
     if (pickedFile != null) {
       if (!mounted) {
@@ -176,330 +161,175 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     }
   }
 
+  void _openTipModal() {
+    final tip = _viewModel.currentTip;
+    if (tip == null) return;
+    showDialog(
+      context: context,
+      builder: (_) => HealthTipModal(
+        tip: tip,
+        onCameraTap: _pickImageFromCamera,
+        onGalleryTap: _pickImageFromGallery,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).languageCode;
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: ScColors.surface2,
       appBar: AppBar(
-        title: Text(
-          l10n.homeAppBarTitle,
-          style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 22,
-              color: Color(0xFF2E7D32)),
-        ),
-        centerTitle: false,
-        backgroundColor: Colors.transparent,
+        backgroundColor: ScColors.surface2,
         elevation: 0,
         scrolledUnderElevation: 0,
-        foregroundColor: const Color(0xFF4CAF50),
+        centerTitle: false,
+        title: Text(
+          l10n.homeAppBarTitle,
+          style: ScText.h1.copyWith(
+            fontSize: 20,
+            color: ScColors.brand,
+          ),
+        ),
         actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.person_outline, size: 28),
-            tooltip: 'Menu',
-            onSelected: (value) async {
-              switch (value) {
-                case 'profile':
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ProfileScreen(),
-                    ),
-                  );
-                  break;
-                case 'upgrade':
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const PaywallScreen(
-                        trigger: PaywallTrigger.myStack,
-                      ),
-                    ),
-                  );
-                  _checkTrialStatus();
-                  break;
-              }
+          IconButton(
+            icon: const Icon(
+              Icons.person_outline,
+              size: 24,
+              color: ScColors.ink,
+            ),
+            tooltip: 'Profile',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
+                ),
+              );
             },
-            itemBuilder: (context) => [
-              const PopupMenuItem<String>(
-                value: 'profile',
-                child: Row(
-                  children: [
-                    Icon(Icons.account_circle_outlined, size: 20),
-                    SizedBox(width: 12),
-                    Text('My Profile'),
-                  ],
+          ),
+          const SizedBox(width: ScSpace.sm),
+        ],
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(
+            ScSpace.lg,
+            ScSpace.lg,
+            ScSpace.lg,
+            ScSpace.xl,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Hero
+              Text(
+                l10n.homeMainQuestion,
+                style: ScText.display.copyWith(color: ScColors.ink),
+              ),
+              const SizedBox(height: ScSpace.md),
+              Text(
+                l10n.homeSubQuestion,
+                style: ScText.body.copyWith(color: ScColors.textSec),
+              ),
+              const SizedBox(height: ScSpace.xl),
+
+              // Today's supplement question (Free 상태에서만 표시)
+              AnimatedBuilder(
+                animation: _viewModel,
+                builder: (context, child) {
+                  if (_viewModel.isLoading) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: ScSpace.xl),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  if (_viewModel.recentAnalysis != null) {
+                    return Column(
+                      children: [
+                        RecentAnalysisCard(
+                          analysis: _viewModel.recentAnalysis!,
+                        ),
+                        const SizedBox(height: ScSpace.xl),
+                      ],
+                    );
+                  }
+
+                  final tip = _viewModel.currentTip;
+                  if (tip != null) {
+                    return Column(
+                      children: [
+                        ContentQuestionCard(
+                          question: tip.getQuestion(locale),
+                          onCtaTap: _openTipModal,
+                        ),
+                        const SizedBox(height: ScSpace.xl),
+                      ],
+                    );
+                  }
+
+                  return const SizedBox.shrink();
+                },
+              ),
+
+              // Primary CTA
+              SizedBox(
+                width: double.infinity,
+                height: ScTouch.primaryCta,
+                child: ElevatedButton.icon(
+                  onPressed: _pickImageFromCamera,
+                  icon: const Icon(Icons.camera_alt_outlined, size: 20),
+                  label: Text(l10n.homeBtnCamera),
                 ),
               ),
-              if (_isTrialActive)
-                const PopupMenuItem<String>(
-                  value: 'upgrade',
-                  child: Row(
-                    children: [
-                      Icon(Icons.upgrade, size: 20, color: Colors.green),
-                      SizedBox(width: 12),
-                      Text(
-                        'Upgrade to Basic',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
+              const SizedBox(height: ScSpace.md),
+
+              // Secondary CTA — B 조합 brandTint Fill, no border
+              SizedBox(
+                width: double.infinity,
+                height: ScTouch.primaryCta,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ScColors.brandTint,
+                    foregroundColor: ScColors.brand,
+                    elevation: 0,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(ScRadius.md),
+                      side: BorderSide.none,
+                    ),
+                    textStyle: ScText.body.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
+                  onPressed: _pickImageFromGallery,
+                  icon: const Icon(Icons.photo_library_outlined, size: 20),
+                  label: Text(l10n.homeBtnGallery),
                 ),
+              ),
+              const SizedBox(height: ScSpace.lg),
+
+              // Disclaimer (CTA 하단)
+              Center(
+                child: Text(
+                  l10n.homeDisclaimer,
+                  style: ScText.caption.copyWith(color: ScColors.textTer),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ],
           ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: Stack(
-        children: [
-          // Global Background
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFFF8FBF4), Color(0xFFE8F5E9)],
-              ),
-            ),
-          ),
-          // Scrollable Content
-          SafeArea(
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 16, 24, 240),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n.homeMainQuestion,
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              height: 1.3,
-                              color: Colors.black87,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  offset: const Offset(0, 2),
-                                  blurRadius: 4,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.homeSubQuestion,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                              height: 1.4,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          // [건강 팁 또는 최근 분석 결과 섹션]
-                          AnimatedBuilder(
-                            animation: _viewModel,
-                            builder: (context, child) {
-                              if (_viewModel.isLoading) {
-                                return const Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 24),
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                );
-                              }
-
-                              if (_viewModel.recentAnalysis != null) {
-                                return Column(
-                                  children: [
-                                    RecentAnalysisCard(
-                                      analysis: _viewModel.recentAnalysis!,
-                                    ),
-                                    const SizedBox(height: 24),
-                                  ],
-                                );
-                              }
-
-                              if (_viewModel.currentTip != null) {
-                                return Column(
-                                  children: [
-                                    HealthTipBanner(
-                                      tip: _viewModel.currentTip!,
-                                      onCameraTap: _pickImageFromCamera,
-                                      onGalleryTap: _pickImageFromGallery,
-                                    ),
-                                    const SizedBox(height: 24),
-                                  ],
-                                );
-                              }
-
-                              return const SizedBox.shrink();
-                            },
-                          ),
-
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE8F5E9),
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF8BC34A)
-                                      .withValues(alpha: 0.2),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.savings_rounded,
-                                    color: Color(0xFF2E7D32)),
-                                const SizedBox(width: 8),
-                                Text(
-                                  l10n.homeSavingEstimate,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF2E7D32),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // ── My Stack / Quick Check 진입 카드 ──
-                          _buildStackShortcutRow(l10n),
-                          const SizedBox(height: 24),
-
-                          // "How it works" 가이드 (분석 이력 없는 사용자만)
-                          AnimatedBuilder(
-                            animation: _viewModel,
-                            builder: (context, child) {
-                              if (_viewModel.recentAnalysis != null ||
-                                  _viewModel.isLoading) {
-                                return const SizedBox.shrink();
-                              }
-                              return _buildHowItWorksGuide(l10n);
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // "How it works" 3-step guide
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: BottomActionArea(
-              onCameraTap: _pickImageFromCamera,
-              onGalleryTap: _pickImageFromGallery,
-              cameraLabel: l10n.homeBtnCamera,
-              galleryLabel: l10n.homeBtnGallery,
-              disclaimerText: l10n.homeDisclaimer,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildHowItWorksGuide(AppLocalizations l10n) {
-    final isKo = l10n.localeName == 'ko';
+  // ── My Stack / Quick Check 진입 (Day 1 PM 분석 후 상태에서 부활 예정) ──
 
-    final steps = [
-      (
-        icon: '📸',
-        text: isKo ? '영양제 라벨을 스캔하세요' : 'Scan your supplement labels'
-      ),
-      (
-        icon: '🔍',
-        text: isKo ? 'AI가 모든 성분을 분석합니다' : 'AI analyzes all ingredients'
-      ),
-      (icon: '✂️', text: isKo ? '최적화된 조합을 받으세요' : 'Get your optimized stack'),
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            isKo ? '이용 방법' : 'How it works',
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ...steps.asMap().entries.map((entry) {
-            final index = entry.key;
-            final step = entry.value;
-            return Padding(
-              padding: EdgeInsets.only(bottom: index < 2 ? 10 : 0),
-              child: Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5E9),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child:
-                          Text(step.icon, style: const TextStyle(fontSize: 16)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      step.text,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black87,
-                        height: 1.3,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  // ── My Stack / Quick Check 진입 ──
-
+  // ignore: unused_element
   void _openMyStack() {
     Navigator.push(
       context,
@@ -507,6 +337,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
+  // ignore: unused_element
   void _openQuickCheck() {
     Navigator.push(
       context,
@@ -514,6 +345,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
+  // ignore: unused_element
   Widget _buildStackShortcutRow(AppLocalizations l10n) {
     final isKo = l10n.localeName == 'ko';
     return Row(

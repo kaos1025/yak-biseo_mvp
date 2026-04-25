@@ -15,24 +15,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeAppBarTitle => 'SuppleCut';
 
   @override
-  String get homeMainQuestion => 'Are you wasting money\non supplements? 💸';
+  String get homeMainQuestion => 'Are you wasting money on supplements?';
 
   @override
   String get homeSubQuestion =>
-      'Today\'s trend is \'Subtracting\', not \'Adding\'.\nWe optimize your supplements quickly and easily.';
+      'Spot overlaps. Cut waste. Save money — in seconds.';
 
   @override
   String get homeSavingEstimate => 'Save \$40/month on average';
 
   @override
-  String get homeBtnCamera => 'Scan Label';
+  String get homeBtnCamera => 'Scan label';
 
   @override
-  String get homeBtnGallery => 'Import from Gallery';
+  String get homeBtnGallery => 'Import from gallery';
 
   @override
-  String get homeDisclaimer =>
-      'Results are for reference; consult a doctor or pharmacist.';
+  String get homeDisclaimer => 'For reference only — not medical advice';
 
   @override
   String get profileTitle => 'Profile Setup';
