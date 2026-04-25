@@ -18,6 +18,10 @@ class OnestopAnalysisResult {
   final String overallStatus; // "perfect" | "caution" | "warning"
   final String statusReason;
 
+  /// BL-41: Quick Check 응답 전용. 기존 스택 + 신규 제품 결합 시 발생/악화되는 이슈.
+  /// OneStop(일반 분석) 응답에서는 항상 null.
+  final List<IssueItem>? existingIssues;
+
   const OnestopAnalysisResult({
     required this.products,
     required this.overlaps,
@@ -28,6 +32,7 @@ class OnestopAnalysisResult {
     this.exclusionRecommendation,
     required this.overallStatus,
     required this.statusReason,
+    this.existingIssues,
   });
 
   factory OnestopAnalysisResult.fromJson(Map<String, dynamic> json) {
@@ -58,6 +63,9 @@ class OnestopAnalysisResult {
           : null,
       overallStatus: json['overall_status'] as String? ?? 'caution',
       statusReason: json['status_reason'] as String? ?? '',
+      existingIssues: (json['existing_issues'] as List<dynamic>?)
+          ?.map((e) => IssueItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
     )._enforceOverallStatus();
   }
 
@@ -201,6 +209,7 @@ class OnestopAnalysisResult {
         exclusionRecommendation: exclusionRecommendation,
         overallStatus: 'warning',
         statusReason: statusReason,
+        existingIssues: existingIssues,
       );
     }
 
@@ -221,6 +230,7 @@ class OnestopAnalysisResult {
         exclusionRecommendation: exclusionRecommendation,
         overallStatus: 'caution',
         statusReason: statusReason,
+        existingIssues: existingIssues,
       );
     }
 
@@ -237,6 +247,7 @@ class OnestopAnalysisResult {
         exclusionRecommendation: exclusionRecommendation,
         overallStatus: overallStatus,
         statusReason: statusReason,
+        existingIssues: existingIssues,
       );
     }
 
@@ -256,6 +267,8 @@ class OnestopAnalysisResult {
         'exclusion_recommendation': exclusionRecommendation!.toJson(),
       'overall_status': overallStatus,
       'status_reason': statusReason,
+      if (existingIssues != null)
+        'existing_issues': existingIssues!.map((e) => e.toJson()).toList(),
     };
   }
 
@@ -836,5 +849,34 @@ class ExclusionRecommendation {
         'reason': reason,
         'monthly_savings': monthlySavings,
         'annual_savings': annualSavings,
+      };
+}
+
+/// 기존 스택 + 신규 제품 결합 시 발생/악화되는 이슈 (BL-41)
+///
+/// Quick Check 응답 전용 nullable 필드. OneStop 응답에는 사용 안 함.
+class IssueItem {
+  final String ingredient;
+  final String severity; // "caution" | "warning" | "critical"
+  final String reason;
+
+  const IssueItem({
+    required this.ingredient,
+    required this.severity,
+    required this.reason,
+  });
+
+  factory IssueItem.fromJson(Map<String, dynamic> json) {
+    return IssueItem(
+      ingredient: json['ingredient'] as String? ?? '',
+      severity: json['severity'] as String? ?? 'caution',
+      reason: json['reason'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'ingredient': ingredient,
+        'severity': severity,
+        'reason': reason,
       };
 }

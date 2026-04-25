@@ -154,6 +154,82 @@ class GeminiAnalysisService {
     buffer.writeln('4. Positive synergies with existing stack');
     buffer.writeln('5. Monthly cost impact');
     buffer.writeln();
+    buffer.writeln('## EXISTING ISSUES DETECTION (BL-41)');
+    buffer.writeln();
+    buffer.writeln(
+        'In addition to the standard schema, populate the optional `existing_issues` array when adding the new supplement EXACERBATES or NEWLY TRIGGERS issues in the existing stack.');
+    buffer.writeln();
+    buffer.writeln('### Definitions');
+    buffer.writeln(
+        '- Standard fields (`single_product_ul_excess`, `overlaps`, `safety_alerts`, etc.): Issues caused SOLELY by the new supplement (single-product threshold, brand-new alert)');
+    buffer.writeln(
+        '- `existing_issues` (NEW, nullable array): Issues that EMERGE or WORSEN only when the new supplement is COMBINED with the existing stack');
+    buffer.writeln();
+    buffer.writeln('### Rules');
+    buffer.writeln(
+        '1. For each ingredient in the existing stack, recompute the total amount AFTER adding the new supplement\'s contribution');
+    buffer.writeln(
+        '2. If the new total crosses a UL threshold OR a previously safe level becomes a caution boundary (>80% UL), append to `existing_issues`');
+    buffer.writeln('3. severity values:');
+    buffer.writeln(
+        '   - "critical": drug interaction, toxicity threshold reached');
+    buffer.writeln('   - "warning": UL exceeded');
+    buffer.writeln('   - "caution": UL boundary reached (>80% but <=100%)');
+    buffer.writeln(
+        '4. reason field: 1-2 sentences, format "Current stack has X. Adding this product makes Y."');
+    buffer.writeln(
+        '   Include current amount, new total, UL, and percentage when applicable.');
+    buffer.writeln(
+        '5. If no combined issues emerge, omit the field or return empty array `[]` (both acceptable)');
+    buffer.writeln();
+    buffer.writeln('### WRONG / RIGHT Examples');
+    buffer.writeln();
+    buffer.writeln(
+        '**WRONG** -- combined issue placed in single_product_ul_excess:');
+    buffer.writeln('Existing stack: Zinc 30mg (below UL 40mg)');
+    buffer.writeln('New supplement: Zinc 20mg');
+    buffer.writeln('Response:');
+    buffer.writeln('{');
+    buffer.writeln(
+        '  "single_product_ul_excess": [{"ingredient": "Zinc", "amount": 20, "ul": 40, ...}],');
+    buffer.writeln('  "existing_issues": null');
+    buffer.writeln('}');
+    buffer.writeln(
+        '(Wrong: the issue is NOT from the new supplement alone -- combined 50mg crosses UL)');
+    buffer.writeln();
+    buffer.writeln('**RIGHT**:');
+    buffer.writeln('{');
+    buffer.writeln('  "single_product_ul_excess": [],');
+    buffer.writeln('  "existing_issues": [{');
+    buffer.writeln('    "ingredient": "Zinc",');
+    buffer.writeln('    "severity": "warning",');
+    buffer.writeln(
+        '    "reason": "Current stack has Zinc at 30mg (below UL 40mg). Adding this supplement\'s 20mg pushes total to 50mg, exceeding UL by 25%."');
+    buffer.writeln('  }]');
+    buffer.writeln('}');
+    buffer.writeln();
+    buffer.writeln(
+        '**WRONG** -- single-product issue placed in existing_issues:');
+    buffer.writeln('Existing stack: no zinc');
+    buffer.writeln('New supplement: Zinc 50mg (single product UL excess)');
+    buffer.writeln('Response:');
+    buffer.writeln('{');
+    buffer.writeln('  "single_product_ul_excess": [],');
+    buffer.writeln(
+        '  "existing_issues": [{"ingredient": "Zinc", "reason": "exceeds UL"}]');
+    buffer.writeln('}');
+    buffer.writeln(
+        '(Wrong: this is solely from the new supplement -- belongs in single_product_ul_excess)');
+    buffer.writeln();
+    buffer.writeln('**RIGHT**:');
+    buffer.writeln('{');
+    buffer.writeln('  "single_product_ul_excess": [{');
+    buffer.writeln(
+        '    "ingredient": "Zinc", "amount": "50mg", "ul": "40mg", "severity": "medium"');
+    buffer.writeln('  }],');
+    buffer.writeln('  "existing_issues": []');
+    buffer.writeln('}');
+    buffer.writeln();
     buffer.write('Return same JSON format as standard analysis. '
         'Follow the system instructions precisely. Return ONLY valid JSON.');
 
