@@ -230,6 +230,63 @@ class GeminiAnalysisService {
     buffer.writeln('  "existing_issues": []');
     buffer.writeln('}');
     buffer.writeln();
+    buffer.writeln('## ANALYZED PRODUCTS SCOPE (BL-42)');
+    buffer.writeln();
+    buffer.writeln(
+        'In Quick Check mode, the `products` array MUST contain ONLY the newly added supplement. Do NOT re-OCR or re-list supplements from the existing stack.');
+    buffer.writeln();
+    buffer.writeln('### Rules');
+    buffer.writeln(
+        '1. Use the existing stack as REFERENCE CONTEXT for overlap and existing_issues detection -- but do NOT output them as analyzed products');
+    buffer.writeln(
+        '2. Each existing stack supplement already has a canonical name from previous OCR (provided in this prompt above) -- refer to them by those names');
+    buffer.writeln(
+        '3. If images of existing supplements appear in the input, use them ONLY for ingredient verification, NOT for re-OCR');
+    buffer.writeln(
+        '4. `products` array length in Quick Check response MUST equal 1');
+    buffer.writeln();
+    buffer.writeln('### WRONG / RIGHT Examples');
+    buffer.writeln();
+    buffer.writeln(
+        '**WRONG** (existing stack contains "Nature Made Zinc 50mg" and "Centrum Silver"):');
+    buffer.writeln('User adds: "NOW Foods Zinc 25mg"');
+    buffer.writeln('Response:');
+    buffer.writeln('{');
+    buffer.writeln('  "products": [');
+    buffer.writeln(
+        '    {"name": "Nature Made Zinc 50mg", ...},   // SHOULD NOT be here');
+    buffer.writeln(
+        '    {"name": "Centrum Silver", ...},          // SHOULD NOT be here');
+    buffer.writeln('    {"name": "NOW Foods Zinc 25mg", ...}');
+    buffer.writeln('  ]');
+    buffer.writeln('}');
+    buffer.writeln();
+    buffer.writeln('**RIGHT**:');
+    buffer.writeln('{');
+    buffer.writeln('  "products": [');
+    buffer.writeln('    {"name": "NOW Foods Zinc 25mg", ...}');
+    buffer.writeln('  ],');
+    buffer.writeln('  "single_product_ul_excess": [],');
+    buffer.writeln('  "existing_issues": [{');
+    buffer.writeln('    "ingredient": "Zinc",');
+    buffer.writeln('    "severity": "warning",');
+    buffer.writeln(
+        '    "reason": "Current stack has Nature Made Zinc 50mg (already at UL). Adding NOW Foods Zinc 25mg pushes total to 75mg, exceeding UL by 88%."');
+    buffer.writeln('  }]');
+    buffer.writeln('}');
+    buffer.writeln();
+    buffer.writeln('**WRONG** -- re-OCR drift:');
+    buffer.writeln(
+        'Existing stack canonical name (provided in prompt): "Nature Made, D3 + K2, 5000 IU/100mcg, 60 Softgels"');
+    buffer.writeln(
+        'Gemini re-OCRs same product image and outputs: "Nature Made Vitamin D3 5000IU"');
+    buffer.writeln(
+        '(Different name for same product -> false "new product" detection downstream)');
+    buffer.writeln();
+    buffer.writeln('**RIGHT**:');
+    buffer.writeln(
+        'Do NOT re-OCR existing stack supplements. Refer to them by their canonical names exactly as provided in the "Existing stack" section of this prompt.');
+    buffer.writeln();
     buffer.write('Return same JSON format as standard analysis. '
         'Follow the system instructions precisely. Return ONLY valid JSON.');
 
