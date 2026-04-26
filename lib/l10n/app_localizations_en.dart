@@ -31,6 +31,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeBtnGallery => 'Import from gallery';
 
   @override
+  String get homeScanAnotherLabel => 'Scan another';
+
+  @override
+  String get homeImportAnotherLabel => 'Import another';
+
+  @override
   String get homeDisclaimer => 'For reference only — not medical advice';
 
   @override
@@ -416,13 +422,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get cardRiskSafe => 'No duplicate ingredients found ✅';
+  String get cardRiskSafe => 'No duplicate ingredients found';
 
   @override
-  String get cardRiskWarning => 'Some ingredient overlap detected ⚠️';
+  String get cardRiskWarning => 'Some ingredient overlap detected';
 
   @override
-  String get cardRiskDanger => 'Serious ingredient overlap detected 🚨';
+  String get cardRiskDanger => 'Serious ingredient overlap detected';
 
   @override
   String get reanalyzeHint => 'Results wrong? Retake photo for fresh analysis';

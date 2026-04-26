@@ -7,6 +7,8 @@
   "homeSavingEstimate": "Save $40/month on average",
   "homeBtnCamera": "Scan label",
   "homeBtnGallery": "Import from gallery",
+  "homeScanAnotherLabel": "Scan another",
+  "homeImportAnotherLabel": "Import another",
   "homeDisclaimer": "For reference only — not medical advice",
   "profileTitle": "Profile Setup",
   "heightLabel": "Height",
@@ -188,8 +190,8 @@
       }
     }
   },
-  "cardRiskSafe": "No duplicate ingredients found ✅",
-  "cardRiskWarning": "Some ingredient overlap detected ⚠️",
-  "cardRiskDanger": "Serious ingredient overlap detected 🚨",
+  "cardRiskSafe": "No duplicate ingredients found",
+  "cardRiskWarning": "Some ingredient overlap detected",
+  "cardRiskDanger": "Serious ingredient overlap detected",
   "reanalyzeHint": "Results wrong? Retake photo for fresh analysis"
 }

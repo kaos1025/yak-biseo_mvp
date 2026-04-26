@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:myapp/screens/result_screen.dart';
 import 'package:myapp/services/analytics_service.dart';
 import 'package:myapp/l10n/app_localizations.dart';
@@ -11,8 +12,8 @@ import 'package:myapp/theme/supplecut_tokens.dart';
 
 import 'package:myapp/presentation/home/home_view_model.dart';
 import 'package:myapp/presentation/home/widgets/health_tip_modal.dart';
-import 'package:myapp/presentation/home/widgets/recent_analysis_card.dart';
 import 'package:myapp/widgets/home/content_question_card.dart';
+import 'package:myapp/widgets/home/featured_scan_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:myapp/main.dart';
 
@@ -174,6 +175,55 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
+  void _openMyStack() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MyStackScreen()),
+    );
+  }
+
+  void _openQuickCheck() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const QuickCheckScreen()),
+    );
+  }
+
+  void _onViewDetails() {
+    // BL-48: 캐시된 분석 결과 재표시 화면 부재. analysisJson 활용 화면 미구현.
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Saved analysis detail view coming soon'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  FeaturedScanStatus _mapStatus(String overallRisk) => switch (overallRisk) {
+        'safe' => FeaturedScanStatus.safe,
+        'warning' => FeaturedScanStatus.warning,
+        'danger' => FeaturedScanStatus.danger,
+        _ => FeaturedScanStatus.warning,
+      };
+
+  String _statusLabel(String overallRisk, AppLocalizations l10n) =>
+      switch (overallRisk) {
+        'safe' => l10n.cardRiskSafe,
+        'warning' => l10n.cardRiskWarning,
+        'danger' => l10n.cardRiskDanger,
+        _ => '',
+      };
+
+  String _buildProductPreview(
+      List<String> names, int count, AppLocalizations l10n) {
+    if (names.isEmpty) return '';
+    final first = names.first;
+    if (count <= 1) return first;
+    return first + l10n.andOtherProducts(count - 1);
+  }
+
+  String _formatDate(DateTime dt) => DateFormat('yyyy.MM.dd').format(dt);
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -221,131 +271,133 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             ScSpace.lg,
             ScSpace.xl,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Hero
-              Text(
-                l10n.homeMainQuestion,
-                style: ScText.display.copyWith(color: ScColors.ink),
-              ),
-              const SizedBox(height: ScSpace.md),
-              Text(
-                l10n.homeSubQuestion,
-                style: ScText.body.copyWith(color: ScColors.textSec),
-              ),
-              const SizedBox(height: ScSpace.xl),
+          child: AnimatedBuilder(
+            animation: _viewModel,
+            builder: (context, child) {
+              final analysis = _viewModel.recentAnalysis;
+              final tip = _viewModel.currentTip;
+              final hasAnalysis = analysis != null;
 
-              // Today's supplement question (Free 상태에서만 표시)
-              AnimatedBuilder(
-                animation: _viewModel,
-                builder: (context, child) {
-                  if (_viewModel.isLoading) {
-                    return const Padding(
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Hero — Free 분기에서만 표시 (After: I 옵션 3 생략)
+                  if (!hasAnalysis) ...[
+                    Text(
+                      l10n.homeMainQuestion,
+                      style: ScText.display.copyWith(color: ScColors.ink),
+                    ),
+                    const SizedBox(height: ScSpace.md),
+                    Text(
+                      l10n.homeSubQuestion,
+                      style: ScText.body.copyWith(color: ScColors.textSec),
+                    ),
+                    const SizedBox(height: ScSpace.xl),
+                  ],
+
+                  // 카드 영역 — 분기별
+                  if (_viewModel.isLoading)
+                    const Padding(
                       padding: EdgeInsets.symmetric(vertical: ScSpace.xl),
                       child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-
-                  if (_viewModel.recentAnalysis != null) {
-                    return Column(
-                      children: [
-                        RecentAnalysisCard(
-                          analysis: _viewModel.recentAnalysis!,
-                        ),
-                        const SizedBox(height: ScSpace.xl),
-                      ],
-                    );
-                  }
-
-                  final tip = _viewModel.currentTip;
-                  if (tip != null) {
-                    return Column(
-                      children: [
-                        ContentQuestionCard(
-                          question: tip.getQuestion(locale),
-                          onCtaTap: _openTipModal,
-                        ),
-                        const SizedBox(height: ScSpace.xl),
-                      ],
-                    );
-                  }
-
-                  return const SizedBox.shrink();
-                },
-              ),
-
-              // Primary CTA
-              SizedBox(
-                width: double.infinity,
-                height: ScTouch.primaryCta,
-                child: ElevatedButton.icon(
-                  onPressed: _pickImageFromCamera,
-                  icon: const Icon(Icons.camera_alt_outlined, size: 20),
-                  label: Text(l10n.homeBtnCamera),
-                ),
-              ),
-              const SizedBox(height: ScSpace.md),
-
-              // Secondary CTA — B 조합 brandTint Fill, no border
-              SizedBox(
-                width: double.infinity,
-                height: ScTouch.primaryCta,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: ScColors.brandTint,
-                    foregroundColor: ScColors.brand,
-                    elevation: 0,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(ScRadius.md),
-                      side: BorderSide.none,
+                    )
+                  else if (hasAnalysis) ...[
+                    // After 분기
+                    FeaturedScanCard(
+                      status: _mapStatus(analysis.overallRisk),
+                      statusLabel: _statusLabel(analysis.overallRisk, l10n),
+                      summaryText: analysis.riskSummary,
+                      productPreview: _buildProductPreview(
+                        analysis.productNames,
+                        analysis.productCount,
+                        l10n,
+                      ),
+                      analyzedOn: _formatDate(analysis.analyzedAt),
+                      onViewDetails: _onViewDetails,
                     ),
-                    textStyle: ScText.body.copyWith(
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(height: ScSpace.lg),
+                    _buildStackShortcutRow(l10n),
+                    const SizedBox(height: ScSpace.lg),
+                    if (tip != null) ...[
+                      ContentQuestionCard(
+                        question: tip.getQuestion(locale),
+                        onCtaTap: _openTipModal,
+                      ),
+                      const SizedBox(height: ScSpace.xl),
+                    ],
+                  ] else ...[
+                    // Free 분기 (Day 1 AM 동일)
+                    if (tip != null) ...[
+                      ContentQuestionCard(
+                        question: tip.getQuestion(locale),
+                        onCtaTap: _openTipModal,
+                      ),
+                      const SizedBox(height: ScSpace.xl),
+                    ],
+                  ],
+
+                  // Primary CTA — 레이블 분기 (J 옵션 2)
+                  SizedBox(
+                    width: double.infinity,
+                    height: ScTouch.primaryCta,
+                    child: ElevatedButton.icon(
+                      onPressed: _pickImageFromCamera,
+                      icon: const Icon(Icons.camera_alt_outlined, size: 20),
+                      label: Text(
+                        hasAnalysis
+                            ? l10n.homeScanAnotherLabel
+                            : l10n.homeBtnCamera,
+                      ),
                     ),
                   ),
-                  onPressed: _pickImageFromGallery,
-                  icon: const Icon(Icons.photo_library_outlined, size: 20),
-                  label: Text(l10n.homeBtnGallery),
-                ),
-              ),
-              const SizedBox(height: ScSpace.lg),
+                  const SizedBox(height: ScSpace.md),
 
-              // Disclaimer (CTA 하단)
-              Center(
-                child: Text(
-                  l10n.homeDisclaimer,
-                  style: ScText.caption.copyWith(color: ScColors.textTer),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
+                  // Secondary CTA — B 조합 brandTint Fill, no border
+                  SizedBox(
+                    width: double.infinity,
+                    height: ScTouch.primaryCta,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ScColors.brandTint,
+                        foregroundColor: ScColors.brand,
+                        elevation: 0,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(ScRadius.md),
+                          side: BorderSide.none,
+                        ),
+                        textStyle: ScText.body.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      onPressed: _pickImageFromGallery,
+                      icon: const Icon(Icons.photo_library_outlined, size: 20),
+                      label: Text(
+                        hasAnalysis
+                            ? l10n.homeImportAnotherLabel
+                            : l10n.homeBtnGallery,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: ScSpace.lg),
+
+                  // Disclaimer (CTA 하단)
+                  Center(
+                    child: Text(
+                      l10n.homeDisclaimer,
+                      style: ScText.caption.copyWith(color: ScColors.textTer),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  // ── My Stack / Quick Check 진입 (Day 1 PM 분석 후 상태에서 부활 예정) ──
-
-  // ignore: unused_element
-  void _openMyStack() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const MyStackScreen()),
-    );
-  }
-
-  // ignore: unused_element
-  void _openQuickCheck() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const QuickCheckScreen()),
-    );
-  }
-
-  // ignore: unused_element
   Widget _buildStackShortcutRow(AppLocalizations l10n) {
     final isKo = l10n.localeName == 'ko';
     return Row(
@@ -358,10 +410,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             onTap: _openMyStack,
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: ScSpace.md),
         Expanded(
           child: _buildStackShortcutCard(
-            icon: Icons.flash_on_rounded,
+            icon: Icons.flash_on_outlined,
             title: isKo ? '퀵 체크' : 'Quick Check',
             subtitle: isKo ? '새 영양제 호환성 확인' : 'Test a new supplement',
             onTap: _openQuickCheck,
@@ -379,44 +431,30 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: ScColors.surface,
+        border: Border.all(color: ScColors.border, width: 0.5),
+        borderRadius: BorderRadius.circular(ScRadius.md),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(ScRadius.md),
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(ScSpace.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, size: 26, color: const Color(0xFF2E7D32)),
-                const SizedBox(height: 10),
+                Icon(icon, size: 24, color: ScColors.brand),
+                const SizedBox(height: ScSpace.sm),
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+                  style: ScText.h2.copyWith(color: ScColors.ink),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: ScSpace.xs),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.black54,
-                    height: 1.3,
-                  ),
+                  style: ScText.caption.copyWith(color: ScColors.textSec),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),

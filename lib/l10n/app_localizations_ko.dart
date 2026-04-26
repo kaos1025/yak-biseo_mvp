@@ -31,6 +31,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeBtnGallery => '앨범에서 불러오기';
 
   @override
+  String get homeScanAnotherLabel => 'Scan another';
+
+  @override
+  String get homeImportAnotherLabel => 'Import another';
+
+  @override
   String get homeDisclaimer => '결과는 참고용이며, 정확한 진단은 의사/약사와 상의하세요.';
 
   @override

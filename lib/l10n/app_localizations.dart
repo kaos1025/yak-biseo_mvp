@@ -140,6 +140,18 @@ abstract class AppLocalizations {
   /// **'앨범에서 불러오기'**
   String get homeBtnGallery;
 
+  /// No description provided for @homeScanAnotherLabel.
+  ///
+  /// In ko, this message translates to:
+  /// **'Scan another'**
+  String get homeScanAnotherLabel;
+
+  /// No description provided for @homeImportAnotherLabel.
+  ///
+  /// In ko, this message translates to:
+  /// **'Import another'**
+  String get homeImportAnotherLabel;
+
   /// No description provided for @homeDisclaimer.
   ///
   /// In ko, this message translates to:

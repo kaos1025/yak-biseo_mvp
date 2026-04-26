@@ -24,10 +24,7 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     _recentAnalysis = await RecentAnalysisStorage.load();
-
-    if (_recentAnalysis == null) {
-      await _loadDailyTip();
-    }
+    await _loadDailyTip();
 
     _isLoading = false;
     notifyListeners();
