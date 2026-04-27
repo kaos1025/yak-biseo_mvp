@@ -101,14 +101,25 @@
       }
     }
   },
-  "paymentTitle": "Get Detailed Report",
-  "paymentIncludes": "Includes:",
+  "paymentTitle": "Get detailed report",
+  "paymentIncludes": "Detailed analysis",
   "paymentItem1": "Detailed ingredient benefits",
   "paymentItem2": "Necessity assessment",
   "paymentItem3": "Alternative recommendations",
   "paymentItem4": "PDF export",
   "paymentBtn": "Purchase",
   "paymentLater": "Maybe later",
+  "paywallTrialBadge": "Trial: {days} days left",
+  "@paywallTrialBadge": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "paywallTrialUpgradeChip": "Upgrade to Basic",
+  "paywallTrialGenerateTitle": "Generate detailed report",
+  "paywallTrialGenerateSubtitle": "Powered by AI · Tap to generate",
   "analysisSavings": "Monthly savings",
   "analysisYearly": "Save {amount}/year!",
   "@analysisYearly": {
@@ -124,8 +135,8 @@
   "badgeDuplicate": "Overlap",
   "badgeSimilarEffect": "Similar Effect",
   "badgeUlExcess": "⚡ UL Excess",
-  "detailReportTitle": "AI Detailed Report",
-  "btnBackHome": "Back to Home",
+  "detailReportTitle": "AI detailed report",
+  "btnBackHome": "Back to home",
   "loading": "Analyzing...",
   "errorGeneric": "Something went wrong",
   "btnRetry": "Retry",
@@ -155,10 +166,10 @@
       }
     }
   },
-  "analysisDetailSubtitle": "📋 Detailed Analysis",
-  "premiumUnlockTitle": "Unlock Premium Report",
+  "analysisDetailSubtitle": "Detailed analysis",
+  "premiumUnlockTitle": "Unlock premium report",
   "premiumUnlockDesc": "Overlap details · Supplement info · AI recommendations",
-  "premiumUnlockBtn": "Unlock Now",
+  "premiumUnlockBtn": "Unlock now",
   "disclaimerAiEstimate": "⚠️ Some products are AI-estimated. Please verify with product labels.",
   "positiveBannerTitle": "🎉 Perfect supplement combo!",
   "positiveBannerDesc": "No overlapping or excessive ingredients.\nYou're taking them safely and efficiently.",
@@ -174,7 +185,7 @@
       }
     }
   },
-  "payButton": "Pay {price}",
+  "payButton": "Unlock now · {price}",
   "@payButton": {
     "placeholders": {
       "price": {

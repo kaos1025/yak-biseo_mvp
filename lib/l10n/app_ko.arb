@@ -109,6 +109,17 @@
   "paymentItem4": "PDF 저장",
   "paymentBtn": "결제하기",
   "paymentLater": "다음에 할게요",
+  "paywallTrialBadge": "체험: {days}일 남음",
+  "@paywallTrialBadge": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "paywallTrialUpgradeChip": "Basic 업그레이드",
+  "paywallTrialGenerateTitle": "상세 리포트 생성",
+  "paywallTrialGenerateSubtitle": "AI 기반 · 탭하여 생성",
   "analysisSavings": "월 절감 가능 금액",
   "analysisYearly": "연간 {amount} 아낄 수 있어요!",
   "@analysisYearly": {

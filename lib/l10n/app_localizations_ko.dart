@@ -262,6 +262,20 @@ class AppLocalizationsKo extends AppLocalizations {
   String get paymentLater => '다음에 할게요';
 
   @override
+  String paywallTrialBadge(int days) {
+    return '체험: $days일 남음';
+  }
+
+  @override
+  String get paywallTrialUpgradeChip => 'Basic 업그레이드';
+
+  @override
+  String get paywallTrialGenerateTitle => '상세 리포트 생성';
+
+  @override
+  String get paywallTrialGenerateSubtitle => 'AI 기반 · 탭하여 생성';
+
+  @override
   String get analysisSavings => '월 절감 가능 금액';
 
   @override

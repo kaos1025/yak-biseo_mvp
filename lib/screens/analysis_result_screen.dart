@@ -17,6 +17,8 @@ import 'package:myapp/services/profile_service.dart';
 import 'package:myapp/screens/subscription/paywall_screen.dart';
 import 'package:myapp/screens/profile/profile_setup_screen.dart';
 import 'package:myapp/theme/app_theme.dart';
+import 'package:myapp/theme/supplecut_tokens.dart';
+import 'package:myapp/widgets/common/ghost_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// SuppleCut 분석 결과 화면
@@ -79,6 +81,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
       if (status == PurchaseStatus.purchased) {
         _generateReport(showPdfPrompt: true);
         _trackReportPurchaseAndUpsell();
+        _checkSubscription();
       } else if (status == PurchaseStatus.restored) {
         _generateReport(showPdfPrompt: true);
       } else if (status == PurchaseStatus.error) {
@@ -302,25 +305,14 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
                         ),
                         child: SizedBox(
                           width: double.infinity,
-                          height: 56,
                           child: ElevatedButton(
                             onPressed: () => Navigator.of(context)
                                 .popUntil((route) => route.isFirst),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4CAF50),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 0,
+                              backgroundColor: ScColors.brandTint,
+                              foregroundColor: ScColors.brand,
                             ),
-                            child: Text(
-                              l10n.btnBackHome,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
+                            child: Text(l10n.btnBackHome),
                           ),
                         ),
                       ),
@@ -962,10 +954,10 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: ScColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isPremium ? const Color(0xFFE0E0E0) : const Color(0xFFE8D5F5),
+          color: isPremium ? const Color(0xFFE0E0E0) : ScColors.infoAccent,
           width: 1.5,
         ),
         boxShadow: [
@@ -979,41 +971,39 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 헤더
+          // 헤더 — DS v0.5 §2.4 Suggestion Blue
           InkWell(
             onTap: () => setState(() => _isReportExpanded = !_isReportExpanded),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(ScSpace.lg),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    width: 48,
+                    height: 48,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF9C27B0), Color(0xFFE040FB)],
-                      ),
-                      borderRadius: BorderRadius.circular(10),
+                      color: ScColors.infoBg,
+                      borderRadius: BorderRadius.circular(ScRadius.md),
                     ),
-                    child: const Icon(Icons.auto_awesome,
-                        color: Colors.white, size: 18),
+                    child: const Icon(
+                      Icons.workspace_premium_outlined,
+                      color: ScColors.infoAccent,
+                      size: 28,
+                    ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: ScSpace.md),
                   Expanded(
                     child: Text(
                       l10n.detailReportTitle,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
+                      style: ScText.h2.copyWith(color: ScColors.ink),
                     ),
                   ),
                   Icon(
                     _isReportExpanded
                         ? Icons.keyboard_arrow_up
                         : Icons.keyboard_arrow_down,
-                    color: Colors.grey,
+                    color: ScColors.textSec,
                   ),
                 ],
               ),
@@ -1255,10 +1245,10 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
     final isKo = l10n.localeName == 'ko';
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(ScSpace.md),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3E5F5),
-        borderRadius: BorderRadius.circular(12),
+        color: ScColors.infoBg,
+        borderRadius: BorderRadius.circular(ScRadius.md),
       ),
       child: _isPdfGenerating
           ? const Center(
@@ -1276,17 +1266,10 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
               child: ElevatedButton.icon(
                 onPressed: _handlePdfExport,
                 icon: const Icon(Icons.ios_share_rounded, size: 18),
-                label: Text(
-                  isKo ? 'PDF 내보내기' : 'Export PDF',
-                  style: const TextStyle(fontSize: 13),
-                ),
+                label: Text(isKo ? 'PDF 내보내기' : 'Export PDF'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7B1FA2),
+                  backgroundColor: ScColors.infoAccent,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
             ),
@@ -1328,115 +1311,135 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
   /// 잠금 상태 컨텐츠 (미리보기 + 블러 + 잠금 배너)
   Widget _buildLockedContent() {
     final l10n = AppLocalizations.of(context)!;
+    final isTrialOrBasic = _hasUnlimitedReports;
+
     return Column(
       children: [
         const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: ScSpace.lg),
           child: Divider(height: 1),
         ),
 
-        // 미리보기 영역 (블러 처리)
-        ClipRRect(
-          borderRadius:
-              const BorderRadius.vertical(bottom: Radius.circular(14)),
-          child: Stack(
-            children: [
-              // 실제 컨텐츠 (블러됨)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (result.summary.isNotEmpty) ...[
-                      Text(l10n.analysisDetailSubtitle,
+        // 미리보기 영역 — free 사용자만 blur preview teaser 노출
+        // (trial/basic은 Lock Panel 단독 노출 — R-1 중복 제거)
+        if (!isTrialOrBasic)
+          ClipRRect(
+            borderRadius:
+                const BorderRadius.vertical(bottom: Radius.circular(14)),
+            child: Stack(
+              children: [
+                // 실제 컨텐츠 (블러됨)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                      ScSpace.lg, ScSpace.lg, ScSpace.lg, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (result.summary.isNotEmpty) ...[
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.description_outlined,
+                              size: 20,
+                              color: ScColors.textSec,
+                            ),
+                            const SizedBox(width: ScSpace.sm),
+                            Expanded(
+                              child: Text(
+                                l10n.analysisDetailSubtitle,
+                                style: ScText.h2.copyWith(color: ScColors.ink),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: ScSpace.sm),
+                        Text(
+                          result.summary,
                           style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87)),
-                      const SizedBox(height: 8),
-                      Text(
-                        result.summary,
-                        style: const TextStyle(
-                            fontSize: 14, height: 1.6, color: Colors.black87),
-                        maxLines: 4,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                              fontSize: 14,
+                              height: 1.6,
+                              color: Colors.black87),
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                      const SizedBox(height: 60),
                     ],
-                    const SizedBox(height: 60),
-                  ],
+                  ),
                 ),
-              ),
 
-              // 블러 + 그라디언트 페이드
-              Positioned.fill(
-                child: Column(
-                  children: [
-                    // 상단 일부는 보여주기
-                    const SizedBox(height: 40),
-                    // 그라디언트 페이드 → 블러
-                    Expanded(
-                      child: ClipRect(
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.white.withValues(alpha: 0.0),
-                                  Colors.white.withValues(alpha: 0.7),
-                                  Colors.white.withValues(alpha: 0.95),
-                                ],
-                                stops: const [0.0, 0.3, 1.0],
+                // 블러 + 그라디언트 페이드
+                Positioned.fill(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 40),
+                      Expanded(
+                        child: ClipRect(
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.white.withValues(alpha: 0.0),
+                                    Colors.white.withValues(alpha: 0.7),
+                                    Colors.white.withValues(alpha: 0.95),
+                                  ],
+                                  stops: const [0.0, 0.3, 1.0],
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
 
-        // 잠금 해제 CTA
+        // 잠금 해제 CTA — DS v0.5 §2.4 Suggestion Blue
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          padding: const EdgeInsets.fromLTRB(
+              ScSpace.lg, ScSpace.sm, ScSpace.lg, ScSpace.lg),
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(ScSpace.lg),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFF3E5F5), Color(0xFFEDE7F6)],
-              ),
-              borderRadius: BorderRadius.circular(12),
+              color: ScColors.infoBg,
+              borderRadius: BorderRadius.circular(ScRadius.md),
             ),
             child: Column(
               children: [
-                const Icon(Icons.lock_outline,
-                    color: Color(0xFF7B1FA2), size: 28),
-                const SizedBox(height: 8),
-                Text(
-                  l10n.premiumUnlockTitle,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF7B1FA2),
-                  ),
+                Icon(
+                  isTrialOrBasic
+                      ? Icons.description_outlined
+                      : Icons.lock_outline,
+                  color: ScColors.infoAccent,
+                  size: 28,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: ScSpace.sm),
                 Text(
-                  l10n.premiumUnlockDesc,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF9C27B0),
+                  isTrialOrBasic
+                      ? l10n.paywallTrialGenerateTitle
+                      : l10n.premiumUnlockTitle,
+                  style: ScText.h2.copyWith(color: ScColors.infoText),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: ScSpace.xs),
+                Text(
+                  isTrialOrBasic
+                      ? l10n.paywallTrialGenerateSubtitle
+                      : l10n.premiumUnlockDesc,
+                  style: ScText.caption.copyWith(
+                    color: ScColors.infoText.withValues(alpha: 0.7),
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: ScSpace.md),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -1444,32 +1447,22 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
                         ? () => _generateReport(showPdfPrompt: true)
                         : _showPaymentBottomSheet,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7B1FA2),
+                      backgroundColor: ScColors.infoAccent,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           _hasUnlimitedReports
-                              ? 'Get Full Report'
+                              ? 'Get full report'
                               : l10n.premiumUnlockBtn,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
                         ),
                         if (_hasUnlimitedReports)
-                          const Text(
+                          Text(
                             'Included with Basic',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.normal,
-                              color: Colors.white70,
+                            style: ScText.caption.copyWith(
+                              color: Colors.white.withValues(alpha: 0.8),
                             ),
                           ),
                       ],
@@ -1803,12 +1796,8 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
                     icon: const Icon(Icons.ios_share_rounded, size: 18),
                     label: Text(isKo ? 'PDF 내보내기' : 'Export PDF'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7B1FA2),
+                      backgroundColor: ScColors.infoAccent,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                   ),
                 ),
@@ -1828,72 +1817,110 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
     );
   }
 
-  void _showPaymentBottomSheet() {
+  Future<void> _showPaymentBottomSheet() async {
+    await _checkSubscription();
+    if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
     // Play Store에서 조회한 실제 가격 사용
     final formattedPrice = _iapService.formattedPrice;
 
     showModalBottomSheet(
       context: context,
-      useSafeArea: true,
-      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      backgroundColor: ScColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(ScRadius.lg)),
       ),
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  l10n.paymentTitle,
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                // 상세 리포트 포함 내용
-                Text(l10n.paymentIncludes,
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                _buildPaymentFeatureItem('✨', l10n.paymentItem1),
-                _buildPaymentFeatureItem('⚖️', l10n.paymentItem2),
-                _buildPaymentFeatureItem('🔄', l10n.paymentItem3),
-                _buildPaymentFeatureItem('📄', l10n.paymentItem4),
-                const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context); // Close bottom sheet
-                    _initiatePurchase(); // Start IAP
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7B1FA2),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                ScSpace.lg, ScSpace.lg, ScSpace.lg, ScSpace.lg,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Header — workspace_premium icon + title
+                  Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: ScColors.infoBg,
+                          borderRadius: BorderRadius.circular(ScRadius.md),
+                        ),
+                        child: const Icon(
+                          Icons.workspace_premium_outlined,
+                          size: 28,
+                          color: ScColors.infoAccent,
+                        ),
+                      ),
+                      const SizedBox(width: ScSpace.md),
+                      Expanded(
+                        child: Text(
+                          l10n.paymentTitle,
+                          style: ScText.h2.copyWith(color: ScColors.ink),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: ScSpace.lg),
+                  // Detailed analysis sub-header
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.description_outlined,
+                        size: 20,
+                        color: ScColors.textSec,
+                      ),
+                      const SizedBox(width: ScSpace.sm),
+                      Text(
+                        l10n.paymentIncludes,
+                        style: ScText.h2.copyWith(color: ScColors.ink),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: ScSpace.md),
+                  // 4 item list (이모지 ✨⚖️🔄📄 prefix 제거)
+                  _buildPaymentFeatureItem(l10n.paymentItem1),
+                  _buildPaymentFeatureItem(l10n.paymentItem2),
+                  _buildPaymentFeatureItem(l10n.paymentItem3),
+                  _buildPaymentFeatureItem(l10n.paymentItem4),
+                  const SizedBox(height: ScSpace.xl),
+                  // Pay CTA — Unlock now (DS v0.5 §7.1, theme inherit)
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _initiatePurchase();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ScColors.infoAccent,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: Text(
+                      formattedPrice != null
+                          ? l10n.payButton(formattedPrice)
+                          : l10n.premiumUnlockBtn,
                     ),
                   ),
-                  child: Text(
-                    formattedPrice != null
-                        ? l10n.payButton(formattedPrice)
-                        : l10n.paymentTitle,
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold),
+                  const SizedBox(height: ScSpace.sm),
+                  // Maybe later — Ghost Button §7.17
+                  Center(
+                    child: GhostButton(
+                      label: l10n.paymentLater,
+                      trailingIcon: null,
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    l10n.paymentLater,
-                    style: const TextStyle(color: Colors.grey, fontSize: 14),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -1901,15 +1928,12 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
     );
   }
 
-  Widget _buildPaymentFeatureItem(String emoji, String text) {
+  Widget _buildPaymentFeatureItem(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 16)),
-          const SizedBox(width: 8),
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
-        ],
+      padding: const EdgeInsets.only(bottom: ScSpace.sm),
+      child: Text(
+        text,
+        style: ScText.body.copyWith(color: ScColors.ink),
       ),
     );
   }

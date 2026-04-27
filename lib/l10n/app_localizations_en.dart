@@ -241,10 +241,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get paymentTitle => 'Get Detailed Report';
+  String get paymentTitle => 'Get detailed report';
 
   @override
-  String get paymentIncludes => 'Includes:';
+  String get paymentIncludes => 'Detailed analysis';
 
   @override
   String get paymentItem1 => 'Detailed ingredient benefits';
@@ -263,6 +263,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paymentLater => 'Maybe later';
+
+  @override
+  String paywallTrialBadge(int days) {
+    return 'Trial: $days days left';
+  }
+
+  @override
+  String get paywallTrialUpgradeChip => 'Upgrade to Basic';
+
+  @override
+  String get paywallTrialGenerateTitle => 'Generate detailed report';
+
+  @override
+  String get paywallTrialGenerateSubtitle => 'Powered by AI · Tap to generate';
 
   @override
   String get analysisSavings => 'Monthly savings';
@@ -291,10 +305,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get badgeUlExcess => '⚡ UL Excess';
 
   @override
-  String get detailReportTitle => 'AI Detailed Report';
+  String get detailReportTitle => 'AI detailed report';
 
   @override
-  String get btnBackHome => 'Back to Home';
+  String get btnBackHome => 'Back to home';
 
   @override
   String get loading => 'Analyzing...';
@@ -369,17 +383,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get analysisDetailSubtitle => '📋 Detailed Analysis';
+  String get analysisDetailSubtitle => 'Detailed analysis';
 
   @override
-  String get premiumUnlockTitle => 'Unlock Premium Report';
+  String get premiumUnlockTitle => 'Unlock premium report';
 
   @override
   String get premiumUnlockDesc =>
       'Overlap details · Supplement info · AI recommendations';
 
   @override
-  String get premiumUnlockBtn => 'Unlock Now';
+  String get premiumUnlockBtn => 'Unlock now';
 
   @override
   String get disclaimerAiEstimate =>
@@ -413,7 +427,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String payButton(String price) {
-    return 'Pay $price';
+    return 'Unlock now · $price';
   }
 
   @override

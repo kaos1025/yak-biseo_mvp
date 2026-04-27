@@ -584,6 +584,30 @@ abstract class AppLocalizations {
   /// **'다음에 할게요'**
   String get paymentLater;
 
+  /// No description provided for @paywallTrialBadge.
+  ///
+  /// In ko, this message translates to:
+  /// **'체험: {days}일 남음'**
+  String paywallTrialBadge(int days);
+
+  /// No description provided for @paywallTrialUpgradeChip.
+  ///
+  /// In ko, this message translates to:
+  /// **'Basic 업그레이드'**
+  String get paywallTrialUpgradeChip;
+
+  /// No description provided for @paywallTrialGenerateTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'상세 리포트 생성'**
+  String get paywallTrialGenerateTitle;
+
+  /// No description provided for @paywallTrialGenerateSubtitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'AI 기반 · 탭하여 생성'**
+  String get paywallTrialGenerateSubtitle;
+
   /// No description provided for @analysisSavings.
   ///
   /// In ko, this message translates to:

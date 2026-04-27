@@ -128,6 +128,25 @@ class SubscriptionService {
     }
   }
 
+  /// Trial 잔여일(올림). 활성 trial이 아니면 0.
+  Future<int> trialDaysRemaining() async {
+    if (!_initialized) await initialize();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getString(_cacheKey) != 'basic_trial') return 0;
+      final expiryStr = prefs.getString(_trialExpiryKey);
+      if (expiryStr == null) return 0;
+      final expiry = DateTime.tryParse(expiryStr);
+      if (expiry == null) return 0;
+      final now = DateTime.now();
+      if (!now.isBefore(expiry)) return 0;
+      final remaining = expiry.difference(now);
+      return remaining.inDays + (remaining.inHours % 24 > 0 ? 1 : 0);
+    } catch (_) {
+      return 0;
+    }
+  }
+
   // ── 기능 게이트 헬퍼 ──
 
   Future<bool> canUseMyStack() async => isPaid();
