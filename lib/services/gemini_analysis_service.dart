@@ -443,6 +443,24 @@ Flag when:
 
 IMPORTANT — Folate UL key: When reporting UL data for folate in single_product_ul_excess or ul_at_limit, use ONLY the ingredient key "Folate" regardless of form (5-MTHF, folic acid, folinic acid, L-methylfolate). Do NOT create separate entries like "Folate" and "Folate (5-MTHF)" — they share the same UL of 1000mcg. You may note the specific form in the message field, but the ingredient key must be "Folate" only.
 
+## SINGLE PRODUCT UL EXCESS — INDEPENDENCE RULE (CRITICAL)
+
+Check EVERY product in the stack for Tolerable Upper Intake Level (UL) violations.
+DO NOT skip UL checks because another product triggered a safety_alerts entry.
+DO NOT skip UL checks because the stack already has overlap warnings.
+
+Output single_product_ul_excess[] for EVERY product where a single serving exceeds UL:
+- Magnesium > 350mg from supplements
+- Vitamin A > 3000mcg RAE
+- Vitamin D > 100mcg
+- Vitamin B6 > 100mg
+- Iron > 45mg (non-pregnant adults)
+- Zinc > 40mg
+- Niacin > 35mg
+
+This rule applies REGARDLESS of safety_alerts content. UL checks and safety alerts
+are INDEPENDENT EVALUATIONS.
+
 ## FUNCTIONAL OVERLAP DETECTION (Mechanism of Action)
 
 Beyond identical ingredients, check for FUNCTIONAL OVERLAP -- different ingredients acting on the same biological pathway. This is critical for user safety.
@@ -498,6 +516,19 @@ Flag these ingredients with specific warnings regardless of overlap:
 
 If an ingredient NOT on this list has well-documented safety concerns, flag it anyway.
 
+## SAFETY ALERTS — INDEPENDENCE RULE (CRITICAL)
+
+Each product MUST be evaluated INDEPENDENTLY for safety alerts.
+DO NOT skip checking products for lab test interference, drug-nutrient interactions,
+or contraindications because another product already triggered an alert.
+
+Output safety_alerts[] for EVERY applicable product, including:
+- Lab test interference (e.g. Biotin >=1000mcg -> biotin-streptavidin immunoassay interference)
+- Therapeutic-dose ingredients (e.g. Monacolin K = lovastatin)
+- Drug-nutrient interactions (e.g. Vitamin K + warfarin)
+
+This rule applies REGARDLESS of how many other products in the stack triggered alerts.
+
 ## SPECIAL CATEGORIES
 
 ### Research Chemicals
@@ -530,6 +561,46 @@ NEVER recommend excluding a therapeutic dose product for cost savings.
 CRITICAL: Products flagged as medical_supervision or critical_stop must NEVER be placed in exclusion_recommendation.products_to_remove. Only recommend_remove or conditional_remove tier products are valid removal candidates. If a medical_supervision product overlaps with a regular supplement, always recommend removing the regular supplement, not the therapeutic product.
 
 When calculating monthly_savings, include the monthly_cost_estimate of every product in products_to_remove that has recommend_remove or conditional_remove tier. Do NOT include medical_supervision or critical_stop products in savings calculations.
+
+## EXAMPLES -- INDEPENDENCE RULE ENFORCEMENT
+
+PATTERN: When a stack contains a product with attention-attracting safety alert
+(e.g. Biotin >=1000mcg lab interference) AND another product with UL excess
+(e.g. supplemental Magnesium > 350mg), BOTH must be flagged.
+
+WRONG OUTPUT:
+{
+  "safety_alerts": [{
+    "product": "<biotin product>",
+    "alert_type": "lab_test_interference",
+    "summary": "..."
+  }],
+  "single_product_ul_excess": []
+}
+Reason: AI focused attention on the prominent safety alert and skipped UL evaluation
+on other products. Each evaluation must be independent.
+
+RIGHT OUTPUT:
+{
+  "safety_alerts": [{
+    "product": "<biotin product>",
+    "alert_type": "lab_test_interference",
+    "summary": "..."
+  }],
+  "single_product_ul_excess": [{
+    "product": "<magnesium product>",
+    "ingredient": "Magnesium",
+    "amount": "<value>mg",
+    "ul": "350mg",
+    "severity": "medium",
+    "warning": "Magnesium <value>mg exceeds UL 350mg from supplements"
+  }]
+}
+Reason: Both evaluations performed independently. Biotin alert does not preclude
+checking other products for UL violations.
+
+This pattern applies broadly: any combination of attention-attracting safety_alerts
++ UL excess in the same stack must produce BOTH outputs.
 
 ## OUTPUT FORMAT
 

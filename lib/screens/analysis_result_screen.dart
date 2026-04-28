@@ -1480,7 +1480,10 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen>
   /// 안전성 이슈 배너 (overlaps 또는 UL 초과)
   Widget _buildSafetyIssuesBanner() {
     final issueCount =
-        result.duplicates.length + result.singleProductUlExcess.length;
+        result.safetyAlerts.length + result.singleProductUlExcess.length;
+    if (issueCount == 0) {
+      return const SizedBox.shrink();
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       decoration: BoxDecoration(
