@@ -204,5 +204,77 @@
   "cardRiskSafe": "No duplicate ingredients found",
   "cardRiskWarning": "Some ingredient overlap detected",
   "cardRiskDanger": "Serious ingredient overlap detected",
-  "reanalyzeHint": "Results wrong? Retake photo for fresh analysis"
+  "reanalyzeHint": "Results wrong? Retake photo for fresh analysis",
+  "quickCheckTitle": "Quick Check",
+  "quickCheckNoStackTitle": "No saved stack yet",
+  "quickCheckNoStackHint": "Scan your supplements first to build your stack,\nthen use Quick Check to test new ones.",
+  "quickCheckCurrentStack": "Your current stack: {count} supplements",
+  "@quickCheckCurrentStack": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "quickCheckScanNew": "Scan a new supplement",
+  "quickCheckScanHint": "Take a photo or choose from gallery",
+  "quickCheckCamera": "Camera",
+  "quickCheckGallery": "Gallery",
+  "quickCheckCheckNow": "Check now",
+  "quickCheckChecking": "Checking compatibility...",
+  "quickCheckErrorRetry": "Analysis failed. Please try again.",
+  "quickCheckRetake": "Retake",
+  "quickCheckResultsHeader": "Quick check results",
+  "quickCheckNewIssues": "New issues",
+  "quickCheckExistingIssues": "Existing issues",
+  "quickCheckSafeToAddTitle": "Safe to add",
+  "quickCheckSafeToAddBody": "No new issues detected. This supplement is compatible with your stack.",
+  "quickCheckSynergies": "Synergies",
+  "quickCheckCostImpact": "Cost impact",
+  "quickCheckCostMonthly": "+{amount}/mo",
+  "@quickCheckCostMonthly": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "quickCheckSkip": "Skip",
+  "quickCheckAddToMyStack": "Add to My Stack",
+  "quickCheckSnackAlreadyInStack": "This product is already in your stack",
+  "quickCheckSnackAdded": "Added to My Stack",
+  "quickCheckSnackFailed": "Failed to save",
+  "quickCheckOverlapDetected": "{ingredient}: overlap detected",
+  "@quickCheckOverlapDetected": {
+    "placeholders": {
+      "ingredient": {
+        "type": "String"
+      }
+    }
+  },
+  "quickCheckUlExceeded": "{ingredient}: exceeds UL ({amount} / {ul})",
+  "@quickCheckUlExceeded": {
+    "placeholders": {
+      "ingredient": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "ul": {
+        "type": "String"
+      }
+    }
+  },
+  "quickCheckUlAtPercent": "{ingredient}: now at {percent}% UL",
+  "@quickCheckUlAtPercent": {
+    "placeholders": {
+      "ingredient": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  }
 }

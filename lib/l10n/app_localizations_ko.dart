@@ -438,4 +438,99 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reanalyzeHint => '결과가 다르다면 다시 촬영해 보세요';
+
+  @override
+  String get quickCheckTitle => 'Quick Check';
+
+  @override
+  String get quickCheckNoStackTitle => '저장된 약통이 없어요';
+
+  @override
+  String get quickCheckNoStackHint =>
+      '먼저 영양제를 분석해 약통을 만든 후,\nQuick Check로 새 영양제를 확인하세요.';
+
+  @override
+  String quickCheckCurrentStack(int count) {
+    return '현재 약통: 영양제 $count종';
+  }
+
+  @override
+  String get quickCheckScanNew => '새 영양제 스캔하기';
+
+  @override
+  String get quickCheckScanHint => '사진을 찍거나 갤러리에서 선택하세요';
+
+  @override
+  String get quickCheckCamera => '카메라';
+
+  @override
+  String get quickCheckGallery => '갤러리';
+
+  @override
+  String get quickCheckCheckNow => '지금 확인하기';
+
+  @override
+  String get quickCheckChecking => '호환성 확인 중...';
+
+  @override
+  String get quickCheckErrorRetry => '분석에 실패했습니다. 다시 시도해주세요.';
+
+  @override
+  String get quickCheckRetake => '다시 찍기';
+
+  @override
+  String get quickCheckResultsHeader => 'Quick check 결과';
+
+  @override
+  String get quickCheckNewIssues => '새로 발생한 문제';
+
+  @override
+  String get quickCheckExistingIssues => '기존 문제 악화';
+
+  @override
+  String get quickCheckSafeToAddTitle => '추가해도 안전해요';
+
+  @override
+  String get quickCheckSafeToAddBody => '새로 발생하는 문제가 없습니다. 약통과 잘 어울려요.';
+
+  @override
+  String get quickCheckSynergies => '시너지';
+
+  @override
+  String get quickCheckCostImpact => '비용 변화';
+
+  @override
+  String quickCheckCostMonthly(String amount) {
+    return '+$amount/월';
+  }
+
+  @override
+  String get quickCheckSkip => '건너뛰기';
+
+  @override
+  String get quickCheckAddToMyStack => '약통에 추가하기';
+
+  @override
+  String get quickCheckSnackAlreadyInStack => '이 제품은 이미 약통에 있어요';
+
+  @override
+  String get quickCheckSnackAdded => '약통에 추가되었습니다';
+
+  @override
+  String get quickCheckSnackFailed => '저장에 실패했습니다';
+
+  @override
+  String quickCheckOverlapDetected(String ingredient) {
+    return '$ingredient: 중복 발견';
+  }
+
+  @override
+  String quickCheckUlExceeded(String ingredient, String amount, String ul) {
+    return '$ingredient: 상한 초과 ($amount / $ul)';
+  }
+
+  @override
+  String quickCheckUlAtPercent(String ingredient, int percent) {
+    return '$ingredient: 현재 상한의 $percent%';
+  }
 }

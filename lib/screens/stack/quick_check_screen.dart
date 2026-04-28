@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:myapp/l10n/app_localizations.dart';
 import 'package:myapp/models/saved_product.dart';
 import 'package:myapp/models/saved_stack.dart';
 import 'package:myapp/models/supplecut_analysis_result.dart';
@@ -10,7 +11,7 @@ import 'package:myapp/screens/subscription/paywall_screen.dart';
 import 'package:myapp/services/gemini_analysis_service.dart';
 import 'package:myapp/services/stack_service.dart';
 import 'package:myapp/services/subscription_service.dart';
-import 'package:myapp/theme/app_theme.dart';
+import 'package:myapp/theme/supplecut_tokens.dart';
 
 class QuickCheckScreen extends StatefulWidget {
   const QuickCheckScreen({super.key});
@@ -31,7 +32,6 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
   bool _isLoading = true;
   bool _isAnalyzing = false;
 
-  // 분석 결과
   SuppleCutAnalysisResult? _result;
   String? _errorMessage;
 
@@ -104,8 +104,9 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
-          _errorMessage = 'Analysis failed. Please try again.';
+          _errorMessage = l10n.quickCheckErrorRetry;
           _isAnalyzing = false;
         });
       }
@@ -114,10 +115,10 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
 
   Future<void> _addToStack() async {
     if (_result == null || _stack == null) return;
+    final l10n = AppLocalizations.of(context)!;
 
-    final existingNames = _stack!.products
-        .map((p) => p.name.trim().toLowerCase())
-        .toSet();
+    final existingNames =
+        _stack!.products.map((p) => p.name.trim().toLowerCase()).toSet();
 
     final newProducts = _result!.products
         .where((p) => !existingNames.contains(p.name.trim().toLowerCase()))
@@ -131,9 +132,9 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
     if (newProducts.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('This product is already in your stack'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(l10n.quickCheckSnackAlreadyInStack),
+            duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -152,9 +153,9 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
       await _stackService.saveStack(updatedStack);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Added to My Stack ✓'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(l10n.quickCheckSnackAdded),
+            duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -163,7 +164,7 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save.')),
+          SnackBar(content: Text(l10n.quickCheckSnackFailed)),
         );
       }
     }
@@ -171,42 +172,49 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: ScColors.surface2,
       appBar: AppBar(
-        title: const Text('Quick Check'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        title: Text(l10n.quickCheckTitle),
+        backgroundColor: ScColors.surface2,
+        foregroundColor: ScColors.ink,
         elevation: 0,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(color: ScColors.brand),
+            )
           : _stack == null
-              ? _buildNoStackState()
-              : _buildContent(),
+              ? _buildNoStackState(l10n)
+              : _buildContent(l10n),
     );
   }
 
-  Widget _buildNoStackState() {
-    return const Center(
+  // ── 분기 1: 저장된 스택 없음 ──
+
+  Widget _buildNoStackState(AppLocalizations l10n) {
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(32),
+        padding: const EdgeInsets.all(ScSpace.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.inventory_2_outlined, size: 64, color: Colors.black26),
-            SizedBox(height: 16),
-            Text(
-              'No saved stack yet',
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87),
+            const Icon(
+              Icons.inventory_2_outlined,
+              size: 64,
+              color: ScColors.textTer,
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: ScSpace.lg),
             Text(
-              'Scan your supplements first to build your stack,\nthen use Quick Check to test new ones.',
-              style: TextStyle(fontSize: 14, color: Colors.black54),
+              l10n.quickCheckNoStackTitle,
+              style: ScText.h1.copyWith(color: ScColors.ink),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: ScSpace.sm),
+            Text(
+              l10n.quickCheckNoStackHint,
+              style: ScText.body.copyWith(color: ScColors.textSec),
               textAlign: TextAlign.center,
             ),
           ],
@@ -215,25 +223,27 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
     );
   }
 
-  Widget _buildContent() {
+  // ── 분기 2: 본문 (empty / captured / result) ──
+
+  Widget _buildContent(AppLocalizations l10n) {
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(ScSpace.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildStackSummary(),
-            const SizedBox(height: 16),
-            _buildCaptureArea(),
-            const SizedBox(height: 16),
+            _buildStackSummary(l10n),
+            const SizedBox(height: ScSpace.lg),
+            _buildCaptureArea(l10n),
+            const SizedBox(height: ScSpace.lg),
             if (_capturedImage != null && _result == null && !_isAnalyzing)
-              _buildCheckButton(),
-            if (_isAnalyzing) _buildAnalyzingIndicator(),
+              _buildCheckButton(l10n),
+            if (_isAnalyzing) _buildAnalyzingIndicator(l10n),
             if (_errorMessage != null) _buildError(),
             if (_result != null) ...[
-              _buildDiffResults(),
-              const SizedBox(height: 16),
-              _buildResultActions(),
+              _buildDiffResults(l10n),
+              const SizedBox(height: ScSpace.lg),
+              _buildResultActions(l10n),
             ],
           ],
         ),
@@ -241,41 +251,51 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
     );
   }
 
-  // ── 상단: 기존 스택 요약 ──
+  // ── 상단: 기존 스택 요약 (BL-44 D1=A — chip text overflow fix) ──
 
-  Widget _buildStackSummary() {
+  Widget _buildStackSummary(AppLocalizations l10n) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(ScSpace.lg),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: ScColors.surface,
+        borderRadius: BorderRadius.circular(ScRadius.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Your current stack: ${_stack!.products.length} supplements',
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
+            l10n.quickCheckCurrentStack(_stack!.products.length),
+            style: ScText.h2.copyWith(color: ScColors.ink),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: ScSpace.sm),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: _stack!.products.map((p) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: Chip(
-                    label: Text(p.name, style: const TextStyle(fontSize: 12)),
-                    backgroundColor: const Color(0xFFF1F8E9),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: VisualDensity.compact,
-                  ),
-                );
-              }).toList(),
+              children: _stack!.products
+                  .map(
+                    (p) => Padding(
+                      padding: const EdgeInsets.only(right: ScSpace.xs),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 220),
+                        child: Chip(
+                          label: Text(
+                            p.name,
+                            style: ScText.caption
+                                .copyWith(color: ScColors.ink),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          backgroundColor: ScColors.brandTint,
+                          side: BorderSide.none,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                          elevation: 0,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
           ),
         ],
@@ -283,20 +303,21 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
     );
   }
 
-  // ── 중앙: 사진 촬영 영역 ──
+  // ── 중앙: 사진 촬영 영역 (empty 드롭존 / captured 프리뷰) ──
 
-  Widget _buildCaptureArea() {
+  Widget _buildCaptureArea(AppLocalizations l10n) {
     if (_capturedImage != null) {
       return Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          color: ScColors.surface,
+          borderRadius: BorderRadius.circular(ScRadius.md),
         ),
         child: Column(
           children: [
             ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(ScRadius.md),
+              ),
               child: Image.file(
                 File(_capturedImage!.path),
                 height: 200,
@@ -305,7 +326,7 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(ScSpace.sm),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -313,16 +334,33 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
                     onPressed: _isAnalyzing
                         ? null
                         : () => _capturePhoto(source: ImageSource.camera),
-                    icon: const Icon(Icons.camera_alt, size: 18),
-                    label: const Text('Re-take'),
+                    icon: const Icon(
+                      Icons.camera_alt_outlined,
+                      size: 18,
+                      color: ScColors.brand,
+                    ),
+                    label: Text(
+                      l10n.quickCheckRetake,
+                      style:
+                          ScText.caption.copyWith(color: ScColors.brand),
+                    ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: ScSpace.lg),
                   TextButton.icon(
                     onPressed: _isAnalyzing
                         ? null
-                        : () => _capturePhoto(source: ImageSource.gallery),
-                    icon: const Icon(Icons.photo_library, size: 18),
-                    label: const Text('Gallery'),
+                        : () =>
+                            _capturePhoto(source: ImageSource.gallery),
+                    icon: const Icon(
+                      Icons.photo_library_outlined,
+                      size: 18,
+                      color: ScColors.brand,
+                    ),
+                    label: Text(
+                      l10n.quickCheckGallery,
+                      style:
+                          ScText.caption.copyWith(color: ScColors.brand),
+                    ),
                   ),
                 ],
               ),
@@ -333,37 +371,32 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
     }
 
     return GestureDetector(
-      onTap: () => _showImageSourceDialog(),
+      onTap: _showImageSourceDialog,
       child: Container(
         height: 180,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppTheme.primaryColor.withValues(alpha: 0.3),
-            width: 2,
-            strokeAlign: BorderSide.strokeAlignInside,
-          ),
+          color: ScColors.brandTint,
+          borderRadius: BorderRadius.circular(ScRadius.md),
+          border: Border.all(color: ScColors.border, width: 1.5),
         ),
-        child: const Center(
+        child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.camera_alt_rounded,
-                  size: 48, color: AppTheme.primaryColor),
-              SizedBox(height: 12),
-              Text(
-                '📸 Scan a new supplement',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
+              const Icon(
+                Icons.camera_alt_outlined,
+                size: 48,
+                color: ScColors.brand,
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: ScSpace.md),
               Text(
-                'Take a photo or choose from gallery',
-                style: TextStyle(fontSize: 13, color: Colors.black45),
+                l10n.quickCheckScanNew,
+                style: ScText.h2.copyWith(color: ScColors.ink),
+              ),
+              const SizedBox(height: ScSpace.xs),
+              Text(
+                l10n.quickCheckScanHint,
+                style: ScText.caption.copyWith(color: ScColors.textSec),
               ),
             ],
           ),
@@ -373,23 +406,37 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
   }
 
   void _showImageSourceDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
+      backgroundColor: ScColors.surface,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Camera'),
+              leading: const Icon(
+                Icons.camera_alt_outlined,
+                color: ScColors.ink,
+              ),
+              title: Text(
+                l10n.quickCheckCamera,
+                style: ScText.body.copyWith(color: ScColors.ink),
+              ),
               onTap: () {
                 Navigator.pop(ctx);
                 _capturePhoto(source: ImageSource.camera);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Gallery'),
+              leading: const Icon(
+                Icons.photo_library_outlined,
+                color: ScColors.ink,
+              ),
+              title: Text(
+                l10n.quickCheckGallery,
+                style: ScText.body.copyWith(color: ScColors.ink),
+              ),
               onTap: () {
                 Navigator.pop(ctx);
                 _capturePhoto(source: ImageSource.gallery);
@@ -403,39 +450,40 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
 
   // ── Check 버튼 ──
 
-  Widget _buildCheckButton() {
+  Widget _buildCheckButton(AppLocalizations l10n) {
     return SizedBox(
-      height: 52,
+      height: ScTouch.primaryCta,
       child: ElevatedButton.icon(
         onPressed: _runQuickCheck,
-        icon: const Text('⚡', style: TextStyle(fontSize: 18)),
-        label: const Text('Check Now'),
+        icon: const Icon(Icons.bolt_outlined, size: 20),
+        label: Text(l10n.quickCheckCheckNow),
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.primaryColor,
-          foregroundColor: Colors.white,
+          backgroundColor: ScColors.brand,
+          foregroundColor: ScColors.surface,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(ScRadius.md),
           ),
-          textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+          textStyle: ScText.h2,
+          elevation: 0,
         ),
       ),
     );
   }
 
-  Widget _buildAnalyzingIndicator() {
+  Widget _buildAnalyzingIndicator(AppLocalizations l10n) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(ScSpace.xl),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: ScColors.surface,
+        borderRadius: BorderRadius.circular(ScRadius.md),
       ),
-      child: const Column(
+      child: Column(
         children: [
-          CircularProgressIndicator(),
-          SizedBox(height: 16),
+          const CircularProgressIndicator(color: ScColors.brand),
+          const SizedBox(height: ScSpace.lg),
           Text(
-            'Checking compatibility...',
-            style: TextStyle(fontSize: 15, color: Colors.black54),
+            l10n.quickCheckChecking,
+            style: ScText.body.copyWith(color: ScColors.textSec),
           ),
         ],
       ),
@@ -444,19 +492,19 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
 
   Widget _buildError() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(ScSpace.lg),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFEBEE),
-        borderRadius: BorderRadius.circular(12),
+        color: ScColors.dangerBg,
+        borderRadius: BorderRadius.circular(ScRadius.md),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, color: Colors.red),
-          const SizedBox(width: 12),
+          const Icon(Icons.error_outline, color: ScColors.dangerAccent),
+          const SizedBox(width: ScSpace.md),
           Expanded(
             child: Text(
               _errorMessage!,
-              style: const TextStyle(color: Colors.red),
+              style: ScText.body.copyWith(color: ScColors.dangerText),
             ),
           ),
         ],
@@ -464,9 +512,9 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
     );
   }
 
-  // ── Diff 결과 ──
+  // ── Diff 결과 — 5섹션 additive Column (PATCH-15) ──
 
-  Widget _buildDiffResults() {
+  Widget _buildDiffResults(AppLocalizations l10n) {
     final hasNewIssues = _result!.duplicates.isNotEmpty ||
         _result!.singleProductUlExcess.isNotEmpty ||
         _result!.safetyAlerts.isNotEmpty;
@@ -480,161 +528,168 @@ class _QuickCheckScreenState extends State<QuickCheckScreen> {
       (sum, p) => sum + p.monthlyCostUsd,
     );
 
+    final sections = <Widget>[];
+
+    if (hasNewIssues) {
+      sections.add(_buildDiffSection(
+        icon: Icons.warning_amber_outlined,
+        accent: ScColors.dangerAccent,
+        title: l10n.quickCheckNewIssues,
+        items: [
+          ..._result!.duplicates
+              .map((d) => l10n.quickCheckOverlapDetected(d.ingredient)),
+          ..._result!.singleProductUlExcess.map(
+            (u) => l10n.quickCheckUlExceeded(u.ingredient, u.amount, u.ul),
+          ),
+          ..._result!.safetyAlerts.map((a) => a.summary),
+        ],
+      ));
+    }
+
+    if (hasExistingIssues) {
+      sections.add(_buildDiffSection(
+        icon: Icons.priority_high,
+        accent: ScColors.warnAccent,
+        title: l10n.quickCheckExistingIssues,
+        items: _result!.ulAtLimit
+            .map(
+              (u) => l10n.quickCheckUlAtPercent(
+                u.ingredient,
+                u.percentageOfUl.round(),
+              ),
+            )
+            .toList(),
+      ));
+    }
+
+    if (isSafe) {
+      sections.add(_buildDiffSection(
+        icon: Icons.check_circle_outline,
+        accent: ScColors.brand,
+        title: l10n.quickCheckSafeToAddTitle,
+        items: [l10n.quickCheckSafeToAddBody],
+      ));
+    }
+
+    if (hasSynergies) {
+      sections.add(_buildDiffSection(
+        icon: Icons.auto_awesome_outlined,
+        accent: ScColors.warnAccent,
+        title: l10n.quickCheckSynergies,
+        items: _result!.functionalOverlaps
+            .where((fo) => fo.severity == 'low')
+            .map((fo) => fo.warning)
+            .toList(),
+      ));
+    }
+
+    if (totalNewCost > 0) {
+      sections.add(_buildDiffSection(
+        icon: Icons.savings_outlined,
+        accent: ScColors.warnAccent,
+        title: l10n.quickCheckCostImpact,
+        items: [
+          l10n.quickCheckCostMonthly(totalNewCost.toStringAsFixed(2)),
+        ],
+      ));
+    }
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(ScSpace.lg),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: ScColors.surface,
+        borderRadius: BorderRadius.circular(ScRadius.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Quick Check Results',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+          Text(
+            l10n.quickCheckResultsHeader,
+            style: ScText.h2.copyWith(color: ScColors.ink),
           ),
-          const SizedBox(height: 16),
-
-          // 🔴 New Issues
-          if (hasNewIssues) ...[
-            _buildDiffSection(
-              '🔴',
-              'New Issues',
-              Colors.red,
-              [
-                ..._result!.duplicates
-                    .map((d) => '${d.ingredient}: overlap detected'),
-                ..._result!.singleProductUlExcess.map((u) =>
-                    '${u.ingredient}: exceeds UL (${u.amount} / ${u.ul})'),
-                ..._result!.safetyAlerts.map((a) => a.summary),
-              ],
-            ),
-            const SizedBox(height: 12),
-          ],
-
-          // 🟡 Existing Issues worsened
-          if (hasExistingIssues) ...[
-            _buildDiffSection(
-              '🟡',
-              'Existing Issues',
-              Colors.orange,
-              _result!.ulAtLimit
-                  .map((u) =>
-                      '${u.ingredient}: now at ${u.percentageOfUl.round()}% UL')
-                  .toList(),
-            ),
-            const SizedBox(height: 12),
-          ],
-
-          // 🟢 Safe to Add
-          if (isSafe)
-            _buildDiffSection(
-              '🟢',
-              'Safe to Add',
-              AppTheme.primaryColor,
-              [
-                'No new issues detected. This supplement is compatible with your stack.'
-              ],
-            ),
-
-          // ⭐ Synergies
-          if (hasSynergies) ...[
-            const SizedBox(height: 12),
-            _buildDiffSection(
-              '⭐',
-              'Synergies',
-              const Color(0xFFF9A825),
-              _result!.functionalOverlaps
-                  .where((fo) => fo.severity == 'low')
-                  .map((fo) => fo.warning)
-                  .toList(),
-            ),
-          ],
-
-          // 💰 Cost Impact
-          if (totalNewCost > 0) ...[
-            const SizedBox(height: 12),
-            _buildDiffSection(
-              '💰',
-              'Cost Impact',
-              Colors.blueGrey,
-              ['+\$${totalNewCost.toStringAsFixed(2)}/mo'],
-            ),
+          const SizedBox(height: ScSpace.lg),
+          for (var i = 0; i < sections.length; i++) ...[
+            sections[i],
+            if (i < sections.length - 1)
+              const SizedBox(height: ScSpace.md),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildDiffSection(
-      String emoji, String title, Color color, List<String> items) {
+  Widget _buildDiffSection({
+    required IconData icon,
+    required Color accent,
+    required String title,
+    required List<String> items,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 18)),
-            const SizedBox(width: 8),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
+            Icon(icon, size: 20, color: accent),
+            const SizedBox(width: ScSpace.sm),
+            Text(title, style: ScText.h2.copyWith(color: accent)),
           ],
         ),
-        const SizedBox(height: 6),
-        ...items.map((item) => Padding(
-              padding: const EdgeInsets.only(left: 30, bottom: 4),
-              child: Text(
-                item,
-                style: const TextStyle(fontSize: 14, color: Colors.black87),
-              ),
-            )),
+        const SizedBox(height: ScSpace.xs),
+        ...items.map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(
+              left: 28,
+              bottom: ScSpace.xs,
+            ),
+            child: Text(
+              item,
+              style: ScText.body.copyWith(color: ScColors.ink),
+            ),
+          ),
+        ),
       ],
     );
   }
 
   // ── 결과 하단 액션 ──
 
-  Widget _buildResultActions() {
+  Widget _buildResultActions(AppLocalizations l10n) {
     return Row(
       children: [
         Expanded(
-          child: OutlinedButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.black54,
-              side: const BorderSide(color: Colors.black26),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            height: ScTouch.primaryCta,
+            child: OutlinedButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: ScColors.textSec,
+                side: const BorderSide(color: ScColors.border),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(ScRadius.md),
+                ),
+                textStyle: ScText.body,
               ),
+              child: Text(l10n.quickCheckSkip),
             ),
-            child: const Text('Skip', style: TextStyle(fontSize: 16)),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: ScSpace.md),
         Expanded(
-          child: ElevatedButton.icon(
-            onPressed: _addToStack,
-            icon: const Icon(Icons.add, size: 20),
-            label: const Text('Add to My Stack'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            height: ScTouch.primaryCta,
+            child: ElevatedButton.icon(
+              onPressed: _addToStack,
+              icon: const Icon(Icons.add, size: 20),
+              label: Text(l10n.quickCheckAddToMyStack),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ScColors.brand,
+                foregroundColor: ScColors.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(ScRadius.md),
+                ),
+                textStyle: ScText.body,
+                elevation: 0,
               ),
-              textStyle:
-                  const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ),
         ),

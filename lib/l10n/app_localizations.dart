@@ -907,6 +907,174 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'결과가 다르다면 다시 촬영해 보세요'**
   String get reanalyzeHint;
+
+  /// No description provided for @quickCheckTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'Quick Check'**
+  String get quickCheckTitle;
+
+  /// No description provided for @quickCheckNoStackTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'저장된 약통이 없어요'**
+  String get quickCheckNoStackTitle;
+
+  /// No description provided for @quickCheckNoStackHint.
+  ///
+  /// In ko, this message translates to:
+  /// **'먼저 영양제를 분석해 약통을 만든 후,\nQuick Check로 새 영양제를 확인하세요.'**
+  String get quickCheckNoStackHint;
+
+  /// No description provided for @quickCheckCurrentStack.
+  ///
+  /// In ko, this message translates to:
+  /// **'현재 약통: 영양제 {count}종'**
+  String quickCheckCurrentStack(int count);
+
+  /// No description provided for @quickCheckScanNew.
+  ///
+  /// In ko, this message translates to:
+  /// **'새 영양제 스캔하기'**
+  String get quickCheckScanNew;
+
+  /// No description provided for @quickCheckScanHint.
+  ///
+  /// In ko, this message translates to:
+  /// **'사진을 찍거나 갤러리에서 선택하세요'**
+  String get quickCheckScanHint;
+
+  /// No description provided for @quickCheckCamera.
+  ///
+  /// In ko, this message translates to:
+  /// **'카메라'**
+  String get quickCheckCamera;
+
+  /// No description provided for @quickCheckGallery.
+  ///
+  /// In ko, this message translates to:
+  /// **'갤러리'**
+  String get quickCheckGallery;
+
+  /// No description provided for @quickCheckCheckNow.
+  ///
+  /// In ko, this message translates to:
+  /// **'지금 확인하기'**
+  String get quickCheckCheckNow;
+
+  /// No description provided for @quickCheckChecking.
+  ///
+  /// In ko, this message translates to:
+  /// **'호환성 확인 중...'**
+  String get quickCheckChecking;
+
+  /// No description provided for @quickCheckErrorRetry.
+  ///
+  /// In ko, this message translates to:
+  /// **'분석에 실패했습니다. 다시 시도해주세요.'**
+  String get quickCheckErrorRetry;
+
+  /// No description provided for @quickCheckRetake.
+  ///
+  /// In ko, this message translates to:
+  /// **'다시 찍기'**
+  String get quickCheckRetake;
+
+  /// No description provided for @quickCheckResultsHeader.
+  ///
+  /// In ko, this message translates to:
+  /// **'Quick check 결과'**
+  String get quickCheckResultsHeader;
+
+  /// No description provided for @quickCheckNewIssues.
+  ///
+  /// In ko, this message translates to:
+  /// **'새로 발생한 문제'**
+  String get quickCheckNewIssues;
+
+  /// No description provided for @quickCheckExistingIssues.
+  ///
+  /// In ko, this message translates to:
+  /// **'기존 문제 악화'**
+  String get quickCheckExistingIssues;
+
+  /// No description provided for @quickCheckSafeToAddTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'추가해도 안전해요'**
+  String get quickCheckSafeToAddTitle;
+
+  /// No description provided for @quickCheckSafeToAddBody.
+  ///
+  /// In ko, this message translates to:
+  /// **'새로 발생하는 문제가 없습니다. 약통과 잘 어울려요.'**
+  String get quickCheckSafeToAddBody;
+
+  /// No description provided for @quickCheckSynergies.
+  ///
+  /// In ko, this message translates to:
+  /// **'시너지'**
+  String get quickCheckSynergies;
+
+  /// No description provided for @quickCheckCostImpact.
+  ///
+  /// In ko, this message translates to:
+  /// **'비용 변화'**
+  String get quickCheckCostImpact;
+
+  /// No description provided for @quickCheckCostMonthly.
+  ///
+  /// In ko, this message translates to:
+  /// **'+{amount}/월'**
+  String quickCheckCostMonthly(String amount);
+
+  /// No description provided for @quickCheckSkip.
+  ///
+  /// In ko, this message translates to:
+  /// **'건너뛰기'**
+  String get quickCheckSkip;
+
+  /// No description provided for @quickCheckAddToMyStack.
+  ///
+  /// In ko, this message translates to:
+  /// **'약통에 추가하기'**
+  String get quickCheckAddToMyStack;
+
+  /// No description provided for @quickCheckSnackAlreadyInStack.
+  ///
+  /// In ko, this message translates to:
+  /// **'이 제품은 이미 약통에 있어요'**
+  String get quickCheckSnackAlreadyInStack;
+
+  /// No description provided for @quickCheckSnackAdded.
+  ///
+  /// In ko, this message translates to:
+  /// **'약통에 추가되었습니다'**
+  String get quickCheckSnackAdded;
+
+  /// No description provided for @quickCheckSnackFailed.
+  ///
+  /// In ko, this message translates to:
+  /// **'저장에 실패했습니다'**
+  String get quickCheckSnackFailed;
+
+  /// No description provided for @quickCheckOverlapDetected.
+  ///
+  /// In ko, this message translates to:
+  /// **'{ingredient}: 중복 발견'**
+  String quickCheckOverlapDetected(String ingredient);
+
+  /// No description provided for @quickCheckUlExceeded.
+  ///
+  /// In ko, this message translates to:
+  /// **'{ingredient}: 상한 초과 ({amount} / {ul})'**
+  String quickCheckUlExceeded(String ingredient, String amount, String ul);
+
+  /// No description provided for @quickCheckUlAtPercent.
+  ///
+  /// In ko, this message translates to:
+  /// **'{ingredient}: 현재 상한의 {percent}%'**
+  String quickCheckUlAtPercent(String ingredient, int percent);
 }
 
 class _AppLocalizationsDelegate

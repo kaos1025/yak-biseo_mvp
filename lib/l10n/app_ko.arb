@@ -204,5 +204,77 @@
   "cardRiskSafe": "중복 성분이 없습니다 ✅",
   "cardRiskWarning": "일부 성분 중복이 확인되었습니다 ⚠️",
   "cardRiskDanger": "심각한 성분 중복이 확인되었습니다 🚨",
-  "reanalyzeHint": "결과가 다르다면 다시 촬영해 보세요"
+  "reanalyzeHint": "결과가 다르다면 다시 촬영해 보세요",
+  "quickCheckTitle": "Quick Check",
+  "quickCheckNoStackTitle": "저장된 약통이 없어요",
+  "quickCheckNoStackHint": "먼저 영양제를 분석해 약통을 만든 후,\nQuick Check로 새 영양제를 확인하세요.",
+  "quickCheckCurrentStack": "현재 약통: 영양제 {count}종",
+  "@quickCheckCurrentStack": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "quickCheckScanNew": "새 영양제 스캔하기",
+  "quickCheckScanHint": "사진을 찍거나 갤러리에서 선택하세요",
+  "quickCheckCamera": "카메라",
+  "quickCheckGallery": "갤러리",
+  "quickCheckCheckNow": "지금 확인하기",
+  "quickCheckChecking": "호환성 확인 중...",
+  "quickCheckErrorRetry": "분석에 실패했습니다. 다시 시도해주세요.",
+  "quickCheckRetake": "다시 찍기",
+  "quickCheckResultsHeader": "Quick check 결과",
+  "quickCheckNewIssues": "새로 발생한 문제",
+  "quickCheckExistingIssues": "기존 문제 악화",
+  "quickCheckSafeToAddTitle": "추가해도 안전해요",
+  "quickCheckSafeToAddBody": "새로 발생하는 문제가 없습니다. 약통과 잘 어울려요.",
+  "quickCheckSynergies": "시너지",
+  "quickCheckCostImpact": "비용 변화",
+  "quickCheckCostMonthly": "+{amount}/월",
+  "@quickCheckCostMonthly": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "quickCheckSkip": "건너뛰기",
+  "quickCheckAddToMyStack": "약통에 추가하기",
+  "quickCheckSnackAlreadyInStack": "이 제품은 이미 약통에 있어요",
+  "quickCheckSnackAdded": "약통에 추가되었습니다",
+  "quickCheckSnackFailed": "저장에 실패했습니다",
+  "quickCheckOverlapDetected": "{ingredient}: 중복 발견",
+  "@quickCheckOverlapDetected": {
+    "placeholders": {
+      "ingredient": {
+        "type": "String"
+      }
+    }
+  },
+  "quickCheckUlExceeded": "{ingredient}: 상한 초과 ({amount} / {ul})",
+  "@quickCheckUlExceeded": {
+    "placeholders": {
+      "ingredient": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "ul": {
+        "type": "String"
+      }
+    }
+  },
+  "quickCheckUlAtPercent": "{ingredient}: 현재 상한의 {percent}%",
+  "@quickCheckUlAtPercent": {
+    "placeholders": {
+      "ingredient": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  }
 }

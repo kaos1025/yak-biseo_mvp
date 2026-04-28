@@ -446,4 +446,101 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reanalyzeHint => 'Results wrong? Retake photo for fresh analysis';
+
+  @override
+  String get quickCheckTitle => 'Quick Check';
+
+  @override
+  String get quickCheckNoStackTitle => 'No saved stack yet';
+
+  @override
+  String get quickCheckNoStackHint =>
+      'Scan your supplements first to build your stack,\nthen use Quick Check to test new ones.';
+
+  @override
+  String quickCheckCurrentStack(int count) {
+    return 'Your current stack: $count supplements';
+  }
+
+  @override
+  String get quickCheckScanNew => 'Scan a new supplement';
+
+  @override
+  String get quickCheckScanHint => 'Take a photo or choose from gallery';
+
+  @override
+  String get quickCheckCamera => 'Camera';
+
+  @override
+  String get quickCheckGallery => 'Gallery';
+
+  @override
+  String get quickCheckCheckNow => 'Check now';
+
+  @override
+  String get quickCheckChecking => 'Checking compatibility...';
+
+  @override
+  String get quickCheckErrorRetry => 'Analysis failed. Please try again.';
+
+  @override
+  String get quickCheckRetake => 'Retake';
+
+  @override
+  String get quickCheckResultsHeader => 'Quick check results';
+
+  @override
+  String get quickCheckNewIssues => 'New issues';
+
+  @override
+  String get quickCheckExistingIssues => 'Existing issues';
+
+  @override
+  String get quickCheckSafeToAddTitle => 'Safe to add';
+
+  @override
+  String get quickCheckSafeToAddBody =>
+      'No new issues detected. This supplement is compatible with your stack.';
+
+  @override
+  String get quickCheckSynergies => 'Synergies';
+
+  @override
+  String get quickCheckCostImpact => 'Cost impact';
+
+  @override
+  String quickCheckCostMonthly(String amount) {
+    return '+$amount/mo';
+  }
+
+  @override
+  String get quickCheckSkip => 'Skip';
+
+  @override
+  String get quickCheckAddToMyStack => 'Add to My Stack';
+
+  @override
+  String get quickCheckSnackAlreadyInStack =>
+      'This product is already in your stack';
+
+  @override
+  String get quickCheckSnackAdded => 'Added to My Stack';
+
+  @override
+  String get quickCheckSnackFailed => 'Failed to save';
+
+  @override
+  String quickCheckOverlapDetected(String ingredient) {
+    return '$ingredient: overlap detected';
+  }
+
+  @override
+  String quickCheckUlExceeded(String ingredient, String amount, String ul) {
+    return '$ingredient: exceeds UL ($amount / $ul)';
+  }
+
+  @override
+  String quickCheckUlAtPercent(String ingredient, int percent) {
+    return '$ingredient: now at $percent% UL';
+  }
 }
